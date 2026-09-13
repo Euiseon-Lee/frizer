@@ -10,7 +10,7 @@ logging:
   level:
     root: INFO
     org.apache.ibatis: WARN
-    com.example.frizer: INFO
+    com.euiseon.friger: INFO
 
 server:
   error:

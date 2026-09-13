@@ -1,0 +1,402 @@
+[
+  {
+    "key": "home-hero",
+    "path": "assets/choco/home-hero.png",
+    "original_filename": "KakaoTalk_20260913_142517829_06.png",
+    "role": "홈 히어로",
+    "description": "가로로 누워 웃는 모습",
+    "notes": "잔디와 초록 경계가 남아 있음. 크림 배경에서 원본 크기 이상 확대하지 않기.",
+    "width": 889,
+    "height": 663,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "51c2583f73d8d19ced195505312ad697feb9b43dd051189858e9b3c354718f5d"
+  },
+  {
+    "key": "profile",
+    "path": "assets/choco/profile.png",
+    "original_filename": "KakaoTalk_20260913_142517829_01.png",
+    "role": "대표 얼굴·프로필",
+    "description": "정면 얼굴",
+    "notes": "귀를 보존하고 원형 마스크 적용 시 얼굴 중심 확인.",
+    "width": 1993,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "98088950b6a873e009a920f1dbc932e391203d0fff2305f5bf7d08f7b9ec3ddf"
+  },
+  {
+    "key": "add-food",
+    "path": "assets/choco/add-food.png",
+    "original_filename": "KakaoTalk_20260913_142517829_07.png",
+    "role": "음식 등록·환영",
+    "description": "정면으로 다가오는 전신",
+    "notes": "세로로 긴 사진. 작은 아이콘보다는 등록 안내에 사용.",
+    "width": 745,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "3f99d137d908713976bbade08c797b4ec58d0e8b354fbc906039ede9ad5a9d0e"
+  },
+  {
+    "key": "success",
+    "path": "assets/choco/success.png",
+    "original_filename": "KakaoTalk_20260913_142517829_04.png",
+    "role": "등록·소비 완료",
+    "description": "혀를 내밀고 누운 모습",
+    "notes": "사람 손이 남아 있음. 이미지가 불편하면 profile로 대체 가능.",
+    "width": 1614,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "54207c09816dc0edfe7ecc05b600b7c9197f56dcd48b05bd3517b87b395e5fc7"
+  },
+  {
+    "key": "attention",
+    "path": "assets/choco/attention.png",
+    "original_filename": "KakaoTalk_20260913_142517829_02.png",
+    "role": "확인 필요",
+    "description": "눈을 가늘게 뜬 정면",
+    "notes": "매트가 남아 있음. 음식의 안전 여부를 판정하는 이미지로 사용하지 않기.",
+    "width": 1689,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "67d2523930a581de2bbafcf2a1a4c4d8a855e5e29433c6341a7f4b990fa2534b"
+  },
+  {
+    "key": "empty-curious",
+    "path": "assets/choco/empty-curious.png",
+    "original_filename": "KakaoTalk_20260913_142514860_02.png",
+    "role": "빈 목록·검색 결과 없음",
+    "description": "고개를 갸웃한 모습",
+    "notes": "경계가 거친 부분이 있음. 작은 크기로 사용.",
+    "width": 1751,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "24e1ec6c5045f8bf7729fdbe4855910a69cc9895d7b301f6db8dbd9f0687e042"
+  },
+  {
+    "key": "rest",
+    "path": "assets/choco/rest.png",
+    "original_filename": "KakaoTalk_20260913_142514860_05.png",
+    "role": "임박 항목 없음·평온 상태",
+    "description": "눈을 감고 쉬는 얼굴",
+    "notes": "조회 실패를 정상 상태로 오인시키지 않기.",
+    "width": 903,
+    "height": 1124,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "f0b273430bb6bd77892810a4508d12acbf1013270d2d8ae20cb80837817a0a2f"
+  },
+  {
+    "key": "sniff",
+    "path": "assets/choco/sniff.png",
+    "original_filename": "KakaoTalk_20260913_142517829_10.png",
+    "role": "조회 중·확인 안내",
+    "description": "옆을 바라보는 얼굴",
+    "notes": "오른쪽을 향하므로 문구를 오른쪽에 두거나 시선을 고려.",
+    "width": 1456,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "b1cc7bc3464c1d26d660e6742674cb5508e93bdf4d35c175463746d41a5edb05"
+  },
+  {
+    "key": "playful",
+    "path": "assets/choco/playful.png",
+    "original_filename": "KakaoTalk_20260913_142514860.png",
+    "role": "선택적 안내·보조 배너",
+    "description": "코가 크게 보이는 장난스러운 구도",
+    "notes": "기본 홈과 중복 사용하지 않기. 선택적 보조 자산.",
+    "width": 2048,
+    "height": 1644,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "2d197a75eb586574e271f3c56263ddb9587179508143228d8db1f26a78f92553"
+  },
+  {
+    "key": "relaxed-stretch",
+    "path": "assets/choco/relaxed-stretch.png",
+    "original_filename": "KakaoTalk_20260221_144203090.png",
+    "role": "설정·도움말",
+    "description": "편하게 누운 전신",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1699,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "3fe9196f740ca5a2e61c875960682f9834f73d9a70d912a9b1d937d65a96affa"
+  },
+  {
+    "key": "welcome-lounge",
+    "path": "assets/choco/welcome-lounge.png",
+    "original_filename": "KakaoTalk_20260913_142514860_01.png",
+    "role": "환영·홈 교체",
+    "description": "엎드려 혀를 내민 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1704,
+    "height": 2047,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "ada4307d472119d3e1fe0019811c9f22ca813ce18ac8874f0dfccc8830c45a0c"
+  },
+  {
+    "key": "peek-upside-down",
+    "path": "assets/choco/peek-upside-down.png",
+    "original_filename": "KakaoTalk_20260913_142514860_03.png",
+    "role": "카드 모서리·작은 장식",
+    "description": "거꾸로 고개를 내민 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1543,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "31f9e59065d2261a850a8df0b3071a4e2a545307ed4c9c836b34163252c2d2b3"
+  },
+  {
+    "key": "cheek-squish",
+    "path": "assets/choco/cheek-squish.png",
+    "original_filename": "KakaoTalk_20260913_142514860_06.png",
+    "role": "도움말·재시도 보조",
+    "description": "손으로 볼을 받친 얼굴",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1601,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "9169693bbc8534d2a5227380941b324f9cb6feed915de2b25d2308d70dabbc4a"
+  },
+  {
+    "key": "look-back",
+    "path": "assets/choco/look-back.png",
+    "original_filename": "KakaoTalk_20260913_142517829_05.png",
+    "role": "기록·뒤돌아보기",
+    "description": "뒤돌아보는 전신",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 2048,
+    "height": 1397,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "3873c9dede7e5ba43b213cd9c9ecd921573f3be14884d604fa5b81d04262782c"
+  },
+  {
+    "key": "flower-sniff",
+    "path": "assets/choco/flower-sniff.png",
+    "original_filename": "KakaoTalk_20260913_142517829_08.png",
+    "role": "채소·신규 등록",
+    "description": "꽃 냄새를 맡는 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1488,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "c591cf5d550279173d5d01f1e16dc2ae63bfd70f780ec3166e4f99182b5da4f7"
+  },
+  {
+    "key": "gentle-pet",
+    "path": "assets/choco/gentle-pet.png",
+    "original_filename": "KakaoTalk_20260913_142517829_09.png",
+    "role": "완료·환영 교체",
+    "description": "손에 얼굴을 기댄 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1687,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "3af10eac3fa59b7e65a0ddc6c13f437d4af39c907675f6ba4b8f0c112ac40ac0"
+  },
+  {
+    "key": "leaf-hat-front",
+    "path": "assets/choco/leaf-hat-front.png",
+    "original_filename": "KakaoTalk_20260913_143637955.png",
+    "role": "냉장실·채소",
+    "description": "잎을 머리에 얹고 엎드린 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1469,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "9760894acc0c39acb143d2b0752a59ad82cc5ae88ee44b42a556343465c575eb"
+  },
+  {
+    "key": "leaf-hat-side",
+    "path": "assets/choco/leaf-hat-side.png",
+    "original_filename": "KakaoTalk_20260913_143637955_01.png",
+    "role": "냉장실 교체",
+    "description": "잎을 얹고 옆을 보는 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1247,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "5957481f2e7f499f0197a09b7e62c226548ede66b486d7a3935f21d7cf38640e"
+  },
+  {
+    "key": "proud-sit",
+    "path": "assets/choco/proud-sit.png",
+    "original_filename": "KakaoTalk_20260913_143637955_02.png",
+    "role": "정리 완료·실온",
+    "description": "눈을 가늘게 뜨고 앉은 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1124,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "31ef8d39978cd7ae5c805d1ae040a2b722de0b283b75e269cfccdacb4ed329e8"
+  },
+  {
+    "key": "happy-closeup",
+    "path": "assets/choco/happy-closeup.png",
+    "original_filename": "KakaoTalk_20260913_143637955_03.png",
+    "role": "프로필 교체·인사",
+    "description": "밝게 바라보는 얼굴",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1864,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "f37e0327e118a67e8d0b4571af6b2aad8cf0d04626f93ef67b24f21b980c0637"
+  },
+  {
+    "key": "happy-lounge",
+    "path": "assets/choco/happy-lounge.png",
+    "original_filename": "KakaoTalk_20260913_143637955_04.png",
+    "role": "홈 교체·냉동실",
+    "description": "앞발을 뻗고 밝게 엎드린 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1253,
+    "height": 1953,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "02a80b464208d6c6959fad89b52c78479d0a5026a10827a16b6669b95baac1e1"
+  },
+  {
+    "key": "come-running",
+    "path": "assets/choco/come-running.png",
+    "original_filename": "KakaoTalk_20260913_143637955_05.png",
+    "role": "등록·환영 교체",
+    "description": "다가오는 세로 전신",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 497,
+    "height": 1537,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "fb657cb6679c0493ff64417337dde4de35b2ba5ef2f7ddbca5639dcc0ff07809"
+  },
+  {
+    "key": "look-aside",
+    "path": "assets/choco/look-aside.png",
+    "original_filename": "KakaoTalk_20260913_143637955_06.png",
+    "role": "기록·목록 안내",
+    "description": "앉아서 옆을 보는 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1434,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "c714447c521e8515245fd742a77c3c4c9ad19b0d9d10e105b11928b6774afb5f"
+  },
+  {
+    "key": "happy-sit",
+    "path": "assets/choco/happy-sit.png",
+    "original_filename": "KakaoTalk_20260913_143637955_07.png",
+    "role": "홈 교체·등록 성공",
+    "description": "앉아 혀를 내민 정면",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1388,
+    "height": 2048,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "1e05bc75ad487dc6def3b68a0ee36ee51e462adccc22dfa72003cebcd067b595"
+  },
+  {
+    "key": "puppy-sit",
+    "path": "assets/choco/puppy-sit.png",
+    "original_filename": "KakaoTalk_20260913_143637955_08.png",
+    "role": "첫 사용·빈 냉장고",
+    "description": "어린 시절처럼 보이는 작은 체구의 앉은 모습",
+    "notes": "원본 PNG. 손·꽃·잎·잔디·목줄 등 남은 요소는 의도적으로 보존. 자동 보정 완료로 간주하지 말고 적용 전 확인.",
+    "width": 1708,
+    "height": 1805,
+    "mode": "RGBA",
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "sha256": "a9396d8a5b561d23cd3f5cce08ad2fbfc686a674bd85355e2639efee208bf026"
+  }
+]

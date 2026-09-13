@@ -10,5 +10,5 @@ spring:
 
 logging:
   level:
-    com.example.frizer.inventory.mapper: DEBUG
-    com.example.frizer.history.mapper: DEBUG
+    com.euiseon.friger.inventory.dao: DEBUG
+    com.euiseon.friger.history.dao: DEBUG

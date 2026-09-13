@@ -3,7 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.5.16'
 }
 
-group = 'com.example.frizer'
+group = 'com.euiseon.friger'
 version = '0.0.1'
 description = 'FR!ZER — 배민 켜기 전에 잠깐'
 

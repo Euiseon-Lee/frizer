@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>우리 집에 뭐가 있더라? · FR!ZER</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+<script th:src="@{/js/choco.js}" defer></script></head>
+<body>
+<header th:replace="~{fragments/shell :: header}"></header>
+<main class="page">
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">쪼코랑 같이 찾아보자!</p><h1>우리 집에 뭐가 있더라?</h1></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="102" height="120" alt="쪼코"></section>
+    <div class="notice" role="status" th:if="${successMessage}"><img class="choco" data-choco="success" th:src="@{/assets/choco/happy-sit.png}" width="48" height="54" alt=""><p th:text="${successMessage}"></p></div><nav class="filter-tabs" aria-label="보관 위치 필터"><a th:href="@{/inventory}" th:attr="aria-current=${selectedStorage == null ? 'page' : null}">전체</a><a th:each="entry : ${storageLabels}" th:href="@{/inventory(storage=${entry.key})}" th:attr="aria-current=${selectedStorage == entry.key ? 'page' : null}" th:text="${entry.value}"></a></nav>
+    <div class="inventory-bar"><h2>보관 중인 음식 <span class="count" th:text="${foods.size()}">0</span></h2><span class="muted small">최근 등록 순</span></div>
+    <section class="empty-state" th:if="${foods.isEmpty()}">
+        <img class="choco choco-portrait" data-choco="empty" th:src="@{/assets/choco/empty-curious.png}" width="120" height="130" alt=""><h2 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '이 위치에는 등록된 음식이 없어'}"></h2><p class="muted">새 음식을 등록해볼까?</p><a class="button" th:href="@{/inventory/new}"><span th:text="${totalCount == 0 ? '첫 음식 등록하기' : '음식 등록하기'}">첫 음식 등록하기</span></a>
+    </section>
+    <section class="food-grid" th:unless="${foods.isEmpty()}" aria-label="보관 중인 음식 목록">
+        <a class="food-card" th:each="food : ${foods}" th:href="@{/inventory/{id}(id=${food.foodId()})}" th:aria-label="${food.foodName() + ' 상세 보기'}">
+            <div class="food-summary">
+            <div class="card-top"><span class="storage-tag" th:classappend="${food.storageType().name().toLowerCase()}" th:text="${storageLabels[food.storageType()]}"></span><span class="small muted" th:text="${sourceLabels[food.sourceType()]}"></span></div>
+            <h3 class="food-title" th:text="${food.foodName()}">두부</h3>
+            <p class="quantity"><span th:text="${food.quantityText() != null ? food.quantityText() : '수량 미입력'}"></span><span th:if="${food.capacityText() != null}" th:text="${' · ' + food.capacityText()}"></span></p>
+            </div>
+            <div class="food-dates">
+                <p th:if="${food.sellByAt() != null}" th:classappend="${food.sellByAt().isBefore(today)} ? 'expired' : ''"><span>유통기한 </span><time th:text="${#temporals.format(food.sellByAt(), 'yyyy.MM.dd')}" th:datetime="${food.sellByAt()}"></time><small th:if="${food.sellByAt().isBefore(today)}">경과</small></p>
+                <p th:if="${food.expiredAt() != null}" th:classappend="${food.expiredAt().isBefore(today)} ? 'expired' : ''"><span>소비기한 </span><time th:text="${#temporals.format(food.expiredAt(), 'yyyy.MM.dd')}" th:datetime="${food.expiredAt()}"></time><small th:if="${food.expiredAt().isBefore(today)}">경과 · 확인 필요</small></p>
+                <p th:if="${food.sellByAt() == null and food.expiredAt() == null}" class="muted">기한 미입력</p>
+            </div>
+            <div class="food-details" th:if="${food.storageType().name() == 'FREEZER' or food.category() != null or food.memo() != null}">
+                <p class="small muted" th:if="${food.storageType().name() == 'FREEZER'}"><span th:text="${food.freezeType().name() == 'COMMERCIAL_FROZEN' ? '시판 냉동' : '직접 냉동'}"></span> · <span th:text="${food.frozenAt() == null ? '냉동일 미상' : '냉동 시작 ' + food.frozenAt()}"></span></p>
+                <p class="small muted" th:if="${food.category() != null}" th:text="${food.category()}"></p>
+                <p class="memo" th:if="${food.memo() != null}" th:text="${food.memo()}"></p>
+            </div>
+        </a>
+    </section>
+    <footer class="page-footer">쪼코가 항상 지키고 있다구</footer>
+</main>
+<nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

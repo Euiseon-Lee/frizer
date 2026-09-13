@@ -1,14 +1,27 @@
 # 다음 작업 인계
 
-기준: 2026-09-13. 사용자가 4개 단위의 커밋을 승인했으며 커밋 정리 후 새 채팅으로 이어간다. 다음 작업 시작 시 git status와 git log로 실제 커밋 여부부터 확인한다.
+기준: 2026-09-13. UI 후속 커밋 4개는 완료했다. 이후 STEP 3 설계를 정리했으며 사용자는 문서를 푸시하고 회사 PC에서 이어갈 예정이다. 다음 작업 시작 시 git status와 git log로 실제 상태부터 확인한다.
+
+## 최신 인계: STEP 3 설계
+
+- 우선 [STEP 3 보고서](../STEP3_REPORT.md)를 읽는다. 정책·설계·구현·검증의 기준 문서다.
+- [일괄 등록 초안](../BULK_REGISTRATION_DRAFT.md)은 엑셀 양식·흐름의 보조 문서다.
+- STEP 3은 설계 진행 중 / 코드·migration·UI 구현 및 검증 미착수다. 다음 작업에서 실제 구현을 진행한다.
+- MASTER·ITEM 분리, 잔량 기반 ACTIVE/DEPLETED, 부분 분리, 소비·폐기·취소·웹 삭제 정책을 정리했다.
+- 엑셀 첫 출시는 등록·추가 구매만 지원한다. 수정·소비·폐기는 후속 범위다.
+- 현재 데이터는 테스트용이므로 복잡한 과거 호환은 불필요하다. 전환 시 테스트 데이터 초기화도 선택 가능하다. 아직 초기화하지 않았다.
+- 기존 Flyway V1~V6은 수정하지 않고 새 migration을 추가한다. 확정된 이미지·날짜 경고 정책은 유지한다.
+- STEP 문서 규격을 유지하며 구현·검증 결과는 STEP3_REPORT.md에 이어 기록한다.
+- 아래 UI 상태와 검증 내역은 STEP 3 이전 완료 기록이다. 새 설계의 검증 결과로 취급하지 않는다.
 
 ## 작업 위치와 실행
 
 - 원본 프로젝트 C:\dev\frizer에서 작업한다. 별도 worktree는 사용하지 않는다.
+- 회사 PC에서는 해당 PC의 원본 clone에서 작업한다. 아래 로컬 JDK 경로·DB·실행 상태는 집 PC 기준이며 회사 PC에서 다시 확인한다.
 - Java 21, Spring Boot, MyBatis, Thymeleaf 프로젝트다.
 - 로컬 JDK: C:\dev\frizer\.gradle\jdks\jdk21.0.12_9
 - 검증: node src/test/js/choco-selector.test.cjs 및 gradlew.bat test bootJar --offline
-- 실제 앱: http://localhost:8080/ . 사용자 음식 데이터를 보존한다.
+- 집 PC 앱 주소: http://localhost:8080/ . 테스트 데이터 보존 범위는 위 최신 인계 지침을 따른다.
 - .env, build, .gradle, 로컬 로그 등은 커밋하지 않는다.
 
 ## 이번 작업의 최종 상태

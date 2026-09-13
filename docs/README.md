@@ -7,6 +7,11 @@
 
 ## 현재 상태
 
+STEP 3 설계·구현·검증의 기준 문서는 [STEP 3 보고서](STEP3_REPORT.md)입니다.
+현재 STEP 3은 **설계 진행 중이며 구현·검증은 미착수**입니다.
+아래 STEP 2 수치는 당시 결과이며 이후 수정·경고·이미지 정책의 인계 상태는
+[최근 인계 문서](ui-v5-addon/NEXT_SESSION.md)를 참고합니다.
+
 **STEP 2 등록·조회 및 쪼코 V5 UI 구현 완료 (2026-09-13).**
 Java 기본 패키지는 `com.euiseon.friger`이며 모델은 `inventory.entity.FoodItem`, `history.entity.FoodHistory`에 둡니다.
 등록 폼, 서버 검증, 음식과 CREATE 이력의 트랜잭션 저장, ACTIVE 목록과 모바일 레이아웃을 구현했습니다.

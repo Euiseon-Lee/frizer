@@ -1,6 +1,7 @@
 package com.euiseon.friger.inventory.entity;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 import com.euiseon.friger.common.type.FoodSourceType;
@@ -27,5 +28,7 @@ public record FoodItem(
         OffsetDateTime updatedAt,
         String capacityText,
         String sourceMemo,
-        LocalDate sellByAt) {
+        LocalDate sellByAt,
+        BigDecimal quantityAmount,
+        String quantityUnit) {
 }

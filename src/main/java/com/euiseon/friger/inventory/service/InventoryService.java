@@ -67,10 +67,10 @@ public class InventoryService {
         }
         OffsetDateTime now = OffsetDateTime.now(clock);
         FoodItem food = new FoodItem(null, form.foodName().strip(), storage, optional(form.category()),
-                optional(form.quantityText()), form.expiredAt(), form.purchasedAt(), form.openedAt(),
+                form.quantityAmount().stripTrailingZeros().toPlainString() + form.quantityUnit(), form.expiredAt(), form.purchasedAt(), form.openedAt(),
                 frozenAt, source, freeze, FoodStatus.ACTIVE, optional(form.memo()), now, now,
                 optional(form.capacityText()),
-                form.sourceType() == FoodSourceType.ETC ? optional(form.sourceMemo()) : null, form.sellByAt());
+                form.sourceType() == FoodSourceType.ETC ? optional(form.sourceMemo()) : null, form.sellByAt(), form.quantityAmount(), form.quantityUnit());
         long id = inventory.insert(food);
         int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
                 storage, food.quantityText(), "음식 등록", now));

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>음식 등록 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>음식 등록 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -10,7 +10,10 @@
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
             <div class="field"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off" th:classappend="${#fields.hasErrors('foodName')} ? 'invalid' : ''"><p class="field-error" th:errors="*{foodName}"></p></div>
             <div class="field-row">
-                <div class="field"><label for="quantityText">수량 <span class="required">필수</span></label><input th:field="*{quantityText}" placeholder="예: 1개, 2팩, 반 봉지" maxlength="50" required><p class="field-error" th:errors="*{quantityText}"></p></div>
+                <div class="field"><div class="quantity-input-row">
+                    <div><label for="quantityAmount">수량 <span class="required">필수</span></label><input type="text" inputmode="decimal" th:field="*{quantityAmount}" placeholder="예: 2, 0.5" pattern="[0-9]+([.][0-9]{1,2})?" required aria-describedby="quantityHelp"><p class="field-error" th:errors="*{quantityAmount}"></p></div>
+                    <div><label for="quantityUnit">단위 <span class="required">필수</span></label><input th:field="*{quantityUnit}" placeholder="예: 개, 팩, 봉지, g" maxlength="10" required><p class="field-error" th:errors="*{quantityUnit}"></p></div>
+                </div><p class="help" id="quantityHelp">반 봉지가 남았다면 수량은 0.5, 단위는 봉지로 적으면 돼.</p></div>
                 <div class="field"><label for="capacityText">용량 <span class="optional">선택</span></label><input th:field="*{capacityText}" placeholder="예: 200g, 300mL, 2인분" maxlength="50"><p class="field-error" th:errors="*{capacityText}"></p><p class="help">포장에 적힌 용량이나 대략적인 양을 적어주면 더 좋아!</p></div>
             </div>
             <div class="field"><label for="sourceType">어디서 온 음식이야?</label><select th:field="*{sourceType}"><option value="">선택 안 함</option><option th:each="entry : ${sourceLabels}" th:value="${entry.key}" th:text="${entry.value}"></option></select><p class="field-error" th:errors="*{sourceType}"></p></div>

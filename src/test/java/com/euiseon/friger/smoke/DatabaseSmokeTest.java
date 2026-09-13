@@ -77,7 +77,7 @@ class DatabaseSmokeTest {
         assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 17.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -158,7 +158,7 @@ class DatabaseSmokeTest {
         FoodItem input = new FoodItem(null, "곱도리탕", StorageType.FREEZER, "반찬", "1끼",
                 LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 10), LocalDate.of(2026, 9, 11),
                 LocalDate.of(2026, 9, 12), source, FreezeType.HOME_FROZEN, FoodStatus.ACTIVE,
-                "남은 음식", timestamp, timestamp, "300g", null, LocalDate.of(2026, 9, 18));
+                "남은 음식", timestamp, timestamp, "300g", null, LocalDate.of(2026, 9, 18), null, null);
         long id = mapper.insertMappedFood(input);
         FoodItem saved = mapper.findFood(id);
         assertThat(saved).usingRecursiveComparison()

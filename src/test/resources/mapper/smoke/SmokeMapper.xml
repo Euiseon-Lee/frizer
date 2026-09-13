@@ -77,6 +77,8 @@
              , capacity_text
              , source_memo
              , sell_by_at
+             , quantity_amount
+             , quantity_unit
           FROM food_item
          WHERE food_id = #{id}
     </select>

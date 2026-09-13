@@ -4,17 +4,17 @@
     <select id="insert" resultType="long" affectData="true" flushCache="true">
         INSERT INTO food_item (food_name, storage_type, category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at)
+            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit)
         VALUES (#{foodName}, #{storageType}, #{category,jdbcType=VARCHAR}, #{quantityText,jdbcType=VARCHAR},
             #{expiredAt,jdbcType=DATE}, #{purchasedAt,jdbcType=DATE}, #{openedAt,jdbcType=DATE},
             #{frozenAt,jdbcType=DATE}, #{sourceType}, #{freezeType}, #{status},
-            #{memo,jdbcType=VARCHAR}, #{createdAt}, #{updatedAt}, #{capacityText,jdbcType=VARCHAR}, #{sourceMemo,jdbcType=VARCHAR}, #{sellByAt,jdbcType=DATE})
+            #{memo,jdbcType=VARCHAR}, #{createdAt}, #{updatedAt}, #{capacityText,jdbcType=VARCHAR}, #{sourceMemo,jdbcType=VARCHAR}, #{sellByAt,jdbcType=DATE}, #{quantityAmount,jdbcType=NUMERIC}, #{quantityUnit,jdbcType=VARCHAR})
         RETURNING food_id
     </select>
     <select id="findActive" resultType="com.euiseon.friger.inventory.entity.FoodItem">
         SELECT food_id, food_name, storage_type, category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at
+            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
         FROM food_item
         WHERE status = 'ACTIVE'
         ORDER BY created_at DESC, food_id DESC
@@ -22,7 +22,7 @@
     <select id="findById" resultType="com.euiseon.friger.inventory.entity.FoodItem">
         SELECT food_id, food_name, storage_type, category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at
+            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
         FROM food_item
         WHERE food_id = #{id}
     </select>

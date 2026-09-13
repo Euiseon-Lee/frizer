@@ -711,4 +711,60 @@ class InventoryIntegrationTest {
         assertThat((java.util.List<FoodItem>) model.get("overviewFoods")).isEmpty();
     }
 
+    @Test
+    void homeShowsFiveLatestCompactHistoryRows() throws Exception {
+        for (int i = 1; i <= 6; i++) {
+            mvc.perform(post("/inventory").param("foodName", "음식" + i).param("storageType", "FRIDGE")
+                    .param("quantityAmount", "1").param("quantityUnit", "개")).andExpect(status().is3xxRedirection());
+        }
+        var result = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
+        var entries = (java.util.List<com.euiseon.friger.history.dto.HistoryEntry>)
+                result.getModelAndView().getModel().get("entries");
+        assertThat(entries).extracting(com.euiseon.friger.history.dto.HistoryEntry::foodName)
+                .containsExactly("음식6", "음식5", "음식4", "음식3", "음식2");
+        var html = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        var recent = html.substring(html.indexOf("class=\"recent-history-rows\""));
+        assertThat(recent.split("class=\"recent-history-row\"", -1).length - 1).isEqualTo(5);
+        assertThat(recent).doesNotContain("<time", "냉장실", "1개");
+        var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
+                FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "3모", null,
+                "수량: 1 → 3\n개봉일: 2026-06-08 → 2026-06-09");
+        assertThat(entry.homeSummary()).isEqualTo("수정한 항목 2건");
+    }
+
+    @Test
+    void registrationHistoryPreservesInitialFieldsAfterCurrentFoodChanges() throws Exception {
+        mvc.perform(post("/inventory").param("foodName", "처음 이름").param("storageType", "FRIDGE")
+                .param("quantityAmount", "1").param("quantityUnit", "개").param("capacityText", "200g")
+                .param("sourceType", "ETC").param("sourceMemo", "처음 출처")
+                .param("memo", "첫째 줄\n둘째 줄 → 유지"))
+                .andExpect(status().is3xxRedirection());
+        long id = service.findActive().getFirst().foodId();
+        jdbc.update("UPDATE food_item SET food_name='변경 이름', quantity_text='9개', capacity_text='900g', memo='바뀐 메모' WHERE food_id=?", id);
+        var html = mvc.perform(get("/history")).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html).contains("처음 이름", "<dt>수량</dt><dd>1개</dd>", "<dt>용량</dt><dd>200g</dd>",
+                "<dt>출처 메모</dt><dd>처음 출처</dd>", "첫째 줄\n둘째 줄 → 유지", "최근 기록 최대 100개");
+        assertThat(html).doesNotContain("변경 이름", "900g", "바뀐 메모", "한국 시간", "이전 등록 기록");
+    }
+
+    @Test
+    void historyFieldsSeparateLabelsAndKeepMultilineChanges() {
+        var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
+                FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "3모", null,
+                "용량: - → 200g\n출처 메모: - → 선물\n메모: 첫 줄\n둘째 줄 → 새 내용");
+        assertThat(entry.detailFields()).extracting(com.euiseon.friger.history.dto.HistoryEntry.DetailField::label)
+                .containsExactly("용량", "출처 메모", "메모");
+        assertThat(entry.detailFields().getLast().value()).isEqualTo("첫 줄\n둘째 줄 → 새 내용");
+    }
+
+    @Test
+    void singleMultilineChangeKeepsBeforeAndAfterSummary() {
+        var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
+                FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "1모", null,
+                "메모: 첫째 줄\n둘째 줄 → 새 메모");
+        assertThat(entry.detailFields()).hasSize(1);
+        assertThat(entry.homeSummary()).isEqualTo("메모: 첫째 줄 · 둘째 줄 → 새 메모");
+    }
+
 }

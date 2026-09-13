@@ -32,7 +32,7 @@ public class HomeController {
         for (var type : new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER})
             counts.put(type.name(), foods.stream().filter(f -> f.storageType() == type).count());
         model.addAttribute("counts", counts);
-        model.addAttribute("entries", history.recent(3));
+        model.addAttribute("entries", history.recent(5));
         return "home";
     }
 }

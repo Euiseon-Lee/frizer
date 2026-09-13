@@ -4,7 +4,7 @@
     <section class="heading character-heading tab-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>다들 어디로 갔을까?</h1><p class="muted">쪼코랑 기록을 살펴보자!</p></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="112" height="112" alt="쪼코"></section>
     <div class="tab-sheet">
 
-    <p class="small muted">최근 기록 최대 100개 · 한국 시간</p>
+    <p class="small muted history-limit">최근 기록 최대 100개</p>
     <section class="empty-state" th:if="${entries.isEmpty()}"><img class="choco choco-portrait" th:src="@{/assets/choco/empty-curious.png}" width="120" height="130" alt=""><h2>아직 남긴 기록이 없어</h2><p class="muted">음식 하나부터 등록해볼까?</p><a class="button" th:href="@{/inventory/new}">음식 등록하기</a></section>
     <div th:replace="~{fragments/shell :: historyRows(${entries})}"></div>
     </div>

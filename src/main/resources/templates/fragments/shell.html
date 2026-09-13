@@ -13,11 +13,18 @@
 <div th:fragment="historyRows(entries)" class="history-rows">
     <article class="history-row" th:each="entry : ${entries}">
         <span class="action-badge history-badge" th:attr="data-event=${entry.actionType()}" th:text="${entry.actionLabel()}"></span>
-        <div><a th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.foodName()}"></a>
-            <p class="small muted"><span th:if="${entry.previousStorageType() != null and entry.previousStorageType() != entry.newStorageType()}" th:text="${entry.locationLabel(entry.previousStorageType()) + ' → '}"></span><span th:text="${entry.locationLabel(entry.newStorageType())}"></span><span th:text="${' · ' + (entry.quantityText() ?: '수량 미입력')}"></span></p>
-            <p class="small muted history-changes" th:if="${entry.changesText() != null}" th:text="${entry.changesText()}"></p>
+        <div><a th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
+            <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd th:text="${field.value()}"></dd></div></dl>
+            <p class="small muted" th:if="${entry.incompleteRegistration()}">이전 등록 기록은 당시 저장된 항목만 표시해.</p>
             <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time>
         </div>
     </article>
+</div>
+<div th:fragment="recentHistoryRows(entries)" class="recent-history-rows">
+    <a class="recent-history-row" th:each="entry : ${entries}" th:href="@{/history}">
+        <span class="action-badge history-badge" th:attr="data-event=${entry.actionType()}" th:text="${entry.actionLabel()}"></span>
+        <span class="recent-food-name" th:text="${entry.foodName()}" th:title="${entry.foodName()}"></span>
+        <span class="recent-change" th:text="${entry.homeSummary()}"></span>
+    </a>
 </div>
 </body></html>

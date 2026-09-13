@@ -17,6 +17,67 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
             case MOVE -> "이동";
         };
     }
+    public String homeSummary() {
+        if (actionType == FoodActionType.CREATE || changesText == null || changesText.isBlank()) return actionLabel() + "했어";
+        if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 항목 " + detailFields().size() + "건";
+        return changesText.replaceAll("\\R+", " · ");
+    }
+
+    public record DetailField(String label, String value) {}
+
+    private java.util.Map<String, String> registrationValues() {
+        if (actionType != FoodActionType.CREATE || changesText == null || !changesText.startsWith("snapshot-v1:"))
+            return java.util.Map.of();
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(
+                    changesText.substring("snapshot-v1:".length()),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, String>>() {});
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return java.util.Map.of();
+        }
+    }
+
+    public String displayFoodName() {
+        return registrationValues().getOrDefault("음식명", foodName);
+    }
+
+    public boolean incompleteRegistration() {
+        return actionType == FoodActionType.CREATE && registrationValues().isEmpty();
+    }
+
+    public java.util.List<DetailField> detailFields() {
+        var result = new java.util.ArrayList<DetailField>();
+        if (actionType == FoodActionType.CREATE) {
+            var snapshot = registrationValues();
+            if (!snapshot.isEmpty()) {
+                snapshot.forEach((label, value) -> {
+                    if (!label.equals("음식명") && value != null && !value.isBlank() && !value.equals("-"))
+                        result.add(new DetailField(label, value));
+                });
+            } else {
+                if (newStorageType != null) result.add(new DetailField("보관 위치", locationLabel(newStorageType)));
+                if (quantityText != null) result.add(new DetailField("수량", quantityText));
+            }
+        } else if (changesText != null && !changesText.isBlank()) {
+            for (String line : changesText.split("\\R", -1)) {
+                int colon = line.indexOf(": ");
+                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉일", "메모").contains(line.substring(0, colon))) {
+                    result.add(new DetailField(line.substring(0, colon), line.substring(colon + 2)));
+                } else if (!result.isEmpty()) {
+                    var previous = result.remove(result.size() - 1);
+                    result.add(new DetailField(previous.label(), previous.value() + "\n" + line));
+                } else result.add(new DetailField("내용", line));
+            }
+        } else {
+            if (newStorageType != null) result.add(new DetailField("보관 위치",
+                    previousStorageType != null && previousStorageType != newStorageType
+                            ? locationLabel(previousStorageType) + " → " + locationLabel(newStorageType)
+                            : locationLabel(newStorageType)));
+            if (quantityText != null) result.add(new DetailField("수량", quantityText));
+        }
+        return result;
+    }
+
     public String locationLabel(StorageType storage) {
         if (storage == null) return "";
         return switch (storage) { case ROOM -> "실온"; case FRIDGE -> "냉장실"; case FREEZER -> "냉동실"; };

@@ -32,7 +32,7 @@
             </div>
         </section>
         <a class="add-banner" th:href="@{/inventory/new}"><div><p class="eyebrow">킁킁, 맛있는 냄새가 나는데?</p><h2>등록을 안 하면 쪼코 거라구</h2><span>음식 등록하기 <b aria-hidden="true">＋</b></span></div><img class="choco" data-choco="registrationBanner" th:src="@{/assets/choco/happy-sit.png}" width="88" height="100" alt="" loading="lazy"></a>
-        <section class="home-section recent-history"><div class="section-heading"><h2>최근 기록</h2><a class="text-link" th:href="@{/history}">전체 보기 →</a></div><p class="muted small" th:if="${entries.isEmpty()}">음식을 등록하면 여기에 기록이 남아.</p><div th:replace="~{fragments/shell :: historyRows(${entries})}"></div></section>
+        <section class="home-section recent-history"><div class="section-heading"><h2>최근 기록</h2><a class="text-link" th:href="@{/history}">전체 보기 →</a></div><p class="muted small" th:if="${entries.isEmpty()}">음식을 등록하면 여기에 기록이 남아.</p><div th:replace="~{fragments/shell :: recentHistoryRows(${entries})}"></div></section>
         <footer class="page-footer">쪼코와 함께 냉장고 파먹기</footer>
     </div>
 </main><nav th:replace="~{fragments/shell :: nav('home')}"></nav></body></html>

@@ -48,7 +48,7 @@ public class InventoryService {
         FoodItem food = normalized(form, null, now, now);
         long id = inventory.insert(food);
         int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
-                food.storageType(), food.quantityText(), "음식 등록", now, null));
+                food.storageType(), food.quantityText(), "음식 등록", now, registrationSnapshot(food)));
         if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
         return id;
     }
@@ -77,6 +77,17 @@ public class InventoryService {
             throw new IllegalStateException("수정 이력을 저장하지 못했습니다.");
         }
         return true;
+    }
+
+    private static String registrationSnapshot(FoodItem food) {
+        try {
+            var snapshot = values(food);
+            snapshot.put("수량", food.quantityText());
+            snapshot.remove("단위");
+            return "snapshot-v1:" + new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(snapshot);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("등록 내용을 기록하지 못했습니다.", e);
+        }
     }
 
     private static Map<String, String> values(FoodItem food) {

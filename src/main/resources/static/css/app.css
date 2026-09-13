@@ -129,3 +129,24 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .overview-card .date-foods a:hover,.overview-card .date-foods a:focus-visible{background:rgba(255,255,255,.55)}
 .overview-card .date-foods a:hover .overview-food-name,.overview-card .date-foods a:focus-visible .overview-food-name{text-decoration:underline;text-underline-offset:3px}
 .overview-card .date-foods a:focus-visible{outline:2px solid var(--warning-expired-fg);outline-offset:-2px}
+
+.recent-history-row{display:grid;grid-template-columns:max-content minmax(40px,1fr) minmax(0,2fr);align-items:center;gap:10px;min-height:44px;padding:6px 8px;border-bottom:1px solid var(--line);font-size:12px}
+.recent-history-row .action-badge{padding:4px 6px;border-radius:6px;font-size:10px;line-height:1.4}
+.recent-food-name,.recent-change{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.recent-food-name{font-weight:600;color:var(--ink)}
+.recent-change{color:var(--muted);font-size:11px;text-align:right}
+.recent-history-row:hover,.recent-history-row:focus-visible{background:#f7f7fb}
+.recent-history-row:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.empty-state img[data-choco="empty"]{width:160px;height:150px;max-width:100%;object-fit:contain;object-position:center;margin:0 0 20px;border-radius:0;clip-path:none}
+
+
+.history-rows .history-badge{padding:2px 6px;line-height:16px;font-size:11px;border-radius:5px;margin-top:12px}
+.history-rows .history-row a{align-items:center;max-width:100%;line-height:1.5;border-radius:6px;transition:background-color .15s ease}
+.history-rows .history-row:hover,.history-rows .history-row:focus-within{background:#f7f7fb}
+.history-rows .history-row time{display:block;text-align:right;margin-top:8px;font-variant-numeric:tabular-nums}
+.history-rows .history-row{padding-inline:8px}
+.history-limit{text-align:right;padding-right:16px;font-size:11px}
+.history-fields{margin:0;font-size:12px;color:var(--muted)}
+.history-fields>div{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:8px;margin:4px 0;line-height:1.7}
+.history-fields dt{overflow-wrap:anywhere}
+.history-fields dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}

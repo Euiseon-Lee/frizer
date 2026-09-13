@@ -8,7 +8,6 @@ const selector=ChocoSelector.createSelector(storage);
 let page=selector.createPage();
 let context=location.pathname+location.search;
 let scheduled=false;
-const failedFixed=new Set();
 function render(){
     scheduled=false;
     const nextContext=location.pathname+location.search;
@@ -19,20 +18,21 @@ function render(){
     const choices=page.sync(regions);
     for(const img of images){
         const key=choices.get(img.dataset.chocoRegion);
-        const hide=!key||failedFixed.has(key);
+        const keepFailedSlot=!key&&page.loadExhausted(img.dataset.chocoRegion);
+        const hide=!key&&!keepFailedSlot;
+        if(img.classList.contains('choco-load-failed')!==keepFailedSlot)img.classList.toggle('choco-load-failed',keepFailedSlot);
         if(img.hidden!==hide)img.hidden=hide;
         if(!key){img.removeAttribute('src');delete img.dataset.chocoKey;continue;}
         const asset=ChocoSelector.assets[key];
         if(img.classList.contains('choco-portrait')!==(asset.renderMode==='portrait')) img.classList.toggle('choco-portrait',asset.renderMode==='portrait');
         if(img.classList.contains('choco-left-edge')!==(asset.renderMode==='left-edge')) img.classList.toggle('choco-left-edge',asset.renderMode==='left-edge');
-        if(img.classList.contains('choco-wide'))img.classList.remove('choco-wide');
+        if(img.classList.contains('choco-wide')!==(asset.renderMode==='wide'))img.classList.toggle('choco-wide',asset.renderMode==='wide');
         const base=new URL(img.dataset.chocoBase||'/assets/choco/',location.href);
         const url=new URL(key+'.png',base).href;
         img.dataset.chocoKey=key;
         img.dataset.poseGroup=asset.poseGroup;
         img.dataset.emotionGroup=asset.emotionGroup;
         img.onerror=()=>{
-            if(img.dataset.chocoFixed){failedFixed.add(key);img.hidden=true;return;}
             page.fail(img.dataset.chocoRegion,key);
             schedule();
         };

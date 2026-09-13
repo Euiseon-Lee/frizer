@@ -1,250 +1,64 @@
-쪼코 이미지 매핑과 선택 정책을 아래 최종 명세에 맞춰 수정해줘.
-이 명세는 이전의 표정 분류, 영역별 후보, 범용 fallback 규칙보다 우선한다.
+# 쪼코 이미지 최종 사용자 정책
 
-[목표]
-- 화면의 의미에 맞는 표정을 보여준다.
-- 뚱한 사진은 헤더에서 제외하되 본문에서는 충분히 활용한다.
-- 오류 본문에는 반드시 뚱한 그룹만 사용한다.
-- 의미가 맞는 후보 안에서 다양하게 순환한다.
-- 기존 색상, 문구, API, 도메인 로직은 변경하지 않는다.
+갱신일: 2026-09-14. 승인된 기존 21장 전체 후보에 추가 ZIP 20개 행을 반영한다.
+최신 추가 지침: [ADD_INSTRUCTIONS.md](image-add/ADD_INSTRUCTIONS.md), [원본 매핑](image-add/image-mapping.csv).
+추가 요청이 이전 프로필 고정·오류 네 장·로드 실패 재시도 횟수보다 우선한다. 기존 파일은 보존하며 사용처는 아래 영역별 제외 규칙을 적용한다.
 
-[1. 표정 분류]
+## 이미지와 분류
 
-파일명에서 .png를 제외한 이미지 키 기준이다.
-파일명보다 사용자가 지정한 아래 해석을 우선한다.
-이는 실제 동물의 감정 판정이 아닌 UI 분위기 분류다.
+- PROFILE: happy-closeup.png, back-view-harness.png
+- WAITING: puppy-sit.png, empty-curious.png, extra-chin-on-paw.png, extra-puppy-gaze.png, pink-coat-look-back.png
+- REST: cozy-curl.png, extra-curled-smile.png, leaf-hat-front.png, leaf-hat-side.png, rest.png, sniff.png, flower-sniff.png, side-rest.png, belly-up-lounge.png, flower-collar-sit.png, plastic-flower-hat.png, striped-socks-puppy.png, snack-ring-tilt.png
+- NEUTRAL: proud-sit.png, puppy-tilt.png, puppy-ready.png, look-aside.png, calm-closeup.png, red-collar-puppy.png, puppy-paw-reach.png, puppy-look-down.png
+- HAPPY: come-running.png, extra-sunny-sit.png, extra-tongue-step.png, happy-lounge.png, happy-sit.png, puppy-front-paws.png, happy-run-front.png, belly-up-play.png
 
-A. 뚱함·아쉬움·기다림 (WAITING)
-- puppy-sit
-- empty-curious
-- extra-chin-on-paw
-- extra-puppy-gaze
+분류는 UI 분위기이며 실제 동물의 감정 판정이 아니다.
 
-B. 안락함·휴식 (REST)
-- rest
-- sniff
-- leaf-hat-front
-- leaf-hat-side
-- cozy-curl
-- extra-curled-smile
+## 특별 정책
 
-C. 중립·차분함 (NEUTRAL)
-- proud-sit
-- puppy-tilt
-- puppy-ready
+- pink-coat-look-back: WAITING, ERROR/EMPTY에서 사용. 일반 헤더 제외. 오류는 기존 네 장 + 이 이미지의 다섯 장만 순환.
+- back-view-harness: happy-closeup과 함께 PROFILE 풀 구성. 세션당 한 장을 선택하고 페이지 이동·리렌더에도 유지.
+- calm-closeup: NEUTRAL. 일반 헤더·확인·중립 안내에 사용하고 성공/오류 전용으로 분류하지 않음.
+- happy-run-front는 come-running과 다른 사진이므로 별도 추가. 비슷한 포즈를 중복으로 처리하지 않음.
+- 기존 leaf-hat-front/side와 신규 꽃·장식 다섯 장은 계절 제한 없이 헤더·편안한 상태에 사용.
 
-D. 행복·반가움·활기 (HAPPY)
-- happy-closeup
-- happy-lounge
-- come-running
-- look-aside
-- happy-sit
-- puppy-front-paws
-- extra-sunny-sit
-- extra-tongue-step
+## 영역별 순환
 
-proud-sit은 NEUTRAL을 주 분류로 사용한다.
-편안함은 보조 태그로 둘 수 있지만 REST 후보로 자동 확장하지 않는다.
+frizer.choco.scopes.v4의 독립 bag: PROFILE/HEADER/ERROR/EMPTY/SUCCESS/CALM/STORAGE_CALM/OBSERVE/EXPLORE/WIDE/PORTRAIT.
+- 일반 헤더: 26장. WAITING·PROFILE·가로형 두 장과 puppy-tilt.png를 제외한다.
+- 오류: WAITING 다섯 장만 사용. 프로필 두 장은 일반 후보에서 제외.
+- 프로필: 두 장 중 세션 한 장 고정. 새 세션에서 다시 선택하며 같은 세션에서는 bag을 추가 소비하지 않음.
+- 빈 상태: WAITING + REST. 요약 휴식: REST. 냉장/냉동 카드: REST에서 sniff.png와 rest.png를 제외한 STORAGE_CALM.
+- 성공: HAPPY. WARNING·폐기 안내: NEUTRAL.
+- WIDE는 기존 등록 배너에 연결: 기존 HAPPY 후보를 유지하고 side-rest/belly-up-lounge 추가.
+- PORTRAIT은 실온 카드에 연결하며 sniff.png와 rest.png를 제외한다.
+- 전체 카드는 EXPLORE이며 sniff.png와 rest.png를 제외한다. 새 페이지·재고 액션은 만들지 않음.
 
-[2. 메타데이터 분리]
+한 주기에서 모든 후보 사용 후 재셔플한다. 영역별 순환은 독립이며 화면 점유는 공유한다.
+오류 우선 및 미사용 후보가 적은 영역 우선 배정. 기존 일반 영역은 입력·리렌더 중 유지한다.
+후보가 다른 영역 점유·실패로 막히면 보류하고 사용 가능한 기존 후보를 일시 재사용한다.
+막힌 미사용 후보는 다음 선택에 남겨 장기간 누락을 방지한다. 최근 사용만으로 숨기지 않는다.
+이전 global v1/v2와 scopes v3는 제거하며, 손상된 bag은 초기화한다. 저장소 실패 시 메모리 fallback.
 
-다음 정보를 별도로 관리한다.
-- emotionGroup: 위 표정 분류
-- poseGroup: 비슷한 자세의 반복 방지
-- allowedRoles / renderMode: 잘림·구도에 따른 사용 제한
+## 로드 실패와 배치
 
-같은 표정이라고 같은 poseGroup으로 묶지 않는다.
-표정이 적합하더라도 구도 제한을 충족하지 않으면 사용하지 않는다.
+- 첫 로드 실패 시 같은 사용 그룹의 다른 파일로 한 번만 교체. 대체도 실패하면 무한 재시도하지 않음.
+- 두 번 실패한 이미지 영역은 visibility:hidden으로 자리를 유지하고 문구·버튼은 보존.
+- 프로필 대체 선택도 세션에 유지.
+- 원본 PNG·투명도·방향 유지. JPG 변환·재압축·좌우 반전·cover/crop 없음.
+- side-rest/belly-up-lounge는 넓은 빈 상태·배너·카드에 연결하고 가로형 CSS 크기를 별도 적용.
+- 나머지는 contain 안에서 원본 비율 유지. 얼굴·귀·발·장식 추가 잘림 없음.
 
-[3. 헤더 규칙 — 강제 제한]
+## 중복 판정 및 검증
 
-모든 페이지 헤더와 프로필에서 WAITING 그룹을 사용하지 않는다.
+바이너리/픽셀 동일성, 알파 외곽 기준 정규화 비교, 원본 사진 육안 대조를 함께 사용한다.
+유사도 수치만으로 제외하지 않는다. 동일 원본 리사이즈 5건 재사용, 다른 원본 15건 추가.
+ADDED 15 + REUSED 5 = 20, 누락 0. 전체 registry 36장, 미사용 0.
+결과와 전후 해시는 [처리 기록](image-add/results.json), 구현·검증 보고는 [정책 보고서](FINAL_POLICY_REPORT.md).
 
-포함:
-- 홈 상단
-- 목록 상단
-- 음식 상세 상단
-- 등록·수정 상단
-- 히스토리 상단
-- 오류 페이지의 별도 헤더
-- 공통 프로필
 
-후보 소진이나 fallback에서도 이 제한을 풀지 않는다.
-헤더 여부는 좌표가 아니라 컴포넌트 역할로 판단한다.
-본문 상단에 있는 빈 상태·오류 안내 카드는 페이지 헤더와 구분한다.
+## 영역별 제외 규칙
 
-프로필 happy-closeup 고정은 유지한다.
-같은 화면의 다른 영역에서는 happy-closeup을 제외한다.
-
-[4. 영역별 분위기]
-
-‘우선 → 차선’은 우선 그룹에서 사용 가능한 미중복 후보가
-없을 때만 차선 그룹으로 확장한다는 뜻이다.
-단순히 최근 노출됐다는 이유로 차선 그룹을 먼저 고르지 않는다.
-
-- 홈 헤더:
-  HAPPY → NEUTRAL
-
-- 목록·상세·히스토리 헤더:
-  NEUTRAL → HAPPY
-
-- 등록 헤더:
-  HAPPY → NEUTRAL
-
-- 수정 헤더:
-  NEUTRAL → HAPPY
-
-- 홈 확인할 음식 없음:
-  REST만 허용
-  ‘등록된 음식이 없음’과 구분한다.
-  실제 상태 판정은 기존 도메인 로직을 유지한다.
-
-- 홈 등록 음식 없음 / 빈 목록 / 위치별 빈 목록 /
-  검색 결과 없음 / 빈 히스토리:
-  WAITING → NEUTRAL
-
-- WARNING:
-  NEUTRAL만 허용
-  HAPPY·REST·WAITING으로 범용 확장하지 않는다.
-
-- 등록 완료·소비 완료:
-  HAPPY → NEUTRAL
-
-- 폐기 완료:
-  NEUTRAL만 허용
-  공통 success 역할을 사용 중이면 표시할 이미지 정책만 행동별로 구분한다.
-
-- 등록 유도 배너:
-  HAPPY와 WAITING을 동등한 우선 후보로 허용
-  NEUTRAL은 차선 후보
-  WAITING은 ‘등록을 기다리는 쪼코’의 의미다.
-
-- 실온 카드:
-  NEUTRAL과 HAPPY를 동등한 우선 후보로 허용
-  WAITING은 차선 후보
-
-- 냉장실 카드:
-  REST 우선, leaf-hat-front / leaf-hat-side를 선호 후보로 지정
-  NEUTRAL과 WAITING은 차선 후보
-
-- 냉동실 카드:
-  REST 우선, cozy-curl / extra-curled-smile을 선호 후보로 지정
-  NEUTRAL과 WAITING은 차선 후보
-
-- 전체 음식 카드:
-  HAPPY → NEUTRAL → WAITING
-
-- 로딩:
-  현재 사용 여부와 동작을 유지한다.
-  sniff를 노출하기 위해 새로운 로딩 UI를 만들지 않는다.
-
-[5. 오류 규칙 — WAITING 전용]
-
-오류·없는 페이지의 본문 상태 이미지에는 아래 네 사진만 허용한다.
-- puppy-sit
-- empty-curious
-- extra-chin-on-paw
-- extra-puppy-gaze
-
-이 그룹은 우선 후보가 아니라 유일한 허용 후보다.
-중립·행복·휴식 그룹으로 fallback하지 않는다.
-
-- 구도에 맞는 후보 안에서 전역 이력 기반으로 순환한다.
-- 오류 이미지를 다른 본문 보조 이미지보다 먼저 배정한다.
-- 다른 보조 영역과 충돌하면 보조 영역을 재선택하거나 생략한다.
-- 상태 전환으로 오류가 새로 등장한 경우에도 위 규칙을 적용한다.
-  이 충돌 해소는 일반적인 ‘기존 배정 유지’ 규칙의 예외다.
-- 이미지 실패 시 같은 WAITING 그룹의 다른 적합한 후보를 시도한다.
-- 모든 적합한 후보가 로드 실패하면 사진 없이 오류 문구와
-  재시도·이동 동작을 유지한다. 무한 재시도하지 않는다.
-- 오류를 빈 목록으로 처리하지 않는다.
-- 오류 페이지 헤더에는 WAITING을 쓰지 않는 규칙을 유지한다.
-
-[6. 개별 사진의 기존 제한 유지]
-
-- puppy-sit:
-  기존 빈 상태·오류 전용 제한 유지.
-  등록 배너나 보관 카드로 자동 확장하지 않는다.
-
-- empty-curious:
-  사용자 승인 후 교체된 실제 투명 PNG를 사용한다.
-  승인된 오류 본문의 상반신 배치 제한을 유지한다.
-  잘린 몸통을 독립 전신 스티커처럼 띄우지 않는다.
-
-- extra-chin-on-paw / extra-puppy-gaze:
-  등록 배너와 보관 카드의 WAITING 후보로 활용할 수 있다.
-  실제 구도와 작은 크기의 가독성을 확인한 뒤 허용 영역에 추가한다.
-
-- sniff:
-  REST 분류여도 왼쪽 가장자리 전용 구도 제한을 유지한다.
-  새로운 영역에 사용하려면 해당 배치 조건을 충족해야 한다.
-
-- 그 외 사진:
-  기존 잘림·여백·구도 제한 유지.
-  cover나 과도한 crop으로 억지로 맞추지 않는다.
-
-- B 등급 사진, 배경 있는 JPG, 잔디 제외 사진:
-  이번 표정 매핑을 이유로 자동 승격하거나 후보 풀에 넣지 않는다.
-
-[7. 전역 선택 순서]
-
-일반 영역과 빈 상태가 기존의 하나의 전역 선택 이력을 계속 공유한다.
-
-1. 해당 역할의 강제 조건과 구도 제한을 적용한다.
-2. 같은 화면에서 사용 중인 이미지 키를 제외한다.
-3. 해당 역할의 우선 분위기 후보를 선택한다.
-4. 우선 분위기에 적합한 후보가 없을 때만 명시된 차선으로 확장한다.
-5. 선택된 우선순위 안에서 아래를 고려한다:
-   - 현재 화면의 poseGroup 중복 회피
-   - 해당 영역의 직전 사진 회피
-   - 기존 최근 노출 이력에서 사용 횟수가 적은 사진
-   - 영역별 선호 후보
-   - 동률이면 무작위
-6. 허용된 차선까지 소진되면 해당 보조 이미지만 생략한다.
-
-주의:
-- 같은 화면의 동일 이미지 키 중복은 금지한다.
-- poseGroup 중복은 가능한 한 피하되 후보가 부족하면 허용한다.
-- 최근 노출 이력은 선택 선호 기준이며 영구 제외 조건이 아니다.
-- ‘덜 나온 사진’이라는 이유로 의미가 다른 그룹을 선택하지 않는다.
-- 모든 A 사진으로 확장하거나 첫 후보를 재사용하는 fallback은 제거한다.
-- WAITING 그룹에 일괄적으로 낮은 가중치를 주지 않는다.
-- 등록 배너처럼 HAPPY와 WAITING이 동등한 영역에서는
-  같은 기준으로 노출 이력을 평가한다.
-
-[8. 배정과 안정성]
-
-- 고정 프로필을 먼저 점유 처리한다.
-- 오류 전용 영역, 그 외 후보가 적은 영역, 후보가 넓은 영역 순으로 배정한다.
-- 화면에 새로 진입할 때 선택한다.
-- 탭 이동 후에도 전역 이력과 영역별 직전 선택을 유지한다.
-- 입력·수량 변경·단순 리렌더·반응형 크기 변경에는 사진을 유지한다.
-- 새로운 상태 영역이 등장하면 원칙적으로 새 영역만 선택한다.
-  단, 오류 우선 배정으로 충돌하는 보조 영역은 재선택 가능하다.
-- 사라진 영역의 현재 점유는 해제하되 최근 이력은 유지한다.
-- 렌더 호출마다 노출을 집계하지 않는다.
-- 개발 모드 이중 실행에서도 선택 이력이 중복 소모되지 않게 한다.
-- 기존 sessionStorage 버전 관리와 실패 시 메모리 fallback을 유지한다.
-- 새 정책에서 허용되지 않는 기존 캐시 배정은 재사용하지 않는다.
-
-[9. 검증 및 보고]
-
-다음을 확인해줘.
-- 모든 헤더에서 WAITING이 나오지 않는다.
-- 오류 본문은 WAITING만 순환한다.
-- 빈 상태에서 WAITING 사진들이 실제로 다양하게 나온다.
-- 등록 배너에서도 구도가 맞는 WAITING 후보가 선택된다.
-- WARNING에 행복하거나 자는 사진이 나오지 않는다.
-- ‘등록 음식 없음’과 ‘확인할 음식 없음’의 분위기가 구분된다.
-- 같은 화면의 이미지 키 중복이 없다.
-- 탭 이동 시 이력이 유지되고 입력·리렌더 중 사진이 바뀌지 않는다.
-- 작은 화면에서도 사진의 추가 잘림이나 텍스트·버튼 가림이 없다.
-
-완료 후:
-1. 사진별 emotionGroup / poseGroup / 허용 영역
-2. 영역별 최종 실제 후보
-3. 제한 때문에 후보가 없거나 이미지가 생략되는 영역
-4. 화면 이동에 따른 선택 결과와 실제 화면 미리보기
-를 보고해줘.
-
-이미지 파일 자체의 재가공은 하지 않는다.
+- sniff.png와 rest.png: 쪼코가 체크 완료! 네 카드에서만 제외. 헤더·빈 상태·요약 휴식 사용 유지.
+- puppy-tilt.png: 모든 상단 헤더에서 제외. 카드·중립 안내 사용 유지.
+- 후보 목록 변경 시 저장된 bag의 완전성을 재검증해 이전 후보 목록은 초기화한다.

@@ -1,0 +1,516 @@
+{
+  "added": 15,
+  "reused": 5,
+  "missing": 0,
+  "existing_asset_sha256": {
+    "come-running.png": "82f4dabb6c52dac76e8cbe9a508e27472395ff93ac47a90efae6ac272405a06a",
+    "cozy-curl.png": "4822119d3042b34795a9ef8c0f1390cb099560dc8e096a50d589531fc26add59",
+    "empty-curious.png": "bd6fcfe082d32916bf28ef5b7bdafd91d5997def861861efaf8f7a3a4df12795",
+    "extra-chin-on-paw.png": "7ba57d6a604c34b7a4a521c681c4c77cd030b6e31d4f13637884cbb9c212700e",
+    "extra-curled-smile.png": "5174773e7bc5f606e6e1ff97c909a0eb3e16c8b79ded050e1dbfea3dcf0f235f",
+    "extra-puppy-gaze.png": "ce2ec994710688611fed0217415bfcba397da57cd585577231c0cf62ec851d22",
+    "extra-sunny-sit.png": "58c12d75fe2102e95745ebaf8a8f1da0e31f29bc3c6b54ab7cf3dfbf0e9dfc9d",
+    "extra-tongue-step.png": "5dc0d8ae86ff9bb20388bb66a81fb4682157fcadcdf9d2b914975b3f6e00ae85",
+    "happy-closeup.png": "4488109d7b6e65d873b582314b7afa046c642f8e5bf565c0634d4e4eee4e3861",
+    "happy-lounge.png": "a5cf59e3c30c4f9aa48250d74f258b77c005b18fdefb30f398b37b247dc6afca",
+    "happy-sit.png": "8b90ead3f48124875a49559d67966c1b79bf702d67611084ffa3ebcd409f1f08",
+    "leaf-hat-front.png": "21314237cb46525edf5f6e188f8633dacd4bfdb80565d854c8d898269ff1672e",
+    "leaf-hat-side.png": "886ad4878d029113148096fd519a536acef71f07b9532f3b0df686a6b4fd7efb",
+    "look-aside.png": "6ff9e68f8be95916a3831f5fb4dfb8577464be15356e8210fba1623e7d44c8a7",
+    "proud-sit.png": "bebedc384aa9bce55cf342052a9ba518af5dc4c4909041132ae11e54a9a30925",
+    "puppy-front-paws.png": "a3436245a073377e7c7f1342465ae835bec8bb769b053b5a5d9f73149da2e8be",
+    "puppy-ready.png": "54d7253d7d9bfcf306099b307509f9d3db0ac3ec763fb9446c7f7d852872f1db",
+    "puppy-sit.png": "c9bca78d3342d247e07ec266f08008f976dc50f607ee4b4ee9f4f803ff6825fb",
+    "puppy-tilt.png": "30af87ec982f875e9a6c7d292c732728879dc83806ca4a49d56320bbabc07b49",
+    "rest.png": "6b37ff07b58a77b3c45bfd6de0b8d9f54f599c2d881f0cea3c42c676cb9a8f5e",
+    "sniff.png": "43333e8a7dc898aa21a40f6926358fe1787dd00f4ae76a4724655d1fa350fc58"
+  },
+  "images": [
+    {
+      "zip_filename": "calm-closeup.png",
+      "original_filename": "KakaoTalk_20260913_142517829_01(1).png",
+      "status": "ADDED",
+      "project_filename": "calm-closeup.png",
+      "source_sha256": "98088950b6a873e009a920f1dbc932e391203d0fff2305f5bf7d08f7b9ec3ddf",
+      "project_sha256": "98088950b6a873e009a920f1dbc932e391203d0fff2305f5bf7d08f7b9ec3ddf",
+      "source_dimensions": [
+        1993,
+        2048
+      ],
+      "project_dimensions": [
+        1993,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "OBSERVE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "happy-run-front.png",
+      "original_filename": "KakaoTalk_20260913_142517829_07(1).png",
+      "status": "ADDED",
+      "project_filename": "happy-run-front.png",
+      "source_sha256": "3f99d137d908713976bbade08c797b4ec58d0e8b354fbc906039ede9ad5a9d0e",
+      "project_sha256": "3f99d137d908713976bbade08c797b4ec58d0e8b354fbc906039ede9ad5a9d0e",
+      "source_dimensions": [
+        745,
+        2048
+      ],
+      "project_dimensions": [
+        745,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "SUCCESS",
+        "WIDE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "flower-sniff.png",
+      "original_filename": "KakaoTalk_20260913_142517829_08(1).png",
+      "status": "ADDED",
+      "project_filename": "flower-sniff.png",
+      "source_sha256": "c591cf5d550279173d5d01f1e16dc2ae63bfd70f780ec3166e4f99182b5da4f7",
+      "project_sha256": "c591cf5d550279173d5d01f1e16dc2ae63bfd70f780ec3166e4f99182b5da4f7",
+      "source_dimensions": [
+        1488,
+        2048
+      ],
+      "project_dimensions": [
+        1488,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "side-profile-ear-up.png",
+      "original_filename": "KakaoTalk_20260913_142517829_10(1).png",
+      "status": "REUSED",
+      "project_filename": "sniff.png",
+      "source_sha256": "b1cc7bc3464c1d26d660e6742674cb5508e93bdf4d35c175463746d41a5edb05",
+      "project_sha256": "43333e8a7dc898aa21a40f6926358fe1787dd00f4ae76a4724655d1fa350fc58",
+      "source_dimensions": [
+        1456,
+        2048
+      ],
+      "project_dimensions": [
+        1456,
+        2048
+      ],
+      "comparison_mse": 5.306452646418044e-7,
+      "reason": "동일 원본 리사이즈본: 피사체·자세·외곽·세부 무늬 육안 일치 및 투명 여백 정규화 비교. 기존 파일 재사용.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "front-paws-lounge.png",
+      "original_filename": "KakaoTalk_20260913_143637955_04(1).png",
+      "status": "REUSED",
+      "project_filename": "happy-lounge.png",
+      "source_sha256": "02a80b464208d6c6959fad89b52c78479d0a5026a10827a16b6669b95baac1e1",
+      "project_sha256": "a5cf59e3c30c4f9aa48250d74f258b77c005b18fdefb30f398b37b247dc6afca",
+      "source_dimensions": [
+        1253,
+        1953
+      ],
+      "project_dimensions": [
+        1253,
+        1953
+      ],
+      "comparison_mse": 9.783897219018323e-7,
+      "reason": "동일 원본 리사이즈본: 피사체·자세·외곽·세부 무늬 육안 일치 및 투명 여백 정규화 비교. 기존 파일 재사용.",
+      "usage_groups": [
+        "HEADER",
+        "SUCCESS",
+        "WIDE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "happy-sit-tilt.png",
+      "original_filename": "KakaoTalk_20260913_143637955_07(1).png",
+      "status": "REUSED",
+      "project_filename": "happy-sit.png",
+      "source_sha256": "1e05bc75ad487dc6def3b68a0ee36ee51e462adccc22dfa72003cebcd067b595",
+      "project_sha256": "8b90ead3f48124875a49559d67966c1b79bf702d67611084ffa3ebcd409f1f08",
+      "source_dimensions": [
+        1388,
+        2048
+      ],
+      "project_dimensions": [
+        1388,
+        2048
+      ],
+      "comparison_mse": 7.675333205177498e-7,
+      "reason": "동일 원본 리사이즈본: 피사체·자세·외곽·세부 무늬 육안 일치 및 투명 여백 정규화 비교. 기존 파일 재사용.",
+      "usage_groups": [
+        "HEADER",
+        "SUCCESS",
+        "WIDE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "red-collar-puppy.png",
+      "original_filename": "KakaoTalk_20260913_150806767(1).png",
+      "status": "ADDED",
+      "project_filename": "red-collar-puppy.png",
+      "source_sha256": "f68e4c8d991d8b4e6b6c258c88df21ae1da0d388c548b48a7b5b37acab412592",
+      "project_sha256": "f68e4c8d991d8b4e6b6c258c88df21ae1da0d388c548b48a7b5b37acab412592",
+      "source_dimensions": [
+        1195,
+        2048
+      ],
+      "project_dimensions": [
+        1195,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "OBSERVE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "puppy-paw-reach.png",
+      "original_filename": "KakaoTalk_20260913_150806767_02(1).png",
+      "status": "ADDED",
+      "project_filename": "puppy-paw-reach.png",
+      "source_sha256": "7cd0aedec4a883b99537773445f02c931f50c26239a7d4c881f75d9c5d618784",
+      "project_sha256": "7cd0aedec4a883b99537773445f02c931f50c26239a7d4c881f75d9c5d618784",
+      "source_dimensions": [
+        1023,
+        2047
+      ],
+      "project_dimensions": [
+        1023,
+        2047
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "OBSERVE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "belly-up-play.png",
+      "original_filename": "KakaoTalk_20260913_150806767_03(1).png",
+      "status": "ADDED",
+      "project_filename": "belly-up-play.png",
+      "source_sha256": "e8b6dcb2f8b4b852737fd8c47797a5a1ac1a737dc8aa39f2f26ab8f094479568",
+      "project_sha256": "e8b6dcb2f8b4b852737fd8c47797a5a1ac1a737dc8aa39f2f26ab8f094479568",
+      "source_dimensions": [
+        1210,
+        2048
+      ],
+      "project_dimensions": [
+        1210,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "SUCCESS",
+        "WIDE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "harness-puppy-sit.png",
+      "original_filename": "KakaoTalk_20260913_150806767_04(1).png",
+      "status": "REUSED",
+      "project_filename": "puppy-ready.png",
+      "source_sha256": "5cf06fb868971304a146cd0ab6586826a302cce38c6f0909957ded9114737fd2",
+      "project_sha256": "54d7253d7d9bfcf306099b307509f9d3db0ac3ec763fb9446c7f7d852872f1db",
+      "source_dimensions": [
+        994,
+        1430
+      ],
+      "project_dimensions": [
+        994,
+        1430
+      ],
+      "comparison_mse": 6.35172369601435e-7,
+      "reason": "동일 원본 리사이즈본: 피사체·자세·외곽·세부 무늬 육안 일치 및 투명 여백 정규화 비교. 기존 파일 재사용.",
+      "usage_groups": [
+        "HEADER",
+        "OBSERVE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "puppy-look-down.png",
+      "original_filename": "KakaoTalk_20260913_150806767_05(1).png",
+      "status": "ADDED",
+      "project_filename": "puppy-look-down.png",
+      "source_sha256": "94afc548e803a285269eaed713a343cf6bad7227adf931184f4cf97b13711e5c",
+      "project_sha256": "94afc548e803a285269eaed713a343cf6bad7227adf931184f4cf97b13711e5c",
+      "source_dimensions": [
+        2048,
+        1743
+      ],
+      "project_dimensions": [
+        2048,
+        1743
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "OBSERVE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "side-rest.png",
+      "original_filename": "KakaoTalk_20260913_151148424(1).png",
+      "status": "ADDED",
+      "project_filename": "side-rest.png",
+      "source_sha256": "a6922c439c9b49b70857b053ae84c3b4773e96349fe674042f4a3917722abae7",
+      "project_sha256": "a6922c439c9b49b70857b053ae84c3b4773e96349fe674042f4a3917722abae7",
+      "source_dimensions": [
+        2048,
+        1005
+      ],
+      "project_dimensions": [
+        2048,
+        1005
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "WIDE",
+        "CALM",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "belly-up-lounge.png",
+      "original_filename": "KakaoTalk_20260913_151148424_01(1).png",
+      "status": "ADDED",
+      "project_filename": "belly-up-lounge.png",
+      "source_sha256": "9407c4751ea5f6866e441ba599e1191633b04fe002cab76d02250b9ce4eb8f35",
+      "project_sha256": "9407c4751ea5f6866e441ba599e1191633b04fe002cab76d02250b9ce4eb8f35",
+      "source_dimensions": [
+        2048,
+        864
+      ],
+      "project_dimensions": [
+        2048,
+        864
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "WIDE",
+        "CALM",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "flower-collar-sit.png",
+      "original_filename": "KakaoTalk_20260913_151148424_02(1).png",
+      "status": "ADDED",
+      "project_filename": "flower-collar-sit.png",
+      "source_sha256": "7195853238adb23f716b26ed7d495b075777f8ad4a129bc3dcdca0b90bb61b71",
+      "project_sha256": "7195853238adb23f716b26ed7d495b075777f8ad4a129bc3dcdca0b90bb61b71",
+      "source_dimensions": [
+        898,
+        2048
+      ],
+      "project_dimensions": [
+        898,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "plastic-flower-hat.png",
+      "original_filename": "KakaoTalk_20260913_151148424_03(1).png",
+      "status": "ADDED",
+      "project_filename": "plastic-flower-hat.png",
+      "source_sha256": "1ddb8156267eb6be63c22c8a63cb3e6cdc8281070eccdb6c151ed1ffb3823aac",
+      "project_sha256": "1ddb8156267eb6be63c22c8a63cb3e6cdc8281070eccdb6c151ed1ffb3823aac",
+      "source_dimensions": [
+        1396,
+        2048
+      ],
+      "project_dimensions": [
+        1396,
+        2048
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "striped-socks-puppy.png",
+      "original_filename": "KakaoTalk_20260913_151148424_05(1).png",
+      "status": "ADDED",
+      "project_filename": "striped-socks-puppy.png",
+      "source_sha256": "95bd89665e04988131d73e2ea37b853543574c3a6524ad81c72c9f1e1ceb6dbb",
+      "project_sha256": "95bd89665e04988131d73e2ea37b853543574c3a6524ad81c72c9f1e1ceb6dbb",
+      "source_dimensions": [
+        1587,
+        2047
+      ],
+      "project_dimensions": [
+        1587,
+        2047
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    },
+    {
+      "zip_filename": "pink-coat-look-back.png",
+      "original_filename": "KakaoTalk_20260913_195044544_02(1).png",
+      "status": "ADDED",
+      "project_filename": "pink-coat-look-back.png",
+      "source_sha256": "61ebedcfa5aa7d96e473519d1469a91acd89dc76f011e7d8d72017e5f69c72eb",
+      "project_sha256": "61ebedcfa5aa7d96e473519d1469a91acd89dc76f011e7d8d72017e5f69c72eb",
+      "source_dimensions": [
+        1348,
+        1247
+      ],
+      "project_dimensions": [
+        1348,
+        1247
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "EMPTY",
+        "ERROR"
+      ]
+    },
+    {
+      "zip_filename": "back-view-harness.png",
+      "original_filename": "KakaoTalk_20260913_195044544_04(1).png",
+      "status": "ADDED",
+      "project_filename": "back-view-harness.png",
+      "source_sha256": "f882ac251c7a5c3178ecd040cdaf179b0c70816f345a4e7ad9c5f3235897a151",
+      "project_sha256": "f882ac251c7a5c3178ecd040cdaf179b0c70816f345a4e7ad9c5f3235897a151",
+      "source_dimensions": [
+        1814,
+        2032
+      ],
+      "project_dimensions": [
+        1814,
+        2032
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "PROFILE"
+      ]
+    },
+    {
+      "zip_filename": "happy-leash-step.png",
+      "original_filename": "KakaoTalk_20260913_195044544_06(1).png",
+      "status": "REUSED",
+      "project_filename": "extra-tongue-step.png",
+      "source_sha256": "9785b8e8fbbc33c8123a42c67e8679398e6d105a312449d8e86abcc376393926",
+      "project_sha256": "5dc0d8ae86ff9bb20388bb66a81fb4682157fcadcdf9d2b914975b3f6e00ae85",
+      "source_dimensions": [
+        1525,
+        2048
+      ],
+      "project_dimensions": [
+        1525,
+        2048
+      ],
+      "comparison_mse": 0.0000010943307061386646,
+      "reason": "동일 원본 리사이즈본: 피사체·자세·외곽·세부 무늬 육안 일치 및 투명 여백 정규화 비교. 기존 파일 재사용.",
+      "usage_groups": [
+        "HEADER",
+        "SUCCESS",
+        "WIDE",
+        "PORTRAIT",
+        "EXPLORE"
+      ]
+    },
+    {
+      "zip_filename": "snack-ring-tilt.png",
+      "original_filename": "KakaoTalk_20260913_195044544_07(1).png",
+      "status": "ADDED",
+      "project_filename": "snack-ring-tilt.png",
+      "source_sha256": "ac96e6a67cbc772dc91e9edb6ae186cd12331293ac21559f08f9b11288d0e4c4",
+      "project_sha256": "ac96e6a67cbc772dc91e9edb6ae186cd12331293ac21559f08f9b11288d0e4c4",
+      "source_dimensions": [
+        778,
+        947
+      ],
+      "project_dimensions": [
+        778,
+        947
+      ],
+      "comparison_mse": null,
+      "reason": "기존 전체 21장과 해시·정규화 비교 및 육안 대조: 다른 원본 사진. ZIP PNG 바이트 그대로 추가.",
+      "usage_groups": [
+        "HEADER",
+        "CALM",
+        "PORTRAIT",
+        "EXPLORE",
+        "EMPTY"
+      ]
+    }
+  ]
+}

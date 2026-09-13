@@ -2,7 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
 <header th:fragment="header" class="site-header">
     <a class="brand" th:href="@{/}" aria-label="FR!ZER 홈">fr<span>!</span>zer<span class="brand-dot">●</span></a>
-    <a class="profile-link" th:href="@{/}" aria-label="쪼코와 우리 집 냉장고"><span>쪼코와 함께</span><img width="32" height="32" alt="쪼코" data-choco-region="profile" data-choco-role="profile" th:attr="data-choco-base=@{/assets/choco/}" data-choco-fixed="happy-closeup" th:src="@{/assets/choco/happy-closeup.png}"></a>
+    <a class="profile-link" th:href="@{/}" aria-label="쪼코와 우리 집 냉장고"><span>쪼코와 함께</span><img width="32" height="32" alt="쪼코" data-choco-region="profile" data-choco-role="profile" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
 </header>
 <nav th:fragment="nav(active)" class="bottom-nav" aria-label="주 메뉴">
     <a th:href="@{/}" th:attr="aria-current=${active == 'home' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H4V10m5 10v-7h6v7"/></svg><span>홈</span></a>

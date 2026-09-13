@@ -158,7 +158,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 
 .overview-card .eyebrow{color:#a62f27}
 
-.hero-copy .hero-count{display:flex;width:fit-content;margin:12px 18px 0 auto}
+.hero-copy .hero-count{display:block;width:fit-content;white-space:nowrap;margin:12px 18px 0 auto}
 
 .storage-card .storage-icon{font-size:20.4px;color:var(--ink)}
 
@@ -173,3 +173,36 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .add-banner>div>span{display:flex;width:fit-content;gap:0;margin-left:auto}
 
 .form-page .field-error{margin-left:8px}
+
+/* Expanded portrait candidates keep their full image inside the existing slot. */
+.character-heading .choco-left-edge,.hero-dog.choco-left-edge{object-position:left bottom}
+.storage-card .choco-left-edge{object-position:left bottom}
+.empty-state>.choco-left-edge{object-position:left center}
+
+/* Horizontal additions use wider slots; original alpha, ears, paws and decorations stay intact. */
+.empty-state>.choco-wide{width:220px;max-width:100%;height:112px;object-position:center}
+.daily-card .choco-wide{width:100px;height:64px;max-width:36%;object-position:center}
+.add-banner .choco-wide{width:132px;height:74px;max-width:38%;object-position:center}
+.storage-card .choco-wide{width:112px;height:58px;max-width:60%;object-position:right bottom}
+.profile-link img{object-fit:contain;object-position:center}
+.choco-load-failed{visibility:hidden}
+
+/* Page copy and character occupy separate columns, independent of the chosen photo. */
+.home-hero,.tab-heading{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);column-gap:12px;align-items:end}
+.home-hero>.hero-copy,.tab-heading>div{width:auto;min-width:0;align-self:start;overflow-wrap:anywhere}
+.home-hero>.hero-dog,.tab-heading>.choco{position:static;grid-column:2;grid-row:1;align-self:end;justify-self:stretch;width:100%;max-width:100%;height:174px;object-fit:contain;object-position:center bottom}
+@media(max-width:360px){.home-hero>.hero-dog,.tab-heading>.choco{height:154px}}
+
+/* Storage cards: icon, label and right-aligned count above the character slot. */
+.storage-card{display:grid;grid-template-columns:20.4px minmax(0,1fr) max-content;grid-template-rows:auto 112px;gap:6px 4px;align-content:start}
+.storage-card>.storage-icon{grid-column:1;grid-row:1;display:flex;align-items:center}
+.storage-card>h3{grid-column:2;grid-row:1;align-self:center;min-width:0;margin:0;line-height:1.35}
+.storage-card>p{grid-column:3;grid-row:1;align-self:center;justify-self:end;text-align:right;padding-left:0;margin:0;line-height:1.35}
+.storage-card>p b{display:block;line-height:1}
+.storage-card>.choco{grid-column:1/-1;grid-row:2;position:static;z-index:auto;justify-self:stretch;align-self:stretch;width:100%;max-width:100%;height:100%;min-width:0;padding:0;object-fit:contain;object-position:center bottom}
+@media(max-width:360px){.storage-card>h3{font-size:15px}.storage-card>p b{font-size:19px}}
+/* Recent history link feedback without changing its layout. */
+.recent-history .section-heading>.text-link{border-radius:6px;text-underline-offset:4px;transition:color .15s ease}
+.recent-history .section-heading>.text-link:hover,.recent-history .section-heading>.text-link:focus-visible{color:#6048b5;text-decoration:underline}
+.recent-history .section-heading>.text-link:focus-visible{outline:2px solid #7057c8;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.recent-history .section-heading>.text-link{transition:none}}

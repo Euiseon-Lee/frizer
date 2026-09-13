@@ -4,7 +4,7 @@
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${editId != null ? '기억하는 음식' : '킁킁, 맛있는 냄새!'}">킁킁, 맛있는 냄새!</p><h1 th:text="${editId != null ? '음식 정보 바꾸자!' : '이건 뭐야?'}">이건 뭐야?</h1><p class="muted" th:text="${editId != null ? '바뀐 내용도 기억해둘게.' : '등록하면 쪼코가 기억할게.'}">등록하면 쪼코가 기억할게.</p></div><img class="choco" width="100" height="134" alt="쪼코" th:attr="data-choco-region=${editId != null ? 'edit-header' : 'add-header'},data-choco-role=${editId != null ? 'edit-header' : 'add-header'},data-choco-base=@{/assets/choco/}" hidden></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${editId != null ? '기억하는 음식' : '킁킁, 맛있는 냄새!'}">킁킁, 맛있는 냄새!</p><h1 th:text="${editId != null ? '음식 정보 바꾸자!' : '이건 뭐야?'}">이건 뭐야?</h1><p class="muted" th:text="${editId != null ? '수정된 내용도 쪼코가 기억할게.' : '등록하면 쪼코가 기억할게.'}">등록하면 쪼코가 기억할게.</p></div><img class="choco" width="100" height="134" alt="쪼코" th:attr="data-choco-region=${editId != null ? 'edit-header' : 'add-header'},data-choco-role=${editId != null ? 'edit-header' : 'add-header'},data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
 
     <form th:action="${editId != null} ? @{/inventory/{id}/edit(id=${editId})} : @{/inventory}" th:object="${foodForm}" method="post" novalidate>

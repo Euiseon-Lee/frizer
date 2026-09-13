@@ -1,0 +1,24 @@
+# Gradle cache and generated build output
+.gradle/
+build/
+out/
+
+# Machine-specific JDK path (shared build settings belong in build.gradle)
+/gradle.properties
+
+# Personal IDE settings (IntelliJ IDEA / Eclipse)
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Local environment values; keep the safe setup example in Git
+.env
+.env.*
+!.env.example
+
+# Runtime logs and OS metadata
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.frizer.smoke.SmokeMapper">
+    <select id="selectOne" resultType="int">
+        SELECT 1
+    </select>
+
+    <select id="insertFood" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_item (food_name, storage_type, freeze_type, frozen_at, status)
+        VALUES (#{name}, #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status})
+        RETURNING food_id
+    </select>
+
+    <select id="insertDefaults" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_item (food_name, storage_type)
+        VALUES (#{name}, 'FRIDGE')
+        RETURNING food_id
+    </select>
+
+    <select id="insertMappedFood" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_item (
+            food_name
+          , storage_type
+          , category
+          , quantity_text
+          , expired_at
+          , purchased_at
+          , opened_at
+          , frozen_at
+          , source_type
+          , freeze_type
+          , status
+          , memo
+          , created_at
+          , updated_at
+        ) VALUES (
+            #{foodName}
+          , #{storageType}
+          , #{category}
+          , #{quantityText}
+          , #{expiredAt,jdbcType=DATE}
+          , #{purchasedAt,jdbcType=DATE}
+          , #{openedAt,jdbcType=DATE}
+          , #{frozenAt,jdbcType=DATE}
+          , #{sourceType}
+          , #{freezeType}
+          , #{status}
+          , #{memo}
+          , #{createdAt}
+          , #{updatedAt}
+        )
+        RETURNING food_id
+    </select>
+
+    <select id="findFood" resultType="com.example.frizer.inventory.domain.FoodItem">
+        SELECT food_id
+             , food_name
+             , storage_type
+             , category
+             , quantity_text
+             , expired_at
+             , purchased_at
+             , opened_at
+             , frozen_at
+             , source_type
+             , freeze_type
+             , status
+             , memo
+             , created_at
+             , updated_at
+          FROM food_item
+         WHERE food_id = #{id}
+    </select>
+
+    <select id="insertHistory" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_history (
+            food_id
+          , action_type
+          , previous_storage_type
+          , new_storage_type
+          , quantity_text
+          , memo
+        ) VALUES (
+            #{foodId}
+          , #{action}
+          , #{previous,jdbcType=VARCHAR}
+          , #{next,jdbcType=VARCHAR}
+          , '1끼'
+          , '행동 메모'
+        )
+        RETURNING history_id
+    </select>
+
+    <select id="findHistory" resultType="com.example.frizer.history.domain.FoodHistory">
+        SELECT history_id
+             , food_id
+             , action_type
+             , previous_storage_type
+             , new_storage_type
+             , quantity_text
+             , memo
+             , created_at
+          FROM food_history
+         WHERE history_id = #{id}
+    </select>
+
+    <!-- Tests FK enforcement only. No production delete API or mapper exists. -->
+    <delete id="deleteFood">
+        DELETE FROM food_item WHERE food_id = #{id}
+    </delete>
+</mapper>

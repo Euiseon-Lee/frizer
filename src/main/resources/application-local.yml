@@ -1,0 +1,14 @@
+spring:
+  config:
+    import: optional:file:./.env[.properties]
+  datasource:
+    url: jdbc:postgresql://localhost:${FRIZER_DB_PORT:5432}/frizer
+    username: frizer
+    password: ${FRIZER_DB_PASSWORD}
+  thymeleaf:
+    cache: false
+
+logging:
+  level:
+    com.example.frizer.inventory.mapper: DEBUG
+    com.example.frizer.history.mapper: DEBUG

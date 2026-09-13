@@ -1,0 +1,24 @@
+name: frizer
+
+services:
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_DB: frizer
+      POSTGRES_USER: frizer
+      POSTGRES_PASSWORD: ${FRIZER_DB_PASSWORD:?Set FRIZER_DB_PASSWORD in .env or your environment}
+      TZ: Asia/Seoul
+    command: ["postgres", "-c", "timezone=Asia/Seoul"]
+    ports:
+      - "127.0.0.1:${FRIZER_DB_PORT:-5432}:5432"
+    volumes:
+      - frizer_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frizer -d frizer"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  frizer_postgres_data:

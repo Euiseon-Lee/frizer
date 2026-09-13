@@ -1,0 +1,51 @@
+{
+  "revision": "5.2-addon",
+  "photos": [
+    {
+      "key": "photo-happy-front",
+      "source": "KakaoTalk_20260315_161104949(1).jpg",
+      "path": "photos/choco/photo-happy-front.jpg",
+      "render_mode": "photo-frame",
+      "transparent": false,
+      "tier": "P",
+      "default_empty_enabled": false,
+      "poseGroup": "happy-front",
+      "note": "표정이 뚜렷함. 앞다리가 원본 하단에서 끝나므로 전신 누끼용 제외. 세로 사진 프레임 추천.",
+      "processing": "none; original JPG bytes preserved",
+      "sha256": "b07d832a17ad4e1e549f9f3478ad83879270a6c8199e0211fd6233df40055869"
+    },
+    {
+      "key": "photo-belly-wide",
+      "source": "KakaoTalk_20260223_095858709.jpg",
+      "path": "photos/choco/photo-belly-wide.jpg",
+      "render_mode": "photo-frame",
+      "transparent": false,
+      "tier": "P",
+      "default_empty_enabled": false,
+      "poseGroup": "belly-rest",
+      "note": "배를 보이며 누운 가로 구도. 발이 화면 가장자리에 가까움. 사진 전체를 contain으로 표시.",
+      "processing": "none; original JPG bytes preserved",
+      "sha256": "747a983be5affe5c2484c015bf318dc684e3350760c40100424cf45d71bd11c6"
+    },
+    {
+      "key": "photo-belly-tall",
+      "source": "KakaoTalk_20260223_095858709_01.jpg",
+      "path": "photos/choco/photo-belly-tall.jpg",
+      "render_mode": "photo-frame",
+      "transparent": false,
+      "tier": "P",
+      "default_empty_enabled": false,
+      "poseGroup": "belly-rest",
+      "note": "배를 보이며 누운 세로 구도. 가로 사진과 유사한 장면. 같은 화면·연속 노출 금지.",
+      "processing": "none; original JPG bytes preserved",
+      "sha256": "192be2dff33550b6b80e639015b4515c1905ea8b6262c2a2373a30acc51ca1ee"
+    }
+  ],
+  "duplicate": {
+    "source": "KakaoTalk_20260221_144203090(1).png",
+    "existing_key": "relaxed-stretch",
+    "existing_path": "reserve/choco/relaxed-stretch.png",
+    "status": "exact_sha256_duplicate_of_V5",
+    "action": "기존 B 등급과 경계 배치 조건 유지. 신규 사진 수와 랜덤 가중치에 포함하지 않음."
+  }
+}

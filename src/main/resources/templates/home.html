@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main>
     <section class="home-hero">
         <div class="hero-copy"><p class="eyebrow">홈 프로텍터, 쪼코</p><h1>오늘 뭐 먹을 거야?</h1><p>쪼코랑 같이 찾아보자!</p><span class="hero-count">보관 중 <b th:text="${totalCount}">0</b>개</span></div>
-        <img class="hero-dog choco" data-choco="hero" th:src="@{/assets/choco/happy-lounge.png}" width="190" height="180" alt="누워 있는 쪼코" fetchpriority="high">
+        <img class="hero-dog choco" width="190" height="180" alt="누워 있는 쪼코" fetchpriority="high" data-choco-region="home-hero" data-choco-role="home-hero" th:attr="data-choco-base=@{/assets/choco/}" hidden>
         <span class="hero-spark" aria-hidden="true">✳</span>
     </section>
     <div class="home-sheet">
         <section class="home-section">
             <div class="section-heading"><h2>한눈에 보기</h2><time class="small muted" th:text="${#temporals.format(today, 'M월 d일')}"></time></div>
             <section class="alert-card overview-card" th:unless="${overviewFoods.isEmpty()}">
-                <div><p class="eyebrow">WARNING!</p><h3>확인이 필요한 음식 <span th:text="${overviewFoods.size()}"></span>개</h3><p class="small">기한과 개봉일을 확인해줘.</p></div><img class="choco" th:src="@{/assets/choco/look-aside.png}" width="64" height="76" alt="" loading="lazy">
+                <div><p class="eyebrow">WARNING!</p><h3>확인이 필요한 음식 <span th:text="${overviewFoods.size()}"></span>개</h3><p class="small">기한과 개봉일을 확인해줘.</p></div><img class="choco" width="64" height="76" alt="" loading="lazy" data-choco-region="home-warning" data-choco-role="warning" th:attr="data-choco-base=@{/assets/choco/}" hidden>
                 <ul class="date-foods"><li th:each="food : ${overviewFoods}"><a th:href="@{/inventory/{id}(id=${food.foodId()})}"><span class="overview-food-name" th:title="${food.foodName()}" th:text="${food.foodName()}"></span><span class="attention-reasons">
                     <span th:if="${food.useByOverdue(today)}">소비기한 +<span th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(food.expiredAt(), today)}"></span>일</span>
                     <span th:if="${food.sellByOverdue(today)}">유통기한 +<span th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(food.sellByAt(), today)}"></span>일</span>
@@ -21,17 +21,17 @@
                     <span th:if="${food.openedOverdue(today)}">개봉 후 +<span th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(food.openedAt(), today)}"></span>일</span>
                 </span></a></li></ul>
             </section>
-            <div class="daily-card" th:if="${overviewFoods.isEmpty()}"><img class="choco" th:attr="data-choco=${totalCount == 0 ? 'empty' : 'rest'}" th:src="@{/assets/choco/puppy-sit.png}" width="78" height="88" alt="" loading="lazy"><div><h3 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '지금 확인이 필요한 음식은 없어.'}"></h3><p th:if="${totalCount == 0}">우리 집에 뭐가 있는지 알려줘.</p><p th:unless="${totalCount == 0}">입력한 기한과 개봉일을 기준으로 확인했어.</p></div></div>
+            <div class="daily-card" th:if="${overviewFoods.isEmpty()}"><img class="choco" width="78" height="88" alt="" loading="lazy" data-choco-region="home-summary" th:attr="data-choco-role=${totalCount == 0 ? 'empty' : 'rest'},data-choco-base=@{/assets/choco/}" hidden><div><h3 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '지금 확인이 필요한 음식은 없어.'}"></h3><p th:if="${totalCount == 0}">우리 집에 뭐가 있는지 알려줘.</p><p th:unless="${totalCount == 0}">입력한 기한과 개봉일을 기준으로 확인했어.</p></div></div>
         </section>
         <section class="home-section"><div class="section-heading"><h2>쪼코가 지키는 중!</h2><span class="small muted">위치별로 보기</span></div>
             <div class="storage-grid">
-                <a class="storage-card room" th:href="@{/inventory(storage=ROOM)}"><span class="storage-icon" aria-hidden="true">☀</span><h3>실온</h3><p><b th:text="${counts['ROOM']}"></b> 개</p><img class="choco" data-choco="room" th:src="@{/assets/choco/proud-sit.png}" width="82" height="90" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></a>
-                <a class="storage-card fridge" th:href="@{/inventory(storage=FRIDGE)}"><span class="storage-icon" aria-hidden="true">❋</span><h3>냉장실</h3><p><b th:text="${counts['FRIDGE']}"></b> 개</p><img class="choco" data-choco="fridge" th:src="@{/assets/choco/leaf-hat-front.png}" width="88" height="92" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></a>
-                <a class="storage-card freezer" th:href="@{/inventory(storage=FREEZER)}"><span class="storage-icon" aria-hidden="true">❄</span><h3>냉동실</h3><p><b th:text="${counts['FREEZER']}"></b> 개</p><img class="choco" data-choco="freezer" th:src="@{/assets/choco/happy-lounge.png}" width="82" height="92" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></a>
-                <a class="storage-card all" th:href="@{/inventory}"><span class="storage-icon" aria-hidden="true">▦</span><h3>전체 음식</h3><p><b th:text="${totalCount}"></b> 개</p><img class="choco choco-portrait" data-choco="all" th:src="@{/assets/choco/happy-closeup.png}" width="80" height="82" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></a>
+                <a class="storage-card room" th:href="@{/inventory(storage=ROOM)}"><span class="storage-icon" aria-hidden="true">☀</span><h3>실온</h3><p><b th:text="${counts['ROOM']}"></b> 개</p><img class="choco" width="82" height="90" alt="" loading="lazy" data-choco-region="room" data-choco-role="room" th:attr="data-choco-base=@{/assets/choco/}" hidden><span class="card-arrow" aria-hidden="true">↗</span></a>
+                <a class="storage-card fridge" th:href="@{/inventory(storage=FRIDGE)}"><span class="storage-icon" aria-hidden="true">❋</span><h3>냉장실</h3><p><b th:text="${counts['FRIDGE']}"></b> 개</p><img class="choco" width="88" height="92" alt="" loading="lazy" data-choco-region="fridge" data-choco-role="fridge" th:attr="data-choco-base=@{/assets/choco/}" hidden><span class="card-arrow" aria-hidden="true">↗</span></a>
+                <a class="storage-card freezer" th:href="@{/inventory(storage=FREEZER)}"><span class="storage-icon" aria-hidden="true">❄</span><h3>냉동실</h3><p><b th:text="${counts['FREEZER']}"></b> 개</p><img class="choco" width="82" height="92" alt="" loading="lazy" data-choco-region="freezer" data-choco-role="freezer" th:attr="data-choco-base=@{/assets/choco/}" hidden><span class="card-arrow" aria-hidden="true">↗</span></a>
+                <a class="storage-card all" th:href="@{/inventory}"><span class="storage-icon" aria-hidden="true">▦</span><h3>전체 음식</h3><p><b th:text="${totalCount}"></b> 개</p><img class="choco choco-portrait" width="80" height="82" alt="" loading="lazy" data-choco-region="all" data-choco-role="all" th:attr="data-choco-base=@{/assets/choco/}" hidden><span class="card-arrow" aria-hidden="true">↗</span></a>
             </div>
         </section>
-        <a class="add-banner" th:href="@{/inventory/new}"><div><p class="eyebrow">킁킁, 맛있는 냄새가 나는데?</p><h2>등록을 안 하면 쪼코 거라구</h2><span>음식 등록하기 <b aria-hidden="true">＋</b></span></div><img class="choco" data-choco="registrationBanner" th:src="@{/assets/choco/happy-sit.png}" width="88" height="100" alt="" loading="lazy"></a>
+        <a class="add-banner" th:href="@{/inventory/new}"><div><p class="eyebrow">킁킁, 맛있는 냄새가 나는데?</p><h2>등록을 안 하면 쪼코 거라구</h2><span>음식 등록하기 <b aria-hidden="true">＋</b></span></div><img class="choco" width="88" height="100" alt="" loading="lazy" data-choco-region="banner" data-choco-role="banner" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
         <section class="home-section recent-history"><div class="section-heading"><h2>최근 기록</h2><a class="text-link" th:href="@{/history}">전체 보기 →</a></div><p class="muted small" th:if="${entries.isEmpty()}">음식을 등록하면 여기에 기록이 남아.</p><div th:replace="~{fragments/shell :: recentHistoryRows(${entries})}"></div></section>
         <footer class="page-footer">쪼코와 함께 냉장고 파먹기</footer>
     </div>

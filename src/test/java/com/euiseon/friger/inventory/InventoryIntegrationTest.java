@@ -767,4 +767,20 @@ class InventoryIntegrationTest {
         assertThat(entry.homeSummary()).isEqualTo("메모: 첫째 줄 · 둘째 줄 → 새 메모");
     }
 
+    @Test
+    void exportChocoHomeStatesForBrowserVerification() throws Exception {
+        var directory = java.nio.file.Path.of("build", "choco-preview");
+        java.nio.file.Files.createDirectories(directory);
+        String empty = mvc.perform(get("/")).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(empty).contains("data-choco-region=\"home-summary\"", "data-choco-role=\"empty\"");
+        java.nio.file.Files.writeString(directory.resolve("home-empty.html"), empty);
+        mvc.perform(post("/inventory").param("foodName", "검증 음식").param("storageType", "FRIDGE")
+                .param("quantityAmount", "1").param("quantityUnit", "개"))
+                .andExpect(status().is3xxRedirection());
+        String resting = mvc.perform(get("/")).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(resting).contains("data-choco-role=\"rest\"").doesNotContain("data-choco-region=\"home-warning\"");
+        java.nio.file.Files.writeString(directory.resolve("home-rest.html"), resting);
+    }
 }

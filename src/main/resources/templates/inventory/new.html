@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${editId != null ? '기억하는 음식' : '킁킁, 맛있는 냄새!'}">킁킁, 맛있는 냄새!</p><h1 th:text="${editId != null ? '음식 정보 바꾸자!' : '음식 등록하자!'}">음식 등록하자!</h1><p class="muted" th:text="${editId != null ? '바뀐 내용도 기억해둘게.' : '쪼코가 기억해둘게.'}">쪼코가 기억해둘게.</p></div><img class="choco" data-choco="add" th:src="@{/assets/choco/come-running.png}" width="100" height="134" alt="쪼코"></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${editId != null ? '기억하는 음식' : '킁킁, 맛있는 냄새!'}">킁킁, 맛있는 냄새!</p><h1 th:text="${editId != null ? '음식 정보 바꾸자!' : '음식 등록하자!'}">음식 등록하자!</h1><p class="muted" th:text="${editId != null ? '바뀐 내용도 기억해둘게.' : '쪼코가 기억해둘게.'}">쪼코가 기억해둘게.</p></div><img class="choco" width="100" height="134" alt="쪼코" th:attr="data-choco-region=${editId != null ? 'edit-header' : 'add-header'},data-choco-role=${editId != null ? 'edit-header' : 'add-header'},data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
 
     <form th:action="${editId != null} ? @{/inventory/{id}/edit(id=${editId})} : @{/inventory}" th:object="${foodForm}" method="post" novalidate>

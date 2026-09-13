@@ -1,0 +1,803 @@
+[
+  {
+    "label": "홈 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "happy-sit",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-tilt",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "home-warning",
+        "role": "warning"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-front",
+        "loaded": true,
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "extra-curled-smile",
+        "loaded": true,
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-front-paws",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ],
+    "url": "/"
+  },
+  {
+    "label": "목록 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-ready",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "list-header",
+        "role": "list-header"
+      }
+    ],
+    "url": "/inventory"
+  },
+  {
+    "label": "상세 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "proud-sit",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "detail-header",
+        "role": "detail-header"
+      }
+    ],
+    "url": "/inventory/4"
+  },
+  {
+    "label": "수정 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "proud-sit",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "edit-header",
+        "role": "edit-header"
+      }
+    ],
+    "url": "/inventory/4/edit"
+  },
+  {
+    "label": "등록 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "come-running",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "add-header",
+        "role": "add-header"
+      }
+    ],
+    "url": "/inventory/new"
+  },
+  {
+    "label": "히스토리 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-ready",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "history-header",
+        "role": "history-header"
+      }
+    ],
+    "url": "/history"
+  },
+  {
+    "label": "홈 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-sunny-sit",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-ready",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "home-warning",
+        "role": "warning"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-side",
+        "loaded": false,
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "cozy-curl",
+        "loaded": false,
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-front-paws",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ],
+    "url": "/"
+  },
+  {
+    "label": "홈 2 — 320px 유지",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-sunny-sit",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-ready",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "home-warning",
+        "role": "warning"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-side",
+        "loaded": true,
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "cozy-curl",
+        "loaded": true,
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-front-paws",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ],
+    "url": "/"
+  },
+  {
+    "label": "목록 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "proud-sit",
+        "loaded": false,
+        "mood": "NEUTRAL",
+        "region": "list-header",
+        "role": "list-header"
+      }
+    ],
+    "url": "/inventory"
+  },
+  {
+    "label": "상세 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "proud-sit",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "detail-header",
+        "role": "detail-header"
+      }
+    ],
+    "url": "/inventory/4"
+  },
+  {
+    "label": "등록 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "come-running",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "add-header",
+        "role": "add-header"
+      }
+    ],
+    "url": "/inventory/new"
+  },
+  {
+    "label": "히스토리 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-tilt",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "history-header",
+        "role": "history-header"
+      }
+    ],
+    "url": "/history"
+  },
+  {
+    "label": "홈 3",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "happy-sit",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-tilt",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "home-warning",
+        "role": "warning"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-front",
+        "loaded": false,
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "extra-curled-smile",
+        "loaded": false,
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-front-paws",
+        "loaded": false,
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ],
+    "url": "/"
+  },
+  {
+    "label": "빈 실온 목록 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "proud-sit",
+        "loaded": true,
+        "mood": "NEUTRAL",
+        "region": "list-header",
+        "role": "list-header"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-sit",
+        "loaded": true,
+        "mood": "WAITING",
+        "region": "list-empty",
+        "role": "empty"
+      }
+    ],
+    "url": "/inventory?storage=ROOM"
+  },
+  {
+    "label": "404 오류 1",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-puppy-gaze",
+        "loaded": false,
+        "mood": "WAITING",
+        "region": "error-image",
+        "role": "error"
+      }
+    ],
+    "url": "/choco-policy-missing"
+  },
+  {
+    "label": "404 오류 2",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-chin-on-paw",
+        "loaded": true,
+        "mood": "WAITING",
+        "region": "error-image",
+        "role": "error"
+      }
+    ],
+    "url": "/choco-policy-missing"
+  },
+  {
+    "label": "404 오류 3",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "empty-curious",
+        "loaded": false,
+        "mood": "WAITING",
+        "region": "error-image",
+        "role": "error"
+      }
+    ],
+    "url": "/choco-policy-missing"
+  },
+  {
+    "label": "404 오류 4",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-puppy-gaze",
+        "loaded": true,
+        "mood": "WAITING",
+        "region": "error-image",
+        "role": "error"
+      }
+    ],
+    "url": "/choco-policy-missing"
+  },
+  {
+    "label": "404 오류 5",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "loaded": true,
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "empty-curious",
+        "loaded": true,
+        "mood": "WAITING",
+        "region": "error-image",
+        "role": "error"
+      }
+    ],
+    "url": "/choco-policy-missing"
+  },
+  {
+    "label": "테스트 홈 — 확인할 음식 없음",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "happy-sit",
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "rest",
+        "mood": "REST",
+        "region": "home-summary",
+        "role": "rest"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "mood": "HAPPY",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-side",
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "extra-curled-smile",
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "extra-puppy-gaze",
+        "mood": "WAITING",
+        "region": "banner",
+        "role": "banner"
+      }
+    ]
+  },
+  {
+    "label": "테스트 홈 — 등록 음식 없음",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "extra-sunny-sit",
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "extra-chin-on-paw",
+        "mood": "WAITING",
+        "region": "home-summary",
+        "role": "empty"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-tilt",
+        "mood": "NEUTRAL",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-front",
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "cozy-curl",
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-front-paws",
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "come-running",
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ]
+  },
+  {
+    "label": "테스트 홈 REST — 320px",
+    "images": [
+      {
+        "hidden": false,
+        "key": "happy-closeup",
+        "mood": "HAPPY",
+        "region": "profile",
+        "role": "profile"
+      },
+      {
+        "hidden": false,
+        "key": "look-aside",
+        "mood": "HAPPY",
+        "region": "home-hero",
+        "role": "home-hero"
+      },
+      {
+        "hidden": false,
+        "key": "cozy-curl",
+        "mood": "REST",
+        "region": "home-summary",
+        "role": "rest"
+      },
+      {
+        "hidden": false,
+        "key": "puppy-ready",
+        "mood": "NEUTRAL",
+        "region": "room",
+        "role": "room"
+      },
+      {
+        "hidden": false,
+        "key": "leaf-hat-side",
+        "mood": "REST",
+        "region": "fridge",
+        "role": "fridge"
+      },
+      {
+        "hidden": false,
+        "key": "extra-curled-smile",
+        "mood": "REST",
+        "region": "freezer",
+        "role": "freezer"
+      },
+      {
+        "hidden": false,
+        "key": "happy-lounge",
+        "mood": "HAPPY",
+        "region": "all",
+        "role": "all"
+      },
+      {
+        "hidden": false,
+        "key": "extra-tongue-step",
+        "mood": "HAPPY",
+        "region": "banner",
+        "role": "banner"
+      }
+    ]
+  }
+]

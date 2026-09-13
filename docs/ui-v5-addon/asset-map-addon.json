@@ -1,0 +1,192 @@
+{
+  "version": "5.1-addon",
+  "assets": [
+    {
+      "key": "extra-sleepy-portrait",
+      "source": "KakaoTalk_20260913_195044544.png",
+      "path": "reserve/choco/extra-sleepy-portrait.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544.png",
+      "tier": "B",
+      "poseGroup": "sleep-portrait",
+      "note": "목·몸이 화면 경계에서 끝나는 초상. 프레임 내부만 사용.",
+      "size": [
+        2048,
+        2021
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 62788,
+      "sha256": "f093c2034b7746ffcf35fd223c34d5d6ffb738eaedec028b906aec96d88ebf2f",
+      "original_sha256": "2975cd1e314b3ef6ff6ea57c0cc46e6c4441172158360f4f170bf625f33b90db"
+    },
+    {
+      "key": "extra-chin-on-paw",
+      "source": "KakaoTalk_20260913_195044544_01.png",
+      "path": "assets/choco/extra-chin-on-paw.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_01.png",
+      "tier": "A",
+      "poseGroup": "lying-rest",
+      "note": "앞발에 턱을 댄 누운 자세. 가로형 빈 화면 후보.",
+      "size": [
+        2048,
+        1915
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 86912,
+      "sha256": "7ba57d6a604c34b7a4a521c681c4c77cd030b6e31d4f13637884cbb9c212700e",
+      "original_sha256": "4bd624e2a243d41efcf249f83d6c6bb49b9c2a851b068ebd3e012635a042c602"
+    },
+    {
+      "key": "extra-quilt-back",
+      "source": "KakaoTalk_20260913_195044544_02.png",
+      "path": "reserve/choco/extra-quilt-back.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_02.png",
+      "tier": "B",
+      "poseGroup": "quilt",
+      "note": "옷을 입은 뒷모습. 꼬리 끝 누끼와 옷 아래 경계가 거칠어 기본 풀 제외.",
+      "size": [
+        1348,
+        1247
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 38454,
+      "sha256": "1a6e164bc3bba60d5046f6d6932cf92692a4f3f9d6421def9170f7ef656fc787",
+      "original_sha256": "61ebedcfa5aa7d96e473519d1469a91acd89dc76f011e7d8d72017e5f69c72eb"
+    },
+    {
+      "key": "extra-curled-smile",
+      "source": "KakaoTalk_20260913_195044544_03.png",
+      "path": "assets/choco/extra-curled-smile.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_03.png",
+      "tier": "A",
+      "poseGroup": "curled",
+      "note": "몸을 둥글게 말고 누운 자세. 가로형 빈 화면 후보. 상단 여백 확보.",
+      "size": [
+        2048,
+        1481
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 77467,
+      "sha256": "5174773e7bc5f606e6e1ff97c909a0eb3e16c8b79ded050e1dbfea3dcf0f235f",
+      "original_sha256": "11c989cd21ddd60933caad3ada4078fafb83da83e62e27f695ba46aff64a3068"
+    },
+    {
+      "key": "extra-harness-back",
+      "source": "KakaoTalk_20260913_195044544_04.png",
+      "path": "reserve/choco/extra-harness-back.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_04.png",
+      "tier": "B",
+      "poseGroup": "back-portrait",
+      "note": "몸 하단이 잘린 뒷모습. 프레임 내부만 사용.",
+      "size": [
+        1814,
+        2032
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 71674,
+      "sha256": "bef7793e4bd858c638084380625b8e61231e24ec0dc4b1d9674165093dae8eae",
+      "original_sha256": "f882ac251c7a5c3178ecd040cdaf179b0c70816f345a4e7ad9c5f3235897a151"
+    },
+    {
+      "key": "extra-sunny-sit",
+      "source": "KakaoTalk_20260913_195044544_05.png",
+      "path": "assets/choco/extra-sunny-sit.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_05.png",
+      "tier": "A",
+      "poseGroup": "adult-sit",
+      "note": "앉은 자세, 앞발이 보임. 세로형 빈 화면 후보.",
+      "size": [
+        1282,
+        2048
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 85090,
+      "sha256": "58c12d75fe2102e95745ebaf8a8f1da0e31f29bc3c6b54ab7cf3dfbf0e9dfc9d",
+      "original_sha256": "5a02b78979203a3dc35e583b1275af765d71d19ef8065498d74d979617411981"
+    },
+    {
+      "key": "extra-tongue-step",
+      "source": "KakaoTalk_20260913_195044544_06.png",
+      "path": "assets/choco/extra-tongue-step.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_06.png",
+      "tier": "A",
+      "poseGroup": "walking",
+      "note": "꼬리와 발이 보이는 서 있는 자세. 목 뒤 리드줄 고리는 원본대로 유지.",
+      "size": [
+        1525,
+        2048
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 128084,
+      "sha256": "5dc0d8ae86ff9bb20388bb66a81fb4682157fcadcdf9d2b914975b3f6e00ae85",
+      "original_sha256": "9785b8e8fbbc33c8123a42c67e8679398e6d105a312449d8e86abcc376393926"
+    },
+    {
+      "key": "extra-ring-portrait",
+      "source": "KakaoTalk_20260913_195044544_07.png",
+      "path": "reserve/choco/extra-ring-portrait.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_07.png",
+      "tier": "B",
+      "poseGroup": "tilt-portrait",
+      "note": "머리 위 소품과 잘린 몸통. 프레임 내부만 사용.",
+      "size": [
+        778,
+        947
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 12689,
+      "sha256": "bb8d02a61c1e69d5a6bfcb0dfc8652b316d891f6953ce621cb22018edc14382a",
+      "original_sha256": "ac96e6a67cbc772dc91e9edb6ae186cd12331293ac21559f08f9b11288d0e4c4"
+    },
+    {
+      "key": "extra-side-curious",
+      "source": "KakaoTalk_20260913_195044544_08.png",
+      "path": "reserve/choco/extra-side-curious.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_08.png",
+      "tier": "B",
+      "poseGroup": "tilt-portrait",
+      "note": "몸통이 왼쪽·하단에서 끝나는 초상. 독립 스티커 금지.",
+      "size": [
+        966,
+        933
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 14353,
+      "sha256": "55e02ca3853870006f5b06ee789826d0e5a86b7f44ab651047c68cd9b66c9149",
+      "original_sha256": "293df09c9cd5cd294c6b12f826e51a247f2da0b5cfc2ebb9b23bce133613a045"
+    },
+    {
+      "key": "extra-front-smile",
+      "source": "KakaoTalk_20260913_195044544_09.png",
+      "path": "reserve/choco/extra-front-smile.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_09.png",
+      "tier": "B",
+      "poseGroup": "front-portrait",
+      "note": "앞다리 하단이 잘림. 프레임 내부만 사용.",
+      "size": [
+        1190,
+        2048
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 50492,
+      "sha256": "1d8dd6a5f03aa4b2a66b1956a88fe2fd2841d935a0c6300c87951a394ddd8209",
+      "original_sha256": "d1173edaccb5a9cd443ba0fe81bfc460ad4d8546b65af449e3562fc9000ca5eb"
+    },
+    {
+      "key": "extra-puppy-gaze",
+      "source": "KakaoTalk_20260913_195044544_10.png",
+      "path": "assets/choco/extra-puppy-gaze.png",
+      "original_path": "originals/KakaoTalk_20260913_195044544_10.png",
+      "tier": "A",
+      "poseGroup": "puppy-sit",
+      "note": "위를 올려다보며 앉은 자세. 앞발이 보이는 빈 화면 후보.",
+      "size": [
+        1381,
+        2048
+      ],
+      "rgb_preserved": true,
+      "alpha_changed_pixels": 84596,
+      "sha256": "ce2ec994710688611fed0217415bfcba397da57cd585577231c0cf62ec851d22",
+      "original_sha256": "013e510e688a5ca559b60024d31485d90331c98cf747f18dc4866fa961612fb8"
+    }
+  ]
+}

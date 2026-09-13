@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script></head>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>다들 어디로 갔을까?</h1><p class="muted">쪼코랑 기록을 살펴보자!</p></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="112" height="112" alt="쪼코"></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>다들 어디로 갔을까?</h1><p class="muted">쪼코랑 기록을 살펴보자!</p></div><img class="choco" width="112" height="112" alt="쪼코" data-choco-region="history-header" data-choco-role="history-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
 
     <p class="small muted history-limit">최근 기록 최대 100개</p>
-    <section class="empty-state" th:if="${entries.isEmpty()}"><img class="choco choco-portrait" th:src="@{/assets/choco/empty-curious.png}" width="120" height="130" alt=""><h2>아직 남긴 기록이 없어</h2><p class="muted">음식 하나부터 등록해볼까?</p><a class="button" th:href="@{/inventory/new}">음식 등록하기</a></section>
+    <section class="empty-state" th:if="${entries.isEmpty()}"><img class="choco" width="120" height="130" alt="" data-choco-region="history-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"><h2>아직 남긴 기록이 없어</h2><p class="muted">음식 하나부터 등록해볼까?</p><a class="button" th:href="@{/inventory/new}">음식 등록하기</a></section>
     <div th:replace="~{fragments/shell :: historyRows(${entries})}"></div>
     </div>
 </main><nav th:replace="~{fragments/shell :: nav('history')}"></nav></body></html>

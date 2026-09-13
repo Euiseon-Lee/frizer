@@ -7,8 +7,8 @@
 <nav th:fragment="nav(active)" class="bottom-nav" aria-label="주 메뉴">
     <a th:href="@{/}" th:attr="aria-current=${active == 'home' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H4V10m5 10v-7h6v7"/></svg><span>홈</span></a>
     <a th:href="@{/inventory}" th:attr="aria-current=${active == 'inventory' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M5 9h14M8 5v1m0 7v3"/></svg><span>뭐 있지?</span></a>
-    <a class="nav-add" th:href="@{/inventory/new}" th:attr="aria-current=${active == 'new' ? 'page' : null}" aria-label="등록"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>등록</span></a>
-    <a th:href="@{/history}" th:attr="aria-current=${active == 'history' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17H5zM9 2v4m6-4v4M8 10h8m-8 4h8m-8 4h5"/></svg><span>기록</span></a>
+    <a class="nav-add" th:href="@{/inventory/new}" th:attr="aria-current=${active == 'new' ? 'page' : null}" aria-label="이건 뭐야?"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>이건 뭐야?</span></a>
+    <a th:href="@{/history}" th:attr="aria-current=${active == 'history' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17H5zM9 2v4m6-4v4M8 10h8m-8 4h8m-8 4h5"/></svg><span>히스토리</span></a>
 </nav>
 <div th:fragment="historyRows(entries)" class="history-rows">
     <article class="history-row" th:each="entry : ${entries}">

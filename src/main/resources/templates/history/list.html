@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>다들 어디로 갔을까?</h1><p class="muted">쪼코랑 기록을 살펴보자!</p></div><img class="choco" width="112" height="112" alt="쪼코" data-choco-region="history-header" data-choco-role="history-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+    <section class="heading character-heading tab-heading history-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>어떻게 됐을까?</h1><p class="muted">쪼코가 다 기록했으니 안심해.</p></div><img class="choco" width="112" height="112" alt="쪼코" data-choco-region="history-header" data-choco-role="history-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
 
     <p class="small muted history-limit">최근 기록 최대 100개</p>

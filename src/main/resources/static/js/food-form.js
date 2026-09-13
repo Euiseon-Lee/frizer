@@ -17,7 +17,7 @@ function updateFreezerFields() {
         freezeType.append(commercialFreezeOption);
     }
     document.getElementById('deliveryStorageHelp').hidden = !isDelivery || storage !== undefined;
-    document.getElementById('freezeTypeHelp').hidden = isDelivery;
+
     document.getElementById('deliveryFreezeHelp').hidden = !isDelivery;
     freezerFields.hidden = storage !== 'FREEZER' && !(storage === undefined && sourceInput.value === 'DELIVERY_LEFTOVER');
     freezerFields.querySelectorAll('input, select').forEach(input => { input.disabled = freezerFields.hidden; });

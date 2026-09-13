@@ -24,8 +24,9 @@ public class HomeController {
         var today = LocalDate.now(clock);
         model.addAttribute("today", today);
         model.addAttribute("totalCount", foods.size());
-        model.addAttribute("expiredFoods", foods.stream().filter(f -> f.expiredAt() != null && f.expiredAt().isBefore(today)).toList());
-        model.addAttribute("dueFoods", foods.stream().filter(f -> today.equals(f.expiredAt())).toList());
+        model.addAttribute("attentionFoods", foods.stream().filter(f -> f.needsAttention(today)).toList());
+        model.addAttribute("dueFoods", foods.stream().filter(f -> today.equals(f.expiredAt() != null ? f.expiredAt() : f.sellByAt())).toList());
+        model.addAttribute("overviewFoods", foods.stream().filter(f -> f.needsAttention(today) || today.equals(f.expiredAt() != null ? f.expiredAt() : f.sellByAt())).toList());
         model.addAttribute("unknownDateCount", foods.stream().filter(f -> f.expiredAt() == null).count());
         var counts = new LinkedHashMap<String, Long>();
         for (var type : new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER})

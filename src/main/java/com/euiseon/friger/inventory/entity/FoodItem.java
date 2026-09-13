@@ -31,4 +31,20 @@ public record FoodItem(
         LocalDate sellByAt,
         BigDecimal quantityAmount,
         String quantityUnit) {
+    public boolean useByOverdue(LocalDate today) {
+        return expiredAt != null && expiredAt.isBefore(today);
+    }
+
+    public boolean sellByOverdue(LocalDate today) {
+        return expiredAt == null && sellByAt != null && sellByAt.isBefore(today);
+    }
+
+    /** Calendar-month cleanup reminder; does not change the recorded use-by date. */
+    public boolean openedOverdue(LocalDate today) {
+        return openedAt != null && openedAt.plusMonths(3).isBefore(today);
+    }
+
+    public boolean needsAttention(LocalDate today) {
+        return useByOverdue(today) || sellByOverdue(today) || openedOverdue(today);
+    }
 }

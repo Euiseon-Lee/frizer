@@ -91,7 +91,7 @@ class InventoryIntegrationTest {
         mvc.perform(post("/inventory").param("foodName", "기한 미입력").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sellByAt", "2026-09-01")).andExpect(status().is3xxRedirection());
         var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
-        assertThat((java.util.List<FoodItem>) home.get("expiredFoods")).extracting(FoodItem::foodName).containsExactly("경과 음식");
+        assertThat((java.util.List<FoodItem>) home.get("attentionFoods")).extracting(FoodItem::foodName).containsExactlyInAnyOrder("경과 음식", "기한 미입력");
         assertThat((java.util.List<FoodItem>) home.get("dueFoods")).extracting(FoodItem::foodName).containsExactly("오늘 음식");
         assertThat(home.get("unknownDateCount")).isEqualTo(1L);
         var filtered = mvc.perform(get("/inventory").param("storage", "ROOM")).andExpect(status().isOk())
@@ -587,4 +587,128 @@ class InventoryIntegrationTest {
         var binding = (org.springframework.validation.BindingResult) result.getModelAndView().getModel().get("org.springframework.validation.BindingResult.foodForm");
         assertThat(binding.hasFieldErrors("storageType")).isFalse();
     }
+    @ParameterizedTest
+    @CsvSource(value={"2026-09-01,2026-09-20,0", "2026-09-01,2026-09-13,0", "2026-09-01,2026-09-12,1", "2026-09-01,NULL,1", "NULL,2026-09-12,1", "2026-09-20,NULL,0", "NULL,NULL,0"},nullValues="NULL")
+    void useByTakesPriorityOverSellByWarnings(String sellBy,String useBy,int warningCount) throws Exception {
+        var request=post("/inventory").param("foodName","기한 확인").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개");
+        if(sellBy!=null)request.param("sellByAt",sellBy);
+        if(useBy!=null)request.param("expiredAt",useBy);
+        mvc.perform(request).andExpect(status().is3xxRedirection());
+        String html=mvc.perform(get("/inventory")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html.split("class=\"expiry-icon\"",-1).length-1).isEqualTo(warningCount);
+        assertThat(html).doesNotContain("<small");
+        if(sellBy!=null)assertThat(html).contains(sellBy.replace('-','.'));
+        long id=service.findActive().getFirst().foodId();
+        String detail=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        if(useBy!=null) assertThat(detail).doesNotContain("유통기한 경과");
+        assertThat(detail.split("class=\"error-summary detail-expiry-alert\"",-1).length-1).isEqualTo(warningCount);
+        assertThat(detail).doesNotContain("<dd class=\"small expired\"");
+        if(warningCount==1) {
+            String warning=(useBy==null ? "유통기한" : "소비기한")+" 경과됐어. 확인이 필요해!";
+            assertThat(detail).contains(warning);
+            assertThat(detail.indexOf(warning)).isLessThan(detail.indexOf("<section class=\"form-section\">"));
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "NULL,NULL,NULL,0",
+            "2026-06-14,NULL,NULL,0",
+            "2026-06-13,NULL,NULL,0",
+            "2026-06-12,NULL,NULL,1",
+            "2026-06-12,2026-09-01,2026-09-20,1",
+            "2026-06-12,2026-09-01,2026-09-12,2",
+            "2026-06-12,2026-09-01,NULL,2"
+    }, nullValues = "NULL")
+    void openingWarningsAgreeAcrossHomeListAndDetail(String opened, String sellBy, String useBy,
+                                                      int warnings) throws Exception {
+        var request = post("/inventory").param("foodName", "개봉 확인")
+                .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개");
+        if (opened != null) request.param("openedAt", opened);
+        if (sellBy != null) request.param("sellByAt", sellBy);
+        if (useBy != null) request.param("expiredAt", useBy);
+        mvc.perform(request).andExpect(status().is3xxRedirection());
+        var food = service.findActive().getFirst();
+        var list = mvc.perform(get("/inventory")).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(list.split("class=\"expiry-icon\"", -1).length - 1).isEqualTo(warnings);
+        assertThat(list).doesNotContain("기한 미입력");
+        if (opened == null) assertThat(list).doesNotContain("<span>개봉일</span>");
+        else assertThat(list).contains("<span>개봉일</span>", opened.replace('-', '.'));
+        if (sellBy == null) assertThat(list).doesNotContain("<span>유통기한</span>");
+        if (useBy == null) assertThat(list).doesNotContain("<span>소비기한</span>");
+        var detail = mvc.perform(get("/inventory/" + food.foodId())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(detail.split("class=\"error-summary detail-expiry-alert\"", -1).length - 1).isEqualTo(warnings);
+        assertThat(detail.split("class=\"detail-warning\"", -1).length - 1).isEqualTo(warnings);
+        assertThat(detail.split("class=\"expiry-icon\"", -1).length - 1).isEqualTo(warnings);
+        if (food.openedOverdue(LocalDate.of(2026, 9, 13))) {
+            assertThat(detail).contains("개봉 후 3개월이 지났어. 확인이 필요해!",
+                    "class=\"detail-warning\"><dt>개봉일<span class=\"expiry-icon\"");
+            assertThat(detail.indexOf("개봉 후 3개월이 지났어.")).isLessThan(detail.indexOf("<section class=\"form-section\">"));
+        }
+        var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
+        assertThat((java.util.List<FoodItem>) home.getModelAndView().getModel().get("attentionFoods"))
+                .hasSize(warnings == 0 ? 0 : 1);
+        var html = home.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        if (warnings > 0) assertThat(html).contains("확인이 필요한 음식");
+        if (food.openedOverdue(LocalDate.of(2026, 9, 13))) assertThat(html).contains("개봉 후 +");
+        if (useBy != null) assertThat(html).doesNotContain("유통기한 +");
+        assertThat(service.findActive().getFirst().expiredAt())
+                .isEqualTo(useBy == null ? null : LocalDate.parse(useBy));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"2026-01-31,2026-04-30,false", "2026-01-31,2026-05-01,true",
+            "2025-11-30,2026-02-28,false", "2025-11-30,2026-03-01,true",
+            "2023-11-30,2024-02-29,false", "2023-11-30,2024-03-01,true"})
+    void openingReminderUsesCalendarMonths(String opened, String today, boolean expected) {
+        var food = new FoodItem(1L, "음식", StorageType.FRIDGE, null, null, null, null,
+                LocalDate.parse(opened), null, FoodSourceType.ETC, FreezeType.NONE, FoodStatus.ACTIVE,
+                null, null, null, null, null, null, null, null);
+        assertThat(food.openedOverdue(LocalDate.parse(today))).isEqualTo(expected);
+    }
+
+    @Test
+    void overviewCoversAllDateCombinationsWithoutContradictoryEmptyCard() throws Exception {
+        mvc.perform(post("/inventory").param("foodName", "분기 검증 음식")
+                .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개"))
+                .andExpect(status().is3xxRedirection());
+        long id = service.findActive().getFirst().foodId();
+        String[] deadlines = {null, "2026-09-12", "2026-09-13", "2026-09-14"};
+        String[] openings = {null, "2026-06-12", "2026-06-13", "2026-06-14"};
+        for (String useBy : deadlines) {
+            for (String sellBy : deadlines) {
+                for (String opened : openings) {
+                    jdbc.update("UPDATE food_item SET expired_at=CAST(? AS date), sell_by_at=CAST(? AS date), opened_at=CAST(? AS date) WHERE food_id=?",
+                            useBy, sellBy, opened, id);
+                    boolean usePast = "2026-09-12".equals(useBy);
+                    boolean sellPast = useBy == null && "2026-09-12".equals(sellBy);
+                    boolean useToday = "2026-09-13".equals(useBy);
+                    boolean sellToday = useBy == null && "2026-09-13".equals(sellBy);
+                    boolean openPast = "2026-06-12".equals(opened);
+                    boolean visible = usePast || sellPast || useToday || sellToday || openPast;
+                    var result = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
+                    var html = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+                    String scenario = "useBy=" + useBy + ", sellBy=" + sellBy + ", opened=" + opened;
+                    assertThat((java.util.List<FoodItem>) result.getModelAndView().getModel().get("overviewFoods"))
+                            .as(scenario).hasSize(visible ? 1 : 0);
+                    assertThat(html.contains("지금 확인이 필요한 음식은 없어.")).as(scenario).isEqualTo(!visible);
+                    assertThat(html.contains("소비기한 +")).as(scenario).isEqualTo(usePast);
+                    assertThat(html.contains("유통기한 +")).as(scenario).isEqualTo(sellPast);
+                    assertThat(html.contains("소비기한 오늘까지")).as(scenario).isEqualTo(useToday);
+                    assertThat(html.contains("유통기한 오늘까지")).as(scenario).isEqualTo(sellToday);
+                    assertThat(html.contains("개봉 후 +")).as(scenario).isEqualTo(openPast);
+                    assertThat(html.split("class=\"alert-card overview-card\"", -1).length - 1)
+                            .as(scenario).isEqualTo(visible ? 1 : 0);
+                    if (visible) assertThat(html.indexOf("한눈에 보기")).as(scenario)
+                            .isLessThan(html.indexOf("class=\"alert-card overview-card\""));
+                }
+            }
+        }
+        jdbc.update("UPDATE food_item SET status='CONSUMED', expired_at='2026-09-01', opened_at='2026-01-01' WHERE food_id=?", id);
+        var model = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
+        assertThat((java.util.List<FoodItem>) model.get("overviewFoods")).isEmpty();
+    }
+
 }

@@ -78,6 +78,7 @@ public class InventoryController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
             Model model, RedirectAttributes redirect) {
         editContext(id, expectedUpdatedAt, model);
+        collectValidationErrors(form, errors);
         if (errors.hasErrors()) return "inventory/new";
         try {
             boolean changed = service.update(id, form, expectedUpdatedAt);
@@ -92,6 +93,15 @@ public class InventoryController {
         return "redirect:/inventory/" + id;
     }
 
+    private void collectValidationErrors(FoodCreateForm form, BindingResult errors) {
+        service.validationErrors(form).forEach((field, message) -> {
+            if (!errors.hasFieldErrors(field)) {
+                if (errors.getTarget() != null) errors.rejectValue(field, "invalid", message);
+                else errors.addError(new org.springframework.validation.FieldError(errors.getObjectName(), field,
+                        errors.getFieldValue(field), true, errors.resolveMessageCodes("invalid", field), null, message));
+            }
+        });
+    }
     private void editContext(long id, OffsetDateTime expectedUpdatedAt, Model model) {
         var food = service.findById(id);
         model.addAttribute("editId", id);
@@ -101,6 +111,7 @@ public class InventoryController {
     @PostMapping("/inventory")
     String create(@Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
             RedirectAttributes redirect) {
+        collectValidationErrors(form, errors);
         if (errors.hasErrors()) return "inventory/new";
         try {
             service.create(form);

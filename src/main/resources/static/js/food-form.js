@@ -39,3 +39,6 @@ frozenAt.addEventListener('change', () => { freezeToday.checked = false; });
 updateFreezerFields();
 updateSourceMemo();
 applyToday();
+
+const firstInvalidField = document.querySelector('[aria-invalid="true"]:not(:disabled)');
+if (firstInvalidField) firstInvalidField.focus();

@@ -468,7 +468,7 @@ class InventoryIntegrationTest {
         mvc.perform(get("/history")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("수정")))
                 .andExpect(content().string(containsString("&lt;b&gt;")));
-        mvc.perform(get("/inventory/" + id)).andExpect(content().string(containsString("수정 <time")));
+        mvc.perform(get("/inventory/" + id)).andExpect(content().string(containsString(">수정 <time")));
     }
 
     @Test
@@ -480,7 +480,7 @@ class InventoryIntegrationTest {
         assertThat(service.findById(id)).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=?", Long.class,id)).isEqualTo(1L);
         String html = mvc.perform(get("/inventory/" + id)).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(html).contains("등록 <time").doesNotContain(" · 수정 <time");
+        assertThat(html).contains(">등록 <time").doesNotContain(">수정 <time");
     }
 
     @Test
@@ -544,4 +544,47 @@ class InventoryIntegrationTest {
         mvc.perform(get("/inventory/999999/edit")).andExpect(status().isNotFound());
     }
 
+    @Test
+    void missingStorageUsesNewMessageWithoutRedundantHelp() throws Exception {
+        mvc.perform(post("/inventory").param("foodName","두부").param("quantityAmount","1").param("quantityUnit","모"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("아앗 필수 정보라구!")));
+        String html = mvc.perform(get("/inventory/new")).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html).doesNotContain("보관할 장소를 골라줘.");
+    }
+    @Test
+    void blankRegistrationShowsRequiredErrorsOnlyInline() throws Exception {
+        var result = mvc.perform(post("/inventory")).andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("foodForm", "foodName", "quantityAmount", "quantityUnit", "storageType"))
+                .andReturn();
+        String html = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html).contains("novalidate", "음식명을 입력해줘.", "수량을 입력해줘.", "단위를 입력해줘.", "아앗 필수 정보라구!");
+        for (String field : new String[]{"foodName", "quantityAmount", "quantityUnit", "storageType"}) {
+            assertThat(html).contains("id=\"" + field + "-error\"");
+        }
+        assertThat(html).doesNotContain("입력 내용을 확인해 줘.", "class=\"error-summary\"");
+        assertThat(html).contains("aria-invalid=\"true\"", "quantityHelp quantityAmount-error", "class=\"invalid\"");
+        assertThat(service.findActive()).isEmpty();
+    }
+
+    @Test
+    void fieldAndBusinessErrorsAreReportedTogetherWithoutDuplicates() throws Exception {
+        var result = mvc.perform(post("/inventory").param("quantityAmount","0").param("quantityUnit","팩")
+                .param("purchasedAt","2026-09-14")).andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("foodForm","foodName","quantityAmount","storageType","purchasedAt"))
+                .andReturn();
+        var binding = (org.springframework.validation.BindingResult) result.getModelAndView().getModel().get("org.springframework.validation.BindingResult.foodForm");
+        assertThat(binding.getFieldErrors("foodName")).hasSize(1);
+        assertThat(binding.getFieldErrors("quantityAmount")).hasSize(1);
+        assertThat(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+                .contains("value=\"팩\"", "value=\"2026-09-14\"", "open");
+    }
+
+    @Test
+    void deliveryStorageDefaultStillWorksWithOtherValidationErrors() throws Exception {
+        var result = mvc.perform(post("/inventory").param("sourceType","DELIVERY_LEFTOVER"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm","foodName"))
+                .andReturn();
+        var binding = (org.springframework.validation.BindingResult) result.getModelAndView().getModel().get("org.springframework.validation.BindingResult.foodForm");
+        assertThat(binding.hasFieldErrors("storageType")).isFalse();
+    }
 }

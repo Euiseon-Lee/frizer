@@ -2,13 +2,15 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>우리 집에 뭐가 있더라? · FR!ZER</title>
+    <title>FR!ZER</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 <script th:src="@{/js/choco.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">쪼코랑 같이 찾아보자!</p><h1>우리 집에 뭐가 있더라?</h1><p class="muted">한 줄로 정렬시켰어.</p></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="102" height="120" alt="쪼코"></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">쪼코랑 같이 찾아보자!</p><h1>우리 집에 뭐 있지?</h1><p class="muted">한 줄로 정렬시켰어.</p></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="102" height="120" alt="쪼코"></section>
+    <div class="tab-sheet">
+
     <div class="notice" role="status" th:if="${successMessage}"><img class="choco" data-choco="success" th:src="@{/assets/choco/happy-sit.png}" width="48" height="54" alt=""><p th:text="${successMessage}"></p></div><nav class="filter-tabs" aria-label="보관 위치 필터"><a th:href="@{/inventory}" th:attr="aria-current=${selectedStorage == null ? 'page' : null}">전체</a><a th:each="entry : ${storageLabels}" th:href="@{/inventory(storage=${entry.key})}" th:attr="aria-current=${selectedStorage == entry.key ? 'page' : null}" th:text="${entry.value}"></a></nav>
     <div class="inventory-bar"><h2>보관 중인 음식 <span class="count" th:text="${foods.size()}">0</span></h2><span class="muted small">최근 등록 순</span></div>
     <section class="empty-state" th:if="${foods.isEmpty()}">
@@ -34,5 +36,6 @@
         </a>
     </section>
     <footer class="page-footer">쪼코가 항상 지키고 있다구</footer>
+    </div>
 </main>
 <nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

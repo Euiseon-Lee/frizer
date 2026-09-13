@@ -9,4 +9,6 @@ public interface InventoryDao {
     long insert(FoodItem food);
     List<FoodItem> findActive();
     FoodItem findById(long id);
+    FoodItem findByIdForUpdate(long id);
+    int update(FoodItem food);
 }

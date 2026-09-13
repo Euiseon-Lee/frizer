@@ -6,10 +6,11 @@ import com.euiseon.friger.common.type.StorageType;
 
 public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
-        String quantityText, OffsetDateTime createdAt) {
+        String quantityText, OffsetDateTime createdAt, String changesText) {
     public String actionLabel() {
         return switch (actionType) {
             case CREATE -> "등록";
+            case UPDATE -> "수정";
             case CONSUME -> "소비";
             case DISCARD -> "폐기";
             case FREEZE -> "냉동";

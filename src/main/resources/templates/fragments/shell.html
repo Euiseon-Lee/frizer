@@ -14,7 +14,8 @@
     <article class="history-row" th:each="entry : ${entries}">
         <span class="action-badge history-badge" th:attr="data-event=${entry.actionType()}" th:text="${entry.actionLabel()}"></span>
         <div><a th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.foodName()}"></a>
-            <p class="small muted"><span th:if="${entry.previousStorageType() != null}" th:text="${entry.locationLabel(entry.previousStorageType()) + ' → '}"></span><span th:text="${entry.locationLabel(entry.newStorageType())}"></span><span th:text="${' · ' + (entry.quantityText() ?: '수량 미입력')}"></span></p>
+            <p class="small muted"><span th:if="${entry.previousStorageType() != null and entry.previousStorageType() != entry.newStorageType()}" th:text="${entry.locationLabel(entry.previousStorageType()) + ' → '}"></span><span th:text="${entry.locationLabel(entry.newStorageType())}"></span><span th:text="${' · ' + (entry.quantityText() ?: '수량 미입력')}"></span></p>
+            <p class="small muted history-changes" th:if="${entry.changesText() != null}" th:text="${entry.changesText()}"></p>
             <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time>
         </div>
     </article>

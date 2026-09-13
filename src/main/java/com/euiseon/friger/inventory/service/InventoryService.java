@@ -44,6 +44,70 @@ public class InventoryService {
 
     @Transactional
     public long create(FoodCreateForm form) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        FoodItem food = normalized(form, null, now, now);
+        long id = inventory.insert(food);
+        int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
+                food.storageType(), food.quantityText(), "음식 등록", now, null));
+        if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
+        return id;
+    }
+
+    @Transactional
+    public boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt) {
+        FoodItem before = inventory.findByIdForUpdate(id);
+        if (before == null) throw new FoodNotFoundException(id);
+        if (before.status() != FoodStatus.ACTIVE) throw new InvalidFoodException(Map.of("", "보관 중인 음식만 수정할 수 있어."));
+        if (expectedUpdatedAt == null || !before.updatedAt().isEqual(expectedUpdatedAt)) {
+            throw new InvalidFoodException(Map.of("", "다른 화면에서 음식 정보가 바뀌었어. 상세를 다시 열어 최신 내용을 확인해 줘."));
+        }
+        OffsetDateTime now = OffsetDateTime.now(clock).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        if (!now.isAfter(before.updatedAt())) now = before.updatedAt().plusNanos(1000);
+        FoodItem after = normalized(form, id, before.createdAt(), now);
+        Map<String, String> oldValues = values(before);
+        Map<String, String> newValues = values(after);
+        String changes = newValues.entrySet().stream()
+                .filter(entry -> !java.util.Objects.equals(oldValues.get(entry.getKey()), entry.getValue()))
+                .map(entry -> entry.getKey() + ": " + display(oldValues.get(entry.getKey())) + " → " + display(entry.getValue()))
+                .collect(java.util.stream.Collectors.joining("\n"));
+        if (changes.isEmpty()) return false;
+        if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
+        if (history.insert(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
+                after.quantityText(), "음식 수정", now, changes)) != 1) {
+            throw new IllegalStateException("수정 이력을 저장하지 못했습니다.");
+        }
+        return true;
+    }
+
+    private static Map<String, String> values(FoodItem food) {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("음식명", raw(food.foodName()));
+        values.put("수량", food.quantityAmount() == null ? display(food.quantityText()) + " (기존 입력)"
+                : food.quantityAmount().stripTrailingZeros().toPlainString());
+        values.put("단위", food.quantityUnit());
+        values.put("용량", raw(food.capacityText()));
+        values.put("출처", switch (food.sourceType()) {
+            case PURCHASE -> "장보기"; case DELIVERY_LEFTOVER -> "배달 잔반"; case COOKED -> "직접 조리";
+            case PARENTS -> "부모님의 은혜"; case ETC -> "기타";
+        });
+        values.put("출처 메모", raw(food.sourceMemo()));
+        values.put("분류", raw(food.category()));
+        values.put("보관 위치", switch (food.storageType()) { case ROOM -> "실온"; case FRIDGE -> "냉장실"; case FREEZER -> "냉동실"; });
+        values.put("냉동 유형", switch (food.freezeType()) { case NONE -> "-"; case HOME_FROZEN -> "직접 냉동"; case COMMERCIAL_FROZEN -> "시판 냉동식품"; });
+        values.put("냉동 보관 시작일", raw(food.frozenAt()));
+        values.put("유통기한", raw(food.sellByAt()));
+        values.put("소비기한", raw(food.expiredAt()));
+        values.put("구매일", raw(food.purchasedAt()));
+        values.put("개봉일", raw(food.openedAt()));
+        values.put("메모", raw(food.memo()));
+        return values;
+    }
+
+    private static String raw(Object value) { return value == null ? null : value.toString(); }
+
+    private static String display(Object value) { return value == null ? "-" : value.toString(); }
+
+    public Map<String, String> validationErrors(FoodCreateForm form) {
         Map<String, String> errors = new LinkedHashMap<>();
         validator.validate(form).forEach(v -> errors.put(v.getPropertyPath().toString(), v.getMessage()));
         FoodSourceType source = form.sourceType() == null ? FoodSourceType.ETC : form.sourceType();
@@ -56,7 +120,16 @@ public class InventoryService {
         if (storage == StorageType.FREEZER && !Boolean.TRUE.equals(form.freezeToday())) {
             rejectFuture(errors, "frozenAt", form.frozenAt(), today);
         }
+        return errors;
+    }
+
+    private FoodItem normalized(FoodCreateForm form, Long id, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        Map<String, String> errors = validationErrors(form);
         if (!errors.isEmpty()) throw new InvalidFoodException(errors);
+        FoodSourceType source = form.sourceType() == null ? FoodSourceType.ETC : form.sourceType();
+        StorageType storage = form.storageType();
+        if (storage == null && source == FoodSourceType.DELIVERY_LEFTOVER) storage = StorageType.FREEZER;
+        LocalDate today = LocalDate.now(clock);
 
         FreezeType freeze = FreezeType.NONE;
         LocalDate frozenAt = null;
@@ -65,17 +138,11 @@ public class InventoryService {
                     || form.freezeType() == FreezeType.NONE ? FreezeType.HOME_FROZEN : form.freezeType();
             frozenAt = Boolean.TRUE.equals(form.freezeToday()) ? today : form.frozenAt();
         }
-        OffsetDateTime now = OffsetDateTime.now(clock);
-        FoodItem food = new FoodItem(null, form.foodName().strip(), storage, optional(form.category()),
+        return new FoodItem(id, form.foodName().strip(), storage, optional(form.category()),
                 form.quantityAmount().stripTrailingZeros().toPlainString() + form.quantityUnit(), form.expiredAt(), form.purchasedAt(), form.openedAt(),
-                frozenAt, source, freeze, FoodStatus.ACTIVE, optional(form.memo()), now, now,
+                frozenAt, source, freeze, FoodStatus.ACTIVE, optional(form.memo()), createdAt, updatedAt,
                 optional(form.capacityText()),
                 form.sourceType() == FoodSourceType.ETC ? optional(form.sourceMemo()) : null, form.sellByAt(), form.quantityAmount(), form.quantityUnit());
-        long id = inventory.insert(food);
-        int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
-                storage, food.quantityText(), "음식 등록", now));
-        if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
-        return id;
     }
 
     private static String optional(String value) {

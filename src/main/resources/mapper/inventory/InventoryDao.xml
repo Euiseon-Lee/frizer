@@ -26,4 +26,19 @@
         FROM food_item
         WHERE food_id = #{id}
     </select>
+    <select id="findByIdForUpdate" resultType="com.euiseon.friger.inventory.entity.FoodItem">
+        SELECT food_id, food_name, storage_type, category, quantity_text,
+            expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
+            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
+        FROM food_item WHERE food_id = #{id} FOR UPDATE
+    </select>
+    <update id="update">
+        UPDATE food_item SET food_name=#{foodName}, storage_type=#{storageType}, category=#{category,jdbcType=VARCHAR},
+            quantity_text=#{quantityText}, quantity_amount=#{quantityAmount}, quantity_unit=#{quantityUnit},
+            expired_at=#{expiredAt,jdbcType=DATE}, purchased_at=#{purchasedAt,jdbcType=DATE}, opened_at=#{openedAt,jdbcType=DATE},
+            frozen_at=#{frozenAt,jdbcType=DATE}, source_type=#{sourceType}, freeze_type=#{freezeType},
+            memo=#{memo,jdbcType=VARCHAR}, capacity_text=#{capacityText,jdbcType=VARCHAR},
+            source_memo=#{sourceMemo,jdbcType=VARCHAR}, sell_by_at=#{sellByAt,jdbcType=DATE}, updated_at=#{updatedAt}
+        WHERE food_id=#{foodId} AND status='ACTIVE'
+    </update>
 </mapper>

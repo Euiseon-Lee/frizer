@@ -80,3 +80,5 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 @media(max-width:360px){.tab-heading{padding-left:8px;padding-right:0}}
 
 .quantity-input-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.quantity-input-row>div{min-width:0}
+
+.history-changes{white-space:pre-wrap;overflow-wrap:anywhere}.history-row>div{flex:1}

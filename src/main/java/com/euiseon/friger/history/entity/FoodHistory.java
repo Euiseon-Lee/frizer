@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import com.euiseon.friger.common.type.FoodActionType;
 import com.euiseon.friger.common.type.StorageType;
 
-/** Action snapshot; does not preserve old food names or old frozen dates. */
+/** Action snapshot; UPDATE stores the changed fields with their before/after values. */
 public record FoodHistory(
         Long historyId,
         Long foodId,
@@ -14,5 +14,5 @@ public record FoodHistory(
         StorageType newStorageType,
         String quantityText,
         String memo,
-        OffsetDateTime createdAt) {
+        OffsetDateTime createdAt, String changesText) {
 }

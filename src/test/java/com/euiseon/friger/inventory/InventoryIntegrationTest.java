@@ -415,4 +415,133 @@ class InventoryIntegrationTest {
         assertThat(afterFood).isEqualTo(beforeFood);
         var afterHistory = jdbc.queryForMap("SELECT * FROM quantity_upgrade.food_history"); afterHistory.remove("changes_text"); assertThat(afterHistory).isEqualTo(beforeHistory);
     }
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder editRequest(FoodItem food) {
+        return post("/inventory/" + food.foodId() + "/edit")
+                .param("expectedUpdatedAt", food.updatedAt().toString()).param("foodName", food.foodName())
+                .param("storageType", food.storageType().name()).param("sourceType", food.sourceType().name())
+                .param("quantityAmount", food.quantityAmount() == null ? "1" : food.quantityAmount().stripTrailingZeros().toPlainString())
+                .param("quantityUnit", food.quantityUnit() == null ? "개" : food.quantityUnit());
+    }
+
+    @Test
+    void editFormLoadsAllFieldsAndUsesDetailForCancel() throws Exception {
+        mvc.perform(post("/inventory").param("foodName", "수정할 음식").param("storageType", "FREEZER")
+                .param("sourceType", "ETC").param("sourceMemo", "지인").param("quantityAmount", "0.5").param("quantityUnit", "봉지")
+                .param("capacityText", "300g").param("category", "간편식").param("memo", "남겨둔 메모")
+                .param("freezeType", "COMMERCIAL_FROZEN").param("frozenAt", "2026-09-10")
+                .param("sellByAt", "2026-09-20").param("expiredAt", "2026-09-21")
+                .param("openedAt", "2026-09-12").param("purchasedAt", "2026-09-11"))
+                .andExpect(status().is3xxRedirection());
+        FoodItem food = service.findActive().getFirst();
+        mvc.perform(get("/inventory/" + food.foodId() + "/edit")).andExpect(status().isOk())
+                .andExpect(model().attribute("foodForm", FoodCreateForm.from(food)))
+                .andExpect(content().string(containsString("수정 내용 저장하기")))
+                .andExpect(content().string(containsString("value=\"0.5\"")))
+                .andExpect(content().string(containsString("name=\"expectedUpdatedAt\"")))
+                .andExpect(content().string(containsString("action=\"/inventory/" + food.foodId() + "/edit\"")));
+    }
+
+    @Test
+    void updatePersistsChangesAndFullEscapedHistory() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        var request = editRequest(before);
+        request.param("foodName", "ignored"); // replace values below, rather than submit duplicate values
+        request = post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+                .param("foodName", "새 이름").param("quantityAmount", "2.5").param("quantityUnit", "팩")
+                .param("storageType", "FREEZER").param("sourceType", "ETC").param("sourceMemo", "선물")
+                .param("freezeType", "HOME_FROZEN").param("frozenAt", "2026-09-12")
+                .param("capacityText", "500g").param("category", "반찬").param("memo", "<b>" + "긴 메모".repeat(100) + "</b>")
+                .param("purchasedAt", "2026-09-10").param("openedAt", "2026-09-11")
+                .param("sellByAt", "2026-09-20").param("expiredAt", "2026-09-21");
+        mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/inventory/" + id));
+        FoodItem after = service.findById(id);
+        assertThat(after.createdAt()).isEqualTo(before.createdAt());
+        assertThat(after.updatedAt()).isAfter(before.updatedAt());
+        assertThat(after.foodName()).isEqualTo("새 이름");
+        assertThat(after.quantityText()).isEqualTo("2.5팩");
+        assertThat(after.sourceMemo()).isEqualTo("선물");
+        assertThat(after.capacityText()).isEqualTo("500g");
+        assertThat(after.frozenAt()).isEqualTo(LocalDate.of(2026,9,12));
+        String changes = jdbc.queryForObject("SELECT changes_text FROM food_history WHERE food_id=? AND action_type='UPDATE'", String.class, id);
+        assertThat(changes).contains("음식명: 테스트 음식 → 새 이름", "보관 위치: 냉장실 → 냉동실", "수량: 1 → 2.5", "단위: 끼 → 팩", "소비기한: - → 2026-09-21", after.memo());
+        mvc.perform(get("/history")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("수정")))
+                .andExpect(content().string(containsString("&lt;b&gt;")));
+        mvc.perform(get("/inventory/" + id)).andExpect(content().string(containsString("수정 <time")));
+    }
+
+    @Test
+    void unchangedSaveDoesNotWriteOrDisplayModifiedTimestamp() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        mvc.perform(editRequest(before)).andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("successMessage", "변경한 내용이 없어."));
+        assertThat(service.findById(id)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=?", Long.class,id)).isEqualTo(1L);
+        String html = mvc.perform(get("/inventory/" + id)).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html).contains("등록 <time").doesNotContain(" · 수정 <time");
+    }
+
+    @Test
+    void invalidAndStaleEditsPreserveDataAndSubmittedInputs() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        mvc.perform(editRequest(before).param("memo", "첫 변경"))
+                .andExpect(status().is3xxRedirection());
+        FoodItem changed = service.findById(id);
+        mvc.perform(editRequest(before).param("memo", "오래된 화면"))
+                .andExpect(status().isOk()).andExpect(model().hasErrors())
+                .andExpect(content().string(containsString("다른 화면에서")))
+                .andExpect(content().string(containsString("오래된 화면")));
+        mvc.perform(editRequest(changed).param("purchasedAt", "2026-09-14").param("memo", "입력 유지"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "purchasedAt"))
+                .andExpect(content().string(containsString("입력 유지")));
+        assertThat(service.findById(id)).isEqualTo(changed);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=?", Long.class,id)).isEqualTo(2L);
+    }
+
+    @Test
+    void legacyQuantityRequiresExplicitConfirmationAndUpdatesWithoutGuessing() throws Exception {
+        long id = jdbc.queryForObject("INSERT INTO food_item(food_name,storage_type,quantity_text) VALUES ('기존 음식','FRIDGE','반 봉지') RETURNING food_id", Long.class);
+        FoodItem before = service.findById(id);
+        mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("기존 수량: 반 봉지")));
+        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+                .param("foodName", "기존 음식").param("storageType", "FRIDGE"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount", "quantityUnit"));
+        assertThat(service.findById(id)).isEqualTo(before);
+        mvc.perform(editRequest(before)).andExpect(status().is3xxRedirection());
+        assertThat(service.findById(id).quantityAmount()).isEqualByComparingTo("1");
+        assertThat(jdbc.queryForObject("SELECT changes_text FROM food_history WHERE food_id=?", String.class,id))
+                .contains("반 봉지 (기존 입력) → 1");
+    }
+
+    @Test
+    void editHistoryFailureRollsBackFoodAndDates() {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        jdbc.execute("CREATE FUNCTION reject_edit_history() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test'; END $$");
+        jdbc.execute("CREATE TRIGGER reject_edit_history BEFORE INSERT ON food_history FOR EACH ROW EXECUTE FUNCTION reject_edit_history()");
+        try {
+            assertThatThrownBy(() -> service.update(id, form(StorageType.FREEZER, null, null, null, false), before.updatedAt()))
+                    .isInstanceOf(DataAccessException.class);
+            assertThat(service.findById(id)).isEqualTo(before);
+        } finally {
+            jdbc.execute("DROP TRIGGER reject_edit_history ON food_history");
+            jdbc.execute("DROP FUNCTION reject_edit_history()");
+        }
+    }
+
+    @Test
+    void terminalAndMissingFoodCannotBeEdited() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        jdbc.update("UPDATE food_item SET status='CONSUMED' WHERE food_id=?",id);
+        mvc.perform(get("/inventory/" + id + "/edit")).andExpect(redirectedUrl("/inventory/" + id));
+        mvc.perform(editRequest(before)).andExpect(status().isOk()).andExpect(model().hasErrors());
+        assertThat(service.findById(id).status()).isEqualTo(FoodStatus.CONSUMED);
+        mvc.perform(get("/inventory/999999/edit")).andExpect(status().isNotFound());
+    }
+
 }

@@ -36,6 +36,12 @@ public record FoodCreateForm(
     public FoodCreateForm {
         if (quantityUnit != null) quantityUnit = quantityUnit.strip();
     }
+    public static FoodCreateForm from(com.euiseon.friger.inventory.entity.FoodItem food) {
+        return new FoodCreateForm(food.foodName(), food.storageType(), food.category(),
+                food.quantityAmount() == null ? null : food.quantityAmount().stripTrailingZeros(),
+                food.expiredAt(), food.purchasedAt(), food.openedAt(), food.frozenAt(), food.sourceType(), food.freezeType(), false,
+                food.memo(), food.capacityText(), food.sourceMemo(), food.sellByAt(), food.quantityUnit());
+    }
     public static FoodCreateForm empty() {
         return new FoodCreateForm(null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null);
     }

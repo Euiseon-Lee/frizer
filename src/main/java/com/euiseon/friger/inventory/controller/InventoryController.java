@@ -1,6 +1,8 @@
 package com.euiseon.friger.inventory.controller;
 
 import java.time.Clock;
+import java.time.OffsetDateTime;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -59,6 +61,43 @@ public class InventoryController {
         return "inventory/detail";
     }
 
+    @GetMapping("/inventory/{id}/edit")
+    String editFood(@PathVariable long id, Model model, RedirectAttributes redirect) {
+        var food = service.findById(id);
+        if (food.status() != FoodStatus.ACTIVE) {
+            redirect.addFlashAttribute("successMessage", "보관 중인 음식만 수정할 수 있어.");
+            return "redirect:/inventory/" + id;
+        }
+        model.addAttribute("foodForm", FoodCreateForm.from(food));
+        editContext(id, food.updatedAt(), model);
+        return "inventory/new";
+    }
+
+    @PostMapping("/inventory/{id}/edit")
+    String updateFood(@PathVariable long id, @Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
+            Model model, RedirectAttributes redirect) {
+        editContext(id, expectedUpdatedAt, model);
+        if (errors.hasErrors()) return "inventory/new";
+        try {
+            boolean changed = service.update(id, form, expectedUpdatedAt);
+            redirect.addFlashAttribute("successMessage", changed ? "수정했어!" : "변경한 내용이 없어.");
+        } catch (InvalidFoodException invalid) {
+            invalid.errors().forEach((field, message) -> {
+                if (field.isEmpty()) errors.reject("updateConflict", message);
+                else errors.rejectValue(field, "invalid", message);
+            });
+            return "inventory/new";
+        }
+        return "redirect:/inventory/" + id;
+    }
+
+    private void editContext(long id, OffsetDateTime expectedUpdatedAt, Model model) {
+        var food = service.findById(id);
+        model.addAttribute("editId", id);
+        model.addAttribute("expectedUpdatedAt", expectedUpdatedAt);
+        model.addAttribute("legacyQuantity", food.quantityAmount() == null ? (food.quantityText() == null ? "-" : food.quantityText()) : null);
+    }
     @PostMapping("/inventory")
     String create(@Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
             RedirectAttributes redirect) {

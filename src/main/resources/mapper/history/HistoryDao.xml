@@ -3,14 +3,14 @@
 <mapper namespace="com.euiseon.friger.history.dao.HistoryDao">
     <select id="findRecent" resultType="com.euiseon.friger.history.dto.HistoryEntry">
         SELECT h.history_id, h.food_id, f.food_name, h.action_type,
-            h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at
+            h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text
         FROM food_history h JOIN food_item f ON f.food_id = h.food_id
         ORDER BY h.created_at DESC, h.history_id DESC LIMIT #{limit}
     </select>
     <insert id="insert">
         INSERT INTO food_history (food_id, action_type, previous_storage_type,
-            new_storage_type, quantity_text, memo, created_at)
+            new_storage_type, quantity_text, memo, created_at, changes_text)
         VALUES (#{foodId}, #{actionType}, #{previousStorageType,jdbcType=VARCHAR},
-            #{newStorageType}, #{quantityText,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{createdAt})
+            #{newStorageType}, #{quantityText,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{createdAt}, #{changesText,jdbcType=VARCHAR})
     </insert>
 </mapper>

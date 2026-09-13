@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>음식 등록 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title th:text="${editId != null ? '음식 수정 · FR!ZER' : '음식 등록 · FR!ZER'}">음식 등록 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">킁킁, 맛있는 냄새!</p><h1>음식 등록하자!</h1><p class="muted">쪼코가 기억해둘게.</p></div><img class="choco" data-choco="add" th:src="@{/assets/choco/come-running.png}" width="100" height="134" alt="쪼코"></section>
-    <form th:action="@{/inventory}" th:object="${foodForm}" method="post">
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">킁킁, 맛있는 냄새!</p><h1 th:text="${editId != null ? '음식 정보 바꾸자!' : '음식 등록하자!'}">음식 등록하자!</h1><p class="muted">쪼코가 기억해둘게.</p></div><img class="choco" data-choco="add" th:src="@{/assets/choco/come-running.png}" width="100" height="134" alt="쪼코"></section>
+    <form th:action="${editId != null} ? @{/inventory/{id}/edit(id=${editId})} : @{/inventory}" th:object="${foodForm}" method="post">
+        <input th:if="${editId != null}" type="hidden" name="expectedUpdatedAt" th:value="${expectedUpdatedAt}">
         <div class="error-summary" role="alert" th:if="${#fields.hasAnyErrors()}"><strong>입력 내용을 확인해 줘.</strong><ul><li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li></ul></div>
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
             <div class="field"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off" th:classappend="${#fields.hasErrors('foodName')} ? 'invalid' : ''"><p class="field-error" th:errors="*{foodName}"></p></div>
@@ -13,7 +14,7 @@
                 <div class="field"><div class="quantity-input-row">
                     <div><label for="quantityAmount">수량 <span class="required">필수</span></label><input type="text" inputmode="decimal" th:field="*{quantityAmount}" placeholder="예: 2, 0.5" pattern="[0-9]+([.][0-9]{1,2})?" required aria-describedby="quantityHelp"><p class="field-error" th:errors="*{quantityAmount}"></p></div>
                     <div><label for="quantityUnit">단위 <span class="required">필수</span></label><input th:field="*{quantityUnit}" placeholder="예: 개, 팩, 봉지, g" maxlength="10" required><p class="field-error" th:errors="*{quantityUnit}"></p></div>
-                </div><p class="help" id="quantityHelp">반 봉지가 남았다면 수량은 0.5, 단위는 봉지로 적으면 돼.</p></div>
+                </div><p class="help" th:if="${legacyQuantity != null}" th:text="${'기존 수량: ' + legacyQuantity + ' · 숫자와 단위로 나눠서 확인해 줘.'}"></p><p class="help" id="quantityHelp">반 봉지가 남았다면 수량은 0.5, 단위는 봉지로 적으면 돼.</p></div>
                 <div class="field"><label for="capacityText">용량 <span class="optional">선택</span></label><input th:field="*{capacityText}" placeholder="예: 200g, 300mL, 2인분" maxlength="50"><p class="field-error" th:errors="*{capacityText}"></p><p class="help">포장에 적힌 용량이나 대략적인 양을 적어주면 더 좋아!</p></div>
             </div>
             <div class="field"><label for="sourceType">어디서 온 음식이야?</label><select th:field="*{sourceType}"><option value="">선택 안 함</option><option th:each="entry : ${sourceLabels}" th:value="${entry.key}" th:text="${entry.value}"></option></select><p class="field-error" th:errors="*{sourceType}"></p></div>
@@ -37,11 +38,11 @@
                 <div class="field"><label for="sellByAt">유통기한 <span class="optional">선택</span></label><input type="date" th:field="*{sellByAt}"><p class="field-error" th:errors="*{sellByAt}"></p></div>
                 <div class="field"><label for="expiredAt">소비기한 <span class="optional">선택</span></label><input type="date" th:field="*{expiredAt}"><p class="field-error" th:errors="*{expiredAt}"></p></div>
             </div>
-            <details th:open="${#fields.hasErrors('purchasedAt') or #fields.hasErrors('openedAt') or #fields.hasErrors('category') or #fields.hasErrors('memo')}"><summary>더 남겨둘 내용이 있어?</summary><div class="extra-fields"><div class="field-row"><div class="field"><label for="purchasedAt">구매일</label><input type="date" th:field="*{purchasedAt}" th:max="${today}"><p class="field-error" th:errors="*{purchasedAt}"></p></div><div class="field"><label for="openedAt">개봉일</label><input type="date" th:field="*{openedAt}" th:max="${today}"><p class="field-error" th:errors="*{openedAt}"></p></div></div><div class="field"><label for="category">분류</label><input th:field="*{category}" maxlength="50" placeholder="예: 반찬, 채소, 간편식"><p class="field-error" th:errors="*{category}"></p></div><div class="field"><label for="memo">메모</label><textarea th:field="*{memo}" rows="3" maxlength="500" placeholder="예: 개봉 후 밀폐용기에 옮겨둠"></textarea><p class="field-error" th:errors="*{memo}"></p></div></div></details>
+            <details th:open="${editId != null or #fields.hasErrors('purchasedAt') or #fields.hasErrors('openedAt') or #fields.hasErrors('category') or #fields.hasErrors('memo')}"><summary>더 남겨둘 내용이 있어?</summary><div class="extra-fields"><div class="field-row"><div class="field"><label for="purchasedAt">구매일</label><input type="date" th:field="*{purchasedAt}" th:max="${today}"><p class="field-error" th:errors="*{purchasedAt}"></p></div><div class="field"><label for="openedAt">개봉일</label><input type="date" th:field="*{openedAt}" th:max="${today}"><p class="field-error" th:errors="*{openedAt}"></p></div></div><div class="field"><label for="category">분류</label><input th:field="*{category}" maxlength="50" placeholder="예: 반찬, 채소, 간편식"><p class="field-error" th:errors="*{category}"></p></div><div class="field"><label for="memo">메모</label><textarea th:field="*{memo}" rows="3" maxlength="500" placeholder="예: 개봉 후 밀폐용기에 옮겨둠"></textarea><p class="field-error" th:errors="*{memo}"></p></div></div></details>
         </section>
-        <div class="form-actions"><a class="cancel-link" th:href="@{/inventory}">취소</a><button class="button" type="submit">음식 등록하기</button></div>
+        <div class="form-actions"><a class="cancel-link" th:href="${editId != null} ? @{/inventory/{id}(id=${editId})} : @{/inventory}">취소</a><button class="button" type="submit" th:text="${editId != null ? '수정 내용 저장하기' : '음식 등록하기'}">음식 등록하기</button></div>
     </form>
     <footer class="page-footer">쪼코가 기억해둘게.</footer>
 </main>
 <script th:src="@{/js/food-form.js}" defer></script>
-<nav th:replace="~{fragments/shell :: nav('new')}"></nav></body></html>
+<nav th:replace="~{fragments/shell :: nav(${editId != null ? 'inventory' : 'new'})}"></nav></body></html>

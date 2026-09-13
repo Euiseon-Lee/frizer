@@ -109,6 +109,7 @@
              , previous_storage_type
              , new_storage_type
              , quantity_text
+             , changes_text
              , memo
              , created_at
           FROM food_history

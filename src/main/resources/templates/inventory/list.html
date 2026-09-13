@@ -8,11 +8,11 @@
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page">
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">쪼코랑 같이 찾아보자!</p><h1>우리 집에 뭐가 있더라?</h1></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="102" height="120" alt="쪼코"></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">쪼코랑 같이 찾아보자!</p><h1>우리 집에 뭐가 있더라?</h1><p class="muted">한 줄로 정렬시켰어.</p></div><img class="choco" data-choco="history" th:src="@{/assets/choco/look-aside.png}" width="102" height="120" alt="쪼코"></section>
     <div class="notice" role="status" th:if="${successMessage}"><img class="choco" data-choco="success" th:src="@{/assets/choco/happy-sit.png}" width="48" height="54" alt=""><p th:text="${successMessage}"></p></div><nav class="filter-tabs" aria-label="보관 위치 필터"><a th:href="@{/inventory}" th:attr="aria-current=${selectedStorage == null ? 'page' : null}">전체</a><a th:each="entry : ${storageLabels}" th:href="@{/inventory(storage=${entry.key})}" th:attr="aria-current=${selectedStorage == entry.key ? 'page' : null}" th:text="${entry.value}"></a></nav>
     <div class="inventory-bar"><h2>보관 중인 음식 <span class="count" th:text="${foods.size()}">0</span></h2><span class="muted small">최근 등록 순</span></div>
     <section class="empty-state" th:if="${foods.isEmpty()}">
-        <img class="choco choco-portrait" data-choco="empty" th:src="@{/assets/choco/empty-curious.png}" width="120" height="130" alt=""><h2 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '이 위치에는 등록된 음식이 없어'}"></h2><p class="muted">새 음식을 등록해볼까?</p><a class="button" th:href="@{/inventory/new}"><span th:text="${totalCount == 0 ? '첫 음식 등록하기' : '음식 등록하기'}">첫 음식 등록하기</span></a>
+        <img class="choco choco-portrait" data-choco="empty" th:src="@{/assets/choco/empty-curious.png}" width="120" height="130" alt=""><h2 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '여기에는 음식이 없어'}"></h2><a class="button" th:href="@{/inventory/new}"><span th:text="${totalCount == 0 ? '첫 음식 등록하기' : '음식 등록하기'}">첫 음식 등록하기</span></a>
     </section>
     <section class="food-grid" th:unless="${foods.isEmpty()}" aria-label="보관 중인 음식 목록">
         <a class="food-card" th:each="food : ${foods}" th:href="@{/inventory/{id}(id=${food.foodId()})}" th:aria-label="${food.foodName() + ' 상세 보기'}">

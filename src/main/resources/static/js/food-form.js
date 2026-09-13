@@ -5,8 +5,20 @@ const sourceMemo = document.getElementById('sourceMemo');
 const freezerFields = document.getElementById('freezerFields');
 const freezeToday = document.querySelector('input[name="freezeToday"]');
 const frozenAt = document.getElementById('frozenAt');
+const freezeType = document.getElementById('freezeType');
+const commercialFreezeOption = freezeType.querySelector('option[value="COMMERCIAL_FROZEN"]');
 function updateFreezerFields() {
     const storage = document.querySelector('input[name="storageType"]:checked')?.value;
+    const isDelivery = sourceInput.value === 'DELIVERY_LEFTOVER';
+    if (isDelivery) {
+        freezeType.value = 'HOME_FROZEN';
+        commercialFreezeOption.remove();
+    } else if (!commercialFreezeOption.isConnected) {
+        freezeType.append(commercialFreezeOption);
+    }
+    document.getElementById('deliveryStorageHelp').hidden = !isDelivery || storage !== undefined;
+    document.getElementById('freezeTypeHelp').hidden = isDelivery;
+    document.getElementById('deliveryFreezeHelp').hidden = !isDelivery;
     freezerFields.hidden = storage !== 'FREEZER' && !(storage === undefined && sourceInput.value === 'DELIVERY_LEFTOVER');
     freezerFields.querySelectorAll('input, select').forEach(input => { input.disabled = freezerFields.hidden; });
 }

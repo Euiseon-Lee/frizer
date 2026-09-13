@@ -76,4 +76,5 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .food-card .food-summary>.food-title,.food-card .food-summary>.quantity{padding-left:9px}
 /* Match the home hero's text and image insets on the three tab headings. */
 .tab-heading{padding-left:12px;padding-right:8px}
+.empty-state h2+.button{margin-top:16px}
 @media(max-width:360px){.tab-heading{padding-left:8px;padding-right:0}}

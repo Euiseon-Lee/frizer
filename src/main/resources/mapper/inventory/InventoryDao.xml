@@ -2,43 +2,62 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.euiseon.friger.inventory.dao.InventoryDao">
     <select id="insert" resultType="long" affectData="true" flushCache="true">
-        INSERT INTO food_item (food_name, storage_type, category, quantity_text,
+        WITH new_master AS (INSERT INTO food_master(food_name,category,default_quantity_unit) VALUES(#{foodName},#{category,jdbcType=VARCHAR},#{quantityUnit,jdbcType=VARCHAR}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
             status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit)
-        VALUES (#{foodName}, #{storageType}, #{category,jdbcType=VARCHAR}, #{quantityText,jdbcType=VARCHAR},
+        VALUES ((SELECT master_id FROM new_master), #{storageType}, #{quantityText,jdbcType=VARCHAR},
             #{expiredAt,jdbcType=DATE}, #{purchasedAt,jdbcType=DATE}, #{openedAt,jdbcType=DATE},
-            #{frozenAt,jdbcType=DATE}, #{sourceType}, #{freezeType}, #{status},
+            #{frozenAt,jdbcType=DATE}, #{sourceType,jdbcType=VARCHAR}, #{freezeType}, #{status},
             #{memo,jdbcType=VARCHAR}, #{createdAt}, #{updatedAt}, #{capacityText,jdbcType=VARCHAR}, #{sourceMemo,jdbcType=VARCHAR}, #{sellByAt,jdbcType=DATE}, #{quantityAmount,jdbcType=NUMERIC}, #{quantityUnit,jdbcType=VARCHAR})
         RETURNING food_id
     </select>
+    <select id="insertForMaster" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_item (master_id, storage_type, quantity_text, expired_at, purchased_at, opened_at,
+            frozen_at, source_type, freeze_type, status, memo, created_at, updated_at, capacity_text,
+            source_memo, sell_by_at, quantity_amount, quantity_unit)
+        VALUES (#{masterId}, #{food.storageType}, #{food.quantityText,jdbcType=VARCHAR},
+            #{food.expiredAt,jdbcType=DATE}, #{food.purchasedAt,jdbcType=DATE}, #{food.openedAt,jdbcType=DATE},
+            #{food.frozenAt,jdbcType=DATE}, #{food.sourceType,jdbcType=VARCHAR}, #{food.freezeType},
+            #{food.status}, #{food.memo,jdbcType=VARCHAR}, #{food.createdAt}, #{food.updatedAt},
+            #{food.capacityText,jdbcType=VARCHAR}, #{food.sourceMemo,jdbcType=VARCHAR},
+            #{food.sellByAt,jdbcType=DATE}, #{food.quantityAmount,jdbcType=NUMERIC}, #{food.quantityUnit,jdbcType=VARCHAR})
+        RETURNING food_id
+    </select>
     <select id="findActive" resultType="com.euiseon.friger.inventory.entity.FoodItem">
-        SELECT food_id, food_name, storage_type, category, quantity_text,
+        SELECT food_id, m.food_name, storage_type, m.category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
-        FROM food_item
+            status, memo, i.created_at, i.updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
+        FROM food_item i JOIN food_master m ON m.master_id=i.master_id
         WHERE status = 'ACTIVE'
-        ORDER BY created_at DESC, food_id DESC
+        ORDER BY i.created_at DESC, food_id DESC
     </select>
     <select id="findById" resultType="com.euiseon.friger.inventory.entity.FoodItem">
-        SELECT food_id, food_name, storage_type, category, quantity_text,
+        SELECT food_id, m.food_name, storage_type, m.category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
-        FROM food_item
+            status, memo, i.created_at, i.updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
+        FROM food_item i JOIN food_master m ON m.master_id=i.master_id
         WHERE food_id = #{id}
     </select>
     <select id="findByIdForUpdate" resultType="com.euiseon.friger.inventory.entity.FoodItem">
-        SELECT food_id, food_name, storage_type, category, quantity_text,
+        SELECT food_id, m.food_name, storage_type, m.category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,
-            status, memo, created_at, updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
-        FROM food_item WHERE food_id = #{id} FOR UPDATE
+            status, memo, i.created_at, i.updated_at, capacity_text, source_memo, sell_by_at, quantity_amount, quantity_unit
+        FROM food_item i JOIN food_master m ON m.master_id=i.master_id WHERE food_id = #{id} FOR UPDATE OF i
     </select>
     <update id="update">
-        UPDATE food_item SET food_name=#{foodName}, storage_type=#{storageType}, category=#{category,jdbcType=VARCHAR},
+        UPDATE food_item SET storage_type=#{storageType},
             quantity_text=#{quantityText}, quantity_amount=#{quantityAmount}, quantity_unit=#{quantityUnit},
             expired_at=#{expiredAt,jdbcType=DATE}, purchased_at=#{purchasedAt,jdbcType=DATE}, opened_at=#{openedAt,jdbcType=DATE},
-            frozen_at=#{frozenAt,jdbcType=DATE}, source_type=#{sourceType}, freeze_type=#{freezeType},
+            frozen_at=#{frozenAt,jdbcType=DATE}, source_type=#{sourceType,jdbcType=VARCHAR}, freeze_type=#{freezeType},
             memo=#{memo,jdbcType=VARCHAR}, capacity_text=#{capacityText,jdbcType=VARCHAR},
             source_memo=#{sourceMemo,jdbcType=VARCHAR}, sell_by_at=#{sellByAt,jdbcType=DATE}, updated_at=#{updatedAt}
         WHERE food_id=#{foodId} AND status='ACTIVE'
     </update>
+    <select id="findByMaster" resultType="com.euiseon.friger.inventory.entity.FoodItem">
+        SELECT food_id,m.food_name,storage_type,m.category,quantity_text,expired_at,purchased_at,opened_at,
+        frozen_at,source_type,freeze_type,status,memo,i.created_at,i.updated_at,capacity_text,source_memo,
+        sell_by_at,quantity_amount,quantity_unit
+        FROM food_item i JOIN food_master m ON m.master_id=i.master_id
+        WHERE i.master_id=#{id} ORDER BY i.created_at DESC,food_id DESC
+    </select>
 </mapper>

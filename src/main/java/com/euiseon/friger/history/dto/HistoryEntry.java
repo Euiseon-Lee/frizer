@@ -19,7 +19,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
     }
     public String homeSummary() {
         if (actionType == FoodActionType.CREATE || changesText == null || changesText.isBlank()) return actionLabel() + "했어";
-        if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 항목 " + detailFields().size() + "건";
+        if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 정보 " + detailFields().size() + "건";
         return changesText.replaceAll("\\R+", " · ");
     }
 

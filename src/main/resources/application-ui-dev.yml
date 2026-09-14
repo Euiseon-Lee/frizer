@@ -1,0 +1,14 @@
+# Read UI sources directly; Java, mapper XML and migrations still require rebuild/restart.
+# Activated by the local profile, or explicitly with prod,ui-dev in Docker development.
+spring:
+  thymeleaf:
+    prefix: ${FRIZER_UI_ROOT:file:./src/main/resources}/templates/
+    cache: false
+  web:
+    resources:
+      static-locations: ${FRIZER_UI_ROOT:file:./src/main/resources}/static/
+      cache:
+        cachecontrol:
+          no-store: true
+      chain:
+        cache: false

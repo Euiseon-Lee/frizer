@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css(v='registration-5')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -8,9 +8,28 @@
     <div class="tab-sheet">
 
     <form th:action="${editId != null} ? @{/inventory/{id}/edit(id=${editId})} : @{/inventory}" th:object="${foodForm}" method="post" novalidate>
+        <div id="registrationPicker" th:if="${editId == null}">
+            <fieldset class="registration-modes"><legend class="sr-only">등록 방식</legend>
+                <label><input type="radio" name="registrationMode" value="new" th:checked="${registrationMode != 'existing'}"><span>새로운 음식으로 등록</span></label>
+                <label><input type="radio" name="registrationMode" value="existing" th:checked="${registrationMode == 'existing'}"><span>기존 음식에 추가</span></label>
+            </fieldset>
+            <input type="hidden" id="masterId" name="masterId" th:value="${selectedMasterId}">
+            <input type="hidden" id="masterVersion" name="masterVersion" th:value="${masterVersion}">
+            <div id="existingFoodPicker" th:hidden="${registrationMode != 'existing'}">
+                <div class="field"><label for="foodSearch">어떤 음식에 추가할까? <span class="required">필수</span></label><div class="food-search-row"><input id="foodSearch" type="search" placeholder="음식 이름 검색" autocomplete="off" enterkeyhint="search" aria-describedby="foodSearchStatus"><button type="button" id="searchFoods">검색</button></div></div>
+                <div class="registration-candidates" id="foodCandidates" hidden>
+                    <button type="button" th:each="candidate : ${registrationFoods}" th:attr="data-master-id=${candidate.masterId()},data-name=${candidate.foodName()},data-category=${candidate.category()},data-version=${candidate.versionNo()},data-unit=${candidate.defaultQuantityUnit()}">
+                        <strong th:text="${candidate.foodName()}"></strong><span class="small muted" th:text="${(candidate.category() == null ? '분류 없음' : candidate.category()) + ' · 개별 구매 ' + candidate.itemCount() + '건 · #' + candidate.masterId()}"></span>
+                    </button>
+                </div>
+                <p id="foodSearchStatus" class="small muted" role="status" hidden></p>
+                <div id="selectedFoodSummary" class="selected-food-summary" hidden aria-live="polite"><div><strong id="selectedFoodName"></strong><p class="small muted" id="selectedFoodCategory"></p></div><button type="button" id="changeSelectedFood">변경</button></div>
+            </div>
+        </div>
         <input th:if="${editId != null}" type="hidden" name="expectedUpdatedAt" th:value="${expectedUpdatedAt}">
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
-            <div class="field"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('foodName')},aria-describedby=${#fields.hasErrors('foodName') ? 'foodName-error' : null}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off"><p class="field-error" id="foodName-error" th:errors="*{foodName}"></p></div>
+            <p class="small muted" th:if="${editId != null}">음식명과 분류를 수정하면 같은 음식의 모든 개별 구매 항목에 함께 적용돼. 수량·날짜·메모는 이 개별 구매 항목만 바뀌어.</p>
+            <div class="field" id="foodNameField" th:hidden="${registrationMode == 'existing'}"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" th:disabled="${registrationMode == 'existing'}" th:readonly="${registrationMode == 'existing'}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('foodName')},aria-describedby=${#fields.hasErrors('foodName') ? 'foodName-error' : null}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off"><p class="field-error" id="foodName-error" th:errors="*{foodName}"></p></div>
             <div class="field-row">
                 <div class="field">
                     <div class="quantity-input-row">
@@ -24,7 +43,7 @@
             <div class="field"><label for="sourceType">어디서 온 음식이야? <span class="optional">선택</span></label><select th:field="*{sourceType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceType')},aria-describedby=${#fields.hasErrors('sourceType') ? 'sourceType-error' : null}"><option value="">선택 안 함</option><option th:each="entry : ${sourceLabels}" th:value="${entry.key}" th:text="${entry.value}"></option></select><p class="field-error" id="sourceType-error" th:errors="*{sourceType}"></p></div>
             <div class="field" id="sourceMemoField"><label for="sourceMemo">출처 메모 <span class="optional">선택</span></label><input th:field="*{sourceMemo}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceMemo')},aria-describedby=${#fields.hasErrors('sourceMemo') ? 'sourceMemo-error' : null}" placeholder="예: 지인에게 받음" maxlength="200"><p class="field-error" id="sourceMemo-error" th:errors="*{sourceMemo}"></p></div>
         </section>
-        <section class="form-section"><div class="section-label"><span>02</span><h2>어디에 보관할까?</h2></div>
+        <section class="form-section"><div class="section-label"><span>02</span><h2>어디에 보관할까? <span class="required">필수</span></h2></div>
             <p class="help section-help" id="deliveryStorageHelp" th:hidden="${foodForm?.sourceType() == null or foodForm?.sourceType().name() != 'DELIVERY_LEFTOVER' or foodForm?.storageType() != null}">배달 잔반은 보관할 곳을 고르지 않으면 냉동실로 등록할게.</p><fieldset class="storage-choices"><legend class="sr-only">보관 위치</legend><label th:each="entry : ${storageLabels}"><input type="radio" th:field="*{storageType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('storageType')},aria-describedby=${#fields.hasErrors('storageType') ? 'storageType-error' : null}" th:value="${entry.key}"><span th:text="${entry.value}"></span></label></fieldset><p class="field-error" id="storageType-error" th:errors="*{storageType}"></p>
             <div class="freezer-fields" id="freezerFields"><div class="field"><label for="freezeType">냉동 유형</label><select th:field="*{freezeType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('freezeType')},aria-describedby=${#fields.hasErrors('freezeType') ? 'freezeType-error' : null}"><option value="HOME_FROZEN">직접 냉동</option><option value="COMMERCIAL_FROZEN">시판 냉동식품</option></select><p class="field-error" id="freezeType-error" th:errors="*{freezeType}"></p><p class="help" id="deliveryFreezeHelp" th:hidden="${foodForm?.sourceType() == null or foodForm?.sourceType().name() != 'DELIVERY_LEFTOVER'}">배달 잔반은 ‘직접 냉동’으로 기록할게.</p></div>
                 <fieldset class="field frozen-date-group">
@@ -37,17 +56,18 @@
         </section>
         <section class="form-section"><div class="section-label"><span>03</span><h2>포장에 날짜가 적혀 있어?</h2></div>
             <p class="help section-help">포장에 적힌 항목에 맞춰 날짜를 입력해줘.<br>둘 다 적혀 있으면 각각 입력하고, 모르면 비워둬도 괜찮아.</p>
-            <div class="field-row">
+            <div class="field-row date-field-row">
                 <div class="field"><label for="sellByAt">유통기한 <span class="optional">선택</span></label><input type="date" th:field="*{sellByAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sellByAt')},aria-describedby=${#fields.hasErrors('sellByAt') ? 'sellByAt-error' : null}"><p class="field-error" id="sellByAt-error" th:errors="*{sellByAt}"></p></div>
                 <div class="field"><label for="expiredAt">소비기한 <span class="optional">선택</span></label><input type="date" th:field="*{expiredAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('expiredAt')},aria-describedby=${#fields.hasErrors('expiredAt') ? 'expiredAt-error' : null}"><p class="field-error" id="expiredAt-error" th:errors="*{expiredAt}"></p></div>
             </div>
-            <details th:open="${editId != null or #fields.hasErrors('purchasedAt') or #fields.hasErrors('openedAt') or #fields.hasErrors('category') or #fields.hasErrors('memo')}"><summary>더 남겨둘 내용이 있어?</summary><div class="extra-fields"><div class="field-row"><div class="field"><label for="purchasedAt">구매일 <span class="optional">선택</span></label><input type="date" th:field="*{purchasedAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('purchasedAt')},aria-describedby=${#fields.hasErrors('purchasedAt') ? 'purchasedAt-error' : null}" th:max="${today}"><p class="field-error" id="purchasedAt-error" th:errors="*{purchasedAt}"></p></div><div class="field"><label for="openedAt">개봉일 <span class="optional">선택</span></label><input type="date" th:field="*{openedAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('openedAt')},aria-describedby=${#fields.hasErrors('openedAt') ? 'openedAt-error' : null}" th:max="${today}"><p class="field-error" id="openedAt-error" th:errors="*{openedAt}"></p></div></div><div class="field"><label for="category">분류 <span class="optional">선택</span></label><input th:field="*{category}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('category')},aria-describedby=${#fields.hasErrors('category') ? 'category-error' : null}" maxlength="50" placeholder="예: 반찬, 채소, 간편식"><p class="field-error" id="category-error" th:errors="*{category}"></p></div><div class="field"><label for="memo">메모 <span class="optional">선택</span></label><textarea th:field="*{memo}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('memo')},aria-describedby=${#fields.hasErrors('memo') ? 'memo-error' : null}" rows="2" maxlength="500" placeholder="예: 개봉 후 밀폐용기에 옮겨둠"></textarea><p class="field-error" id="memo-error" th:errors="*{memo}"></p></div></div></details>
+            <div class="extra-fields"><div class="field-row date-field-row"><div class="field"><label for="purchasedAt">구매일 <span class="optional">선택</span></label><input type="date" th:field="*{purchasedAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('purchasedAt')},aria-describedby=${#fields.hasErrors('purchasedAt') ? 'purchasedAt-error' : null}" th:max="${today}"><p class="field-error" id="purchasedAt-error" th:errors="*{purchasedAt}"></p></div><div class="field"><label for="openedAt">개봉일 <span class="optional">선택</span></label><input type="date" th:field="*{openedAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('openedAt')},aria-describedby=${#fields.hasErrors('openedAt') ? 'openedAt-error' : null}" th:max="${today}"><p class="field-error" id="openedAt-error" th:errors="*{openedAt}"></p></div></div><div class="field" th:hidden="${registrationMode == 'existing' and (selectedMasterId == null or #strings.isEmpty(foodForm.category()))}"><label for="category">분류 <span class="optional">선택</span></label><input th:field="*{category}" th:disabled="${registrationMode == 'existing'}" th:readonly="${registrationMode == 'existing'}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('category')},aria-describedby=${#fields.hasErrors('category') ? 'category-error' : null}" maxlength="50" placeholder="예: 반찬, 채소, 간편식"><p id="sharedCategoryHelp" class="help" hidden>기존 음식의 분류를 그대로 사용해.</p><p class="field-error" id="category-error" th:errors="*{category}"></p></div><div class="field"><label for="memo">메모 <span class="optional">선택</span></label><textarea th:field="*{memo}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('memo')},aria-describedby=${#fields.hasErrors('memo') ? 'memo-error' : null}" rows="2" maxlength="500" placeholder="예: 개봉 후 밀폐용기에 옮겨둠"></textarea><p class="field-error" id="memo-error" th:errors="*{memo}"></p></div></div>
         </section>
         <p class="field-error" role="alert" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></p>
-        <div class="form-actions"><a class="cancel-link" th:href="${editId != null} ? @{/inventory/{id}(id=${editId})} : @{/inventory}">취소</a><button class="button" type="submit" th:text="${editId != null ? '수정 내용 저장하기' : '음식 등록하기'}">음식 등록하기</button></div>
+        <div class="form-actions"><a class="cancel-link" th:href="${editId != null} ? @{/inventory/{id}(id=${editId})} : (${selectedMasterId != null} ? @{/foods/{id}(id=${selectedMasterId})} : @{/inventory})">취소</a><button id="registrationSubmit" class="button" type="submit" th:text="${editId != null ? '수정 내용 저장하기' : (registrationMode == 'existing' ? '구매 항목 추가' : '음식 등록하기')}">음식 등록하기</button></div>
     </form>
     <footer class="page-footer">쪼코 기억력 얼마나 좋은지 보여줄게!</footer>
     </div>
 </main>
 <script th:src="@{/js/food-form.js}" defer></script>
+<script th:if="${editId == null}" th:src="@{/js/food-registration.js(v='registration-5')}" defer></script>
 <nav th:replace="~{fragments/shell :: nav(${editId != null ? 'inventory' : 'new'})}"></nav></body></html>

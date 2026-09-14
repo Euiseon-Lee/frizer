@@ -45,4 +45,9 @@ public record FoodCreateForm(
     public static FoodCreateForm empty() {
         return new FoodCreateForm(null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null);
     }
+    public FoodCreateForm withIdentity(String name, String sharedCategory) {
+        return new FoodCreateForm(name, storageType, sharedCategory, quantityAmount, expiredAt, purchasedAt,
+                openedAt, frozenAt, sourceType, freezeType, freezeToday, memo, capacityText, sourceMemo,
+                sellByAt, quantityUnit);
+    }
 }

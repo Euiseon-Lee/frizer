@@ -8,7 +8,9 @@
 ## 현재 상태
 
 STEP 3 설계·구현·검증의 기준 문서는 [STEP 3 보고서](STEP3_REPORT.md)입니다.
-현재 STEP 3은 **설계 진행 중이며 구현·검증은 미착수**입니다.
+현재 STEP 3은 **음식별 목록·구매분 상세·음식 병합을 1차 구현**했습니다.
+`/foods/{id}`에서 개별 구매 목록을 확인하고, **다른 음식에 합치기**에서 대상을 선택하면 같은 화면에 미리보기가 표시됩니다. 확인 후 실행하면 구매 항목과 이력을 보존하고 전체 음식 목록으로 이동합니다.
+새 음식 등록은 같은 이름이어도 별도 음식으로 생성합니다. 등록 화면에서 기존 음식을 선택하거나 개별 구매 목록의 '구매 항목 추가'로 기존 음식에 추가할 수 있습니다. 출처 미선택은 기타와 구분합니다. 소비·폐기·분리·취소·엑셀은 후속 범위입니다.
 아래 STEP 2 수치는 당시 결과이며 이후 수정·경고·이미지 정책의 인계 상태는
 [최근 인계 문서](ui-v5-addon/NEXT_SESSION.md)를 참고합니다.
 
@@ -25,7 +27,7 @@ Java 기본 패키지는 `com.euiseon.friger`이며 모델은 `inventory.entity.
 
 `test bootJar` 성공, STEP 1 97개 + STEP 2 26개 = **123개 테스트 통과**.
 자세한 결과는 [STEP 1 보고서](STEP1_REPORT.md), [STEP 2 보고서](STEP2_REPORT.md)를 참고합니다.
-소비·폐기·이동·수정, 엑셀 일괄 처리·다중 삭제, 대시보드 점수, PWA, 인증 및 배포는 아직 구현하지 않았습니다.
+현재 등록 정보 수정은 구현되어 있습니다. 소비·폐기·개별 항목 이동, 엑셀 일괄 처리·다중 삭제, 대시보드 점수, PWA, 인증 및 배포는 아직 구현하지 않았습니다.
 
 ## 명칭
 
@@ -99,6 +101,26 @@ docker compose --profile app stop
 기존 `docker compose up -d --wait` 명령은 DB만 실행합니다. IntelliJ 또는 `bootRun`으로
 개발할 때는 Docker 앱을 먼저 `docker compose stop app`으로 중지해 8080 포트 충돌을 피합니다.
 Docker 이미지 빌드는 `bootJar`를 실행하며, Docker가 필요한 통합 테스트는 별도로 실행해야 합니다.
+
+### 화면 수정 시 재빌드 없이 확인
+
+IntelliJ/bootRun의 `local` 프로필은 `ui-dev`를 함께 활성화합니다. 프로젝트 루트에서 실행하면
+`src/main/resources/templates`와 `src/main/resources/static` 원본을 직접 읽습니다.
+설정을 처음 적용할 때만 앱을 다시 실행하고, 이후 HTML·CSS·JavaScript·이미지 변경은 저장 후
+브라우저 새로고침으로 확인합니다. 브라우저를 자동 새로고침하는 기능은 포함하지 않습니다.
+Java 코드, MyBatis XML, 설정 파일, DB migration 변경은 빌드·재시작이 필요합니다.
+
+Docker에서도 같은 방식으로 확인하려면 최초 실행 또는 Java 변경 시 다음 명령을 사용합니다.
+
+```powershell
+docker compose -f compose.yml -f compose.ui-dev.yml --profile app up -d --build --wait
+```
+
+이후 UI 수정에는 위 명령을 반복하지 않고 브라우저를 새로고침합니다. UI 원본 디렉터리만
+읽기 전용으로 마운트하며 일반 `compose.yml` 실행은 빌드된 리소스를 사용합니다.
+이 PC의 Docker 확인 포트는 Git 제외 `.env`의 `FRIZER_APP_PORT=8082`이고 사용자 로컬 실행은 8080입니다.
+개발 모드의 템플릿 캐시와 정적 리소스 캐시를 비활성화합니다.
+설정 옵션은 [Spring Boot 3.5 공식 문서](https://docs.spring.io/spring-boot/3.5/appendix/application-properties/)를 참고합니다.
 
 2026-09-14 실행 검증: 앱과 PostgreSQL 컨테이너 모두 healthy, Flyway V6 적용,
 `/`, `/inventory`, `/inventory/new`, `/history` HTTP 200 확인.
@@ -220,6 +242,10 @@ prod는 DB 환경변수를 요구하며 SQL 바인딩 값에 대한 DEBUG 로그
 prod 설정은 향후 운영 실행을 위한 기반이며 배포 스크립트나 실제 배포는 포함하지 않습니다.
 
 ## DB 설계
+
+STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은 `food_item`으로 분리합니다.
+기존 ITEM ID와 이력을 유지하며 병합 요청 결과는 `food_merge_receipt`에 기록합니다.
+아래 STEP 1·2 설명과 달라진 현재 구조와 전환 검증은 [STEP 3 보고서](STEP3_REPORT.md)를 참고합니다.
 
 `src/main/resources/db/migration/V1__init_schema.sql`을 Flyway가 적용합니다.
 기존 운영 DB에 적용된 migration을 이후에 수정하지 않고, 추가 변경은 V2 이상으로 작성합니다.

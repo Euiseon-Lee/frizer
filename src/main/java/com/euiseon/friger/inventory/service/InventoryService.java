@@ -24,12 +24,15 @@ public class InventoryService {
     private final HistoryDao history;
     private final Clock clock;
     private final Validator validator;
+    private final com.euiseon.friger.inventory.dao.FoodMasterDao masters;
 
-    public InventoryService(InventoryDao inventory, HistoryDao history, Clock clock, Validator validator) {
+    public InventoryService(InventoryDao inventory, HistoryDao history, Clock clock, Validator validator,
+                            com.euiseon.friger.inventory.dao.FoodMasterDao masters) {
         this.inventory = inventory;
         this.history = history;
         this.clock = clock;
         this.validator = validator;
+        this.masters = masters;
     }
 
     @Transactional(readOnly = true)
@@ -44,9 +47,21 @@ public class InventoryService {
 
     @Transactional
     public long create(FoodCreateForm form) {
+        return create(form, null, null);
+    }
+
+    @Transactional
+    public long create(FoodCreateForm form, Long masterId, Long expectedVersion) {
+        if (masterId != null) {
+            var master = masters.lock(masterId);
+            if (master == null || expectedVersion == null || master.versionNo() != expectedVersion)
+                throw new InvalidFoodException(Map.of("", "선택한 음식이 변경되었어. 기존 음식을 다시 선택해 줘."));
+            form = form.withIdentity(master.foodName(), master.category());
+        }
         OffsetDateTime now = OffsetDateTime.now(clock);
         FoodItem food = normalized(form, null, now, now);
-        long id = inventory.insert(food);
+        long id = masterId == null ? inventory.insert(food) : inventory.insertForMaster(food, masterId);
+        if (masterId != null) masters.touch(masterId);
         int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
                 food.storageType(), food.quantityText(), "음식 등록", now, registrationSnapshot(food)));
         if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
@@ -55,6 +70,11 @@ public class InventoryService {
 
     @Transactional
     public boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt) {
+        Long masterId = masters.masterIdForItem(id);
+        if (masterId == null) throw new FoodNotFoundException(id);
+        var master = masters.lock(masterId);
+        if (master == null || !masterId.equals(masters.masterIdForItem(id)))
+            throw new InvalidFoodException(Map.of("", "음식이 병합되었어. 상세를 다시 열어 줘."));
         FoodItem before = inventory.findByIdForUpdate(id);
         if (before == null) throw new FoodNotFoundException(id);
         if (before.status() != FoodStatus.ACTIVE) throw new InvalidFoodException(Map.of("", "보관 중인 음식만 수정할 수 있어."));
@@ -71,6 +91,11 @@ public class InventoryService {
                 .map(entry -> entry.getKey() + ": " + display(oldValues.get(entry.getKey())) + " → " + display(entry.getValue()))
                 .collect(java.util.stream.Collectors.joining("\n"));
         if (changes.isEmpty()) return false;
+        if (!java.util.Objects.equals(before.foodName(), after.foodName())
+                || !java.util.Objects.equals(before.category(), after.category())) {
+            masters.update(masterId, after.foodName(), after.category());
+            masters.invalidateOtherItems(masterId, id);
+        } else masters.touch(masterId);
         if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
         if (history.insert(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
                 after.quantityText(), "음식 수정", now, changes)) != 1) {
@@ -98,6 +123,7 @@ public class InventoryService {
         values.put("단위", food.quantityUnit());
         values.put("용량", raw(food.capacityText()));
         values.put("출처", switch (food.sourceType()) {
+            case null -> null;
             case PURCHASE -> "장보기"; case DELIVERY_LEFTOVER -> "배달 잔반"; case COOKED -> "직접 조리";
             case PARENTS -> "부모님의 은혜"; case ETC -> "기타";
         });
@@ -121,7 +147,7 @@ public class InventoryService {
     public Map<String, String> validationErrors(FoodCreateForm form) {
         Map<String, String> errors = new LinkedHashMap<>();
         validator.validate(form).forEach(v -> errors.put(v.getPropertyPath().toString(), v.getMessage()));
-        FoodSourceType source = form.sourceType() == null ? FoodSourceType.ETC : form.sourceType();
+        FoodSourceType source = form.sourceType();
         StorageType storage = form.storageType();
         if (storage == null && source == FoodSourceType.DELIVERY_LEFTOVER) storage = StorageType.FREEZER;
         if (storage == null) errors.put("storageType", "보관 위치를 선택해 주세요.");
@@ -137,7 +163,7 @@ public class InventoryService {
     private FoodItem normalized(FoodCreateForm form, Long id, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         Map<String, String> errors = validationErrors(form);
         if (!errors.isEmpty()) throw new InvalidFoodException(errors);
-        FoodSourceType source = form.sourceType() == null ? FoodSourceType.ETC : form.sourceType();
+        FoodSourceType source = form.sourceType();
         StorageType storage = form.storageType();
         if (storage == null && source == FoodSourceType.DELIVERY_LEFTOVER) storage = StorageType.FREEZER;
         LocalDate today = LocalDate.now(clock);

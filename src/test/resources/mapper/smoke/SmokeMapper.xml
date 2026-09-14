@@ -6,22 +6,22 @@
     </select>
 
     <select id="insertFood" resultType="long" affectData="true" flushCache="true">
-        INSERT INTO food_item (food_name, storage_type, freeze_type, frozen_at, status)
-        VALUES (#{name}, #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status})
+        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type, freeze_type, frozen_at, status)
+        VALUES ((SELECT master_id FROM m), #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status})
         RETURNING food_id
     </select>
 
     <select id="insertDefaults" resultType="long" affectData="true" flushCache="true">
-        INSERT INTO food_item (food_name, storage_type)
-        VALUES (#{name}, 'FRIDGE')
+        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type)
+        VALUES ((SELECT master_id FROM m), 'FRIDGE')
         RETURNING food_id
     </select>
 
     <select id="insertMappedFood" resultType="long" affectData="true" flushCache="true">
+        WITH m AS (INSERT INTO food_master(food_name,category) VALUES(#{foodName},#{category}) RETURNING master_id)
         INSERT INTO food_item (
-            food_name
+            master_id
           , storage_type
-          , category
           , quantity_text
           , expired_at
           , purchased_at
@@ -37,9 +37,8 @@
           , source_memo
           , sell_by_at
         ) VALUES (
-            #{foodName}
+            (SELECT master_id FROM m)
           , #{storageType}
-          , #{category}
           , #{quantityText}
           , #{expiredAt,jdbcType=DATE}
           , #{purchasedAt,jdbcType=DATE}
@@ -60,9 +59,9 @@
 
     <select id="findFood" resultType="com.euiseon.friger.inventory.entity.FoodItem">
         SELECT food_id
-             , food_name
+             , m.food_name
              , storage_type
-             , category
+             , m.category
              , quantity_text
              , expired_at
              , purchased_at
@@ -72,14 +71,14 @@
              , freeze_type
              , status
              , memo
-             , created_at
-             , updated_at
+             , i.created_at
+             , i.updated_at
              , capacity_text
              , source_memo
              , sell_by_at
              , quantity_amount
              , quantity_unit
-          FROM food_item
+          FROM food_item i JOIN food_master m ON m.master_id=i.master_id
          WHERE food_id = #{id}
     </select>
 

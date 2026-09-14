@@ -21,10 +21,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class InventoryController {
     private final InventoryService service;
     private final Clock clock;
+    private final jakarta.validation.Validator validator;
+    private final com.euiseon.friger.inventory.service.FoodMasterService masters;
 
-    public InventoryController(InventoryService service, Clock clock) {
+    public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
+                               jakarta.validation.Validator validator) {
         this.service = service;
         this.clock = clock;
+        this.masters = masters;
+        this.validator = validator;
     }
 
     @ModelAttribute
@@ -46,18 +51,28 @@ public class InventoryController {
         model.addAttribute("foods", all.stream().filter(food -> storage == null || food.storageType() == storage).toList());
         model.addAttribute("selectedStorage", storage);
         model.addAttribute("totalCount", all.size());
+        model.addAttribute("groups", masters.groups(storage));
         return "inventory/list";
     }
 
     @GetMapping("/inventory/new")
-    String newFood(Model model) {
-        model.addAttribute("foodForm", FoodCreateForm.empty());
+    String newFood(@RequestParam(required = false) Long masterId, Model model) {
+        var form = FoodCreateForm.empty();
+        Long version = null;
+        if (masterId != null) {
+            var master = masters.find(masterId);
+            form = form.withIdentity(master.foodName(), master.category());
+            version = master.versionNo();
+        }
+        model.addAttribute("foodForm", form);
+        registrationContext(masterId == null ? "new" : "existing", masterId, version, model);
         return "inventory/new";
     }
 
     @GetMapping("/inventory/{id}")
     String detail(@PathVariable long id, Model model) {
         model.addAttribute("food", service.findById(id));
+        model.addAttribute("masterId", masters.masterId(id));
         return "inventory/detail";
     }
 
@@ -94,6 +109,15 @@ public class InventoryController {
     }
 
     private void collectValidationErrors(FoodCreateForm form, BindingResult errors) {
+        validator.validate(form).forEach(violation -> {
+            String field = violation.getPropertyPath().toString();
+            if (!errors.hasFieldErrors(field)) {
+                String code = violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName();
+                if (errors.getTarget() != null) errors.rejectValue(field, code, violation.getMessage());
+                else errors.addError(new org.springframework.validation.FieldError(errors.getObjectName(), field,
+                        errors.getFieldValue(field), false, errors.resolveMessageCodes(code, field), null, violation.getMessage()));
+            }
+        });
         service.validationErrors(form).forEach((field, message) -> {
             if (!errors.hasFieldErrors(field)) {
                 if (errors.getTarget() != null) errors.rejectValue(field, "invalid", message);
@@ -109,17 +133,38 @@ public class InventoryController {
         model.addAttribute("legacyQuantity", food.quantityAmount() == null ? (food.quantityText() == null ? "-" : food.quantityText()) : null);
     }
     @PostMapping("/inventory")
-    String create(@Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
-            RedirectAttributes redirect) {
-        collectValidationErrors(form, errors);
+    String create(@ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+            @RequestParam(defaultValue = "new") String registrationMode,
+            @RequestParam(required = false) Long masterId,
+            @RequestParam(required = false) Long masterVersion,
+            Model model, RedirectAttributes redirect) {
+        boolean existing = "existing".equals(registrationMode);
+        registrationContext(existing ? "existing" : "new", masterId, masterVersion, model);
+        if (!existing && !"new".equals(registrationMode)) errors.reject("invalidMode", "등록 방식을 다시 선택해 줘.");
+        var validatedForm = form;
+        if (existing) {
+            var selected = masters.registrationChoices().stream().filter(m -> java.util.Objects.equals(m.masterId(), masterId)).findFirst();
+            if (selected.isEmpty()) errors.reject("missingMaster", "추가할 기존 음식을 선택해 줘.");
+            else validatedForm = form.withIdentity(selected.get().foodName(), selected.get().category());
+        }
+        collectValidationErrors(validatedForm, errors);
         if (errors.hasErrors()) return "inventory/new";
         try {
-            service.create(form);
+            service.create(validatedForm, existing ? masterId : null, existing ? masterVersion : null);
         } catch (InvalidFoodException invalid) {
-            invalid.errors().forEach((field, message) -> errors.rejectValue(field, "invalid", message));
+            invalid.errors().forEach((field, message) -> {
+                if (field.isEmpty()) errors.reject("registrationConflict", message);
+                else errors.rejectValue(field, "invalid", message);
+            });
             return "inventory/new";
         }
-        redirect.addFlashAttribute("successMessage", "등록했어!");
-        return "redirect:/inventory";
+        redirect.addFlashAttribute("successMessage", existing ? "구매 항목을 추가했어!" : "등록했어!");
+        return existing ? "redirect:/foods/" + masterId : "redirect:/inventory";
+    }
+    private void registrationContext(String mode, Long masterId, Long version, Model model) {
+        model.addAttribute("registrationMode", mode);
+        model.addAttribute("selectedMasterId", masterId);
+        model.addAttribute("masterVersion", version);
+        model.addAttribute("registrationFoods", masters.registrationChoices());
     }
 }

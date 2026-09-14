@@ -77,7 +77,7 @@ class DatabaseSmokeTest {
         assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 17.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("6");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -95,7 +95,7 @@ class DatabaseSmokeTest {
                 SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'public' AND indexname LIKE 'ix_food_%'
                 """, String.class)).containsExactlyInAnyOrder(
-                "ix_food_item_active_expired", "ix_food_item_active_frozen", "ix_food_history_created");
+                "ix_food_item_active_expired", "ix_food_item_active_frozen", "ix_food_history_created", "ix_food_item_master");
     }
 
     static Stream<Arguments> storageCombinations() {
@@ -139,7 +139,7 @@ class DatabaseSmokeTest {
         assertThat(second).isNotEqualTo(first);
         FoodItem saved = mapper.findFood(first);
         assertThat(saved.foodName()).isEqualTo("두부");
-        assertThat(saved.sourceType()).isEqualTo(FoodSourceType.ETC);
+        assertThat(saved.sourceType()).isNull();
         assertThat(saved.freezeType()).isEqualTo(FreezeType.NONE);
         assertThat(saved.status()).isEqualTo(FoodStatus.ACTIVE);
         assertThat(saved.quantityText()).isNull();
@@ -188,8 +188,8 @@ class DatabaseSmokeTest {
     void rejectsUnknownSourceType() {
         // A deliberately malformed fixture bypasses Java's enum restriction.
         assertThatThrownBy(() -> jdbc.update("""
-                INSERT INTO food_item (food_name, storage_type, source_type)
-                VALUES ('Food', 'FRIDGE', 'INVALID')
+                WITH m AS (INSERT INTO food_master(food_name) VALUES('Food') RETURNING master_id) INSERT INTO food_item (master_id, storage_type, source_type)
+                VALUES ((SELECT master_id FROM m), 'FRIDGE', 'INVALID')
                 """)).isInstanceOf(DataIntegrityViolationException.class);
     }
 

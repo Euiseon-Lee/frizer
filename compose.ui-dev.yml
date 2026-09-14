@@ -1,0 +1,9 @@
+# Opt in with: docker compose -f compose.yml -f compose.ui-dev.yml --profile app up -d --build --wait
+services:
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod,ui-dev
+      FRIZER_UI_ROOT: file:/workspace/ui
+    volumes:
+      - ./src/main/resources/templates:/workspace/ui/templates:ro
+      - ./src/main/resources/static:/workspace/ui/static:ro

@@ -70,6 +70,8 @@ class InventoryIntegrationTest {
     void resetDatabase() {
         jdbc.update("DELETE FROM food_history");
         jdbc.update("DELETE FROM food_item");
+        jdbc.update("DELETE FROM food_master");
+        jdbc.update("DELETE FROM food_merge_receipt");
     }
 
     @Test
@@ -109,7 +111,7 @@ class InventoryIntegrationTest {
                 .andExpect(redirectedUrl("/inventory")).andExpect(flash().attributeExists("successMessage"));
         FoodItem saved = service.findActive().getFirst();
         assertThat(saved.foodName()).isEqualTo("두부");
-        assertThat(saved.sourceType()).isEqualTo(FoodSourceType.ETC);
+        assertThat(saved.sourceType()).isNull();
         assertThat(saved.freezeType()).isEqualTo(FreezeType.NONE);
         assertThat(saved.frozenAt()).isNull();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=? AND action_type='CREATE' AND previous_storage_type IS NULL AND new_storage_type='FRIDGE' AND quantity_text='1모'",
@@ -188,7 +190,7 @@ class InventoryIntegrationTest {
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개").param("expiredAt", "2026-09-01"))
                 .andExpect(status().is3xxRedirection());
         mvc.perform(get("/inventory")).andExpect(status().isOk())
-                .andExpect(content().string(containsString("경과 · 확인 필요")))
+                .andExpect(content().string(containsString("날짜 경고 · 확인 필요")))
                 .andExpect(content().string(containsString("&lt;script&gt;")));
     }
 
@@ -246,10 +248,10 @@ class InventoryIntegrationTest {
         mvc.perform(get("/inventory/" + food.foodId())).andExpect(status().isOk())
                 .andExpect(content().string(containsString("부모님의 은혜")))
                 .andExpect(content().string(containsString("300g")))
-                .andExpect(content().string(containsString("2통")))
+                .andExpect(content().string(containsString("2 통")))
                 .andExpect(content().string(containsString("2026-09-12")))
                 .andExpect(content().string(containsString("일요일에 받음")));
-        mvc.perform(get("/inventory")).andExpect(content().string(containsString("/inventory/" + food.foodId())));
+        mvc.perform(get("/inventory")).andExpect(content().string(containsString("/foods/" + jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, food.foodId()))));
         mvc.perform(get("/inventory/999999999")).andExpect(status().isNotFound());
     }
 
@@ -376,7 +378,15 @@ class InventoryIntegrationTest {
         assertThat(saved.quantityUnit()).isEqualTo(unit);
         assertThat(saved.quantityText()).isEqualTo(display);
         for (String path : new String[]{"/inventory", "/inventory/" + saved.foodId(), "/history"}) {
-            mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().string(containsString(display)));
+            String expected = path.equals("/history") ? display
+                    : saved.quantityAmount().stripTrailingZeros().toPlainString() + " " + unit;
+            if (path.equals("/inventory")) {
+                String rendered = mvc.perform(get(path)).andExpect(status().isOk()).andReturn()
+                        .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+                assertThat(rendered.replaceAll("<[^>]*>", "")).contains(expected);
+            } else {
+                mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().string(containsString(expected)));
+            }
         }
         assertThat(jdbc.queryForObject("SELECT quantity_text FROM food_history WHERE food_id=?", String.class, saved.foodId()))
                 .isEqualTo(display);
@@ -389,8 +399,8 @@ class InventoryIntegrationTest {
                 .andExpect(status().is3xxRedirection());
         long id = service.findActive().getFirst().foodId();
         mvc.perform(get("/inventory/" + id)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("2&lt;b&gt;팩&lt;/b&gt;")));
-        long legacyId = jdbc.queryForObject("INSERT INTO food_item(food_name,storage_type,quantity_text) VALUES ('기존 음식','FRIDGE','반 봉지') RETURNING food_id", Long.class);
+                .andExpect(content().string(containsString("2 &lt;b&gt;팩&lt;/b&gt;")));
+        long legacyId = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(food_name) VALUES('기존 음식') RETURNING master_id) INSERT INTO food_item(master_id,storage_type,quantity_text) VALUES ((SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
         FoodItem legacy = service.findById(legacyId);
         assertThat(legacy.quantityAmount()).isNull();
         assertThat(legacy.quantityUnit()).isNull();
@@ -408,17 +418,93 @@ class InventoryIntegrationTest {
         var beforeFood = jdbc.queryForMap("SELECT * FROM quantity_upgrade.food_item");
         var beforeHistory = jdbc.queryForMap("SELECT * FROM quantity_upgrade.food_history");
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
-                .schemas(schema).defaultSchema(schema).load().migrate();
+                .schemas(schema).defaultSchema(schema).target("6").load().migrate();
         var afterFood = jdbc.queryForMap("SELECT * FROM quantity_upgrade.food_item");
         assertThat(afterFood.remove("quantity_amount")).isNull();
         assertThat(afterFood.remove("quantity_unit")).isNull();
         assertThat(afterFood).isEqualTo(beforeFood);
         var afterHistory = jdbc.queryForMap("SELECT * FROM quantity_upgrade.food_history"); afterHistory.remove("changes_text"); assertThat(afterHistory).isEqualTo(beforeHistory);
     }
+    @Test
+    void addPurchaseUsesSharedIdentityAndPreservesOriginal() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, FreezeType.NONE, null, false));
+        var original = service.findById(id);
+        long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
+        var history = jdbc.queryForMap("SELECT * FROM food_history WHERE food_id=?", id);
+        mvc.perform(get("/inventory/new").param("masterId", "" + master)).andExpect(status().isOk())
+                .andExpect(model().attribute("registrationMode", "existing"));
+        mvc.perform(post("/inventory").param("registrationMode", "existing").param("masterId", "" + master)
+                .param("masterVersion", "0").param("foodName", "잘못 보낸 이름").param("category", "다른 분류")
+                .param("storageType", "ROOM").param("quantityAmount", "3").param("quantityUnit", "팩")
+                .param("sourceType", "ETC").param("sourceMemo", "선물").param("memo", "이번 구매")
+                .param("purchasedAt", "2026-09-11").param("openedAt", "2026-09-12")
+                .param("sellByAt", "2026-09-20").param("expiredAt", "2026-09-22"))
+                .andExpect(redirectedUrl("/foods/" + master));
+        var added = service.findActive().stream().filter(f -> f.foodId() != id).findFirst().orElseThrow();
+        assertThat(added.foodName()).isEqualTo(original.foodName());
+        assertThat(added.category()).isEqualTo(original.category());
+        assertThat(added.storageType()).isEqualTo(StorageType.ROOM);
+        assertThat(added.quantityAmount()).isEqualByComparingTo("3");
+        assertThat(added.sourceType()).isEqualTo(FoodSourceType.ETC);
+        assertThat(added.sourceMemo()).isEqualTo("선물");
+        assertThat(added.memo()).isEqualTo("이번 구매");
+        assertThat(added.openedAt()).isEqualTo(LocalDate.of(2026, 9, 12));
+        assertThat(service.findById(id)).isEqualTo(original);
+        assertThat(jdbc.queryForMap("SELECT * FROM food_history WHERE food_id=?", id)).isEqualTo(history);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_master", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item WHERE master_id=?", Integer.class, master)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void addPurchaseRejectsDuplicateAndMissingTarget() {
+        var input = form(StorageType.FRIDGE, null, FreezeType.NONE, null, false);
+        long id = service.create(input);
+        long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
+        service.create(input, master, 0L);
+        assertThatThrownBy(() -> service.create(input, master, 0L)).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(() -> service.create(input, master, null)).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(() -> service.create(input, -1L, 0L)).isInstanceOf(InvalidFoodException.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void addPurchaseValidationKeepsSelectionAndDoesNotWrite() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, FreezeType.NONE, null, false));
+        long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
+        mvc.perform(post("/inventory").param("registrationMode", "existing").param("masterId", "" + master)
+                .param("masterVersion", "0").param("storageType", "FRIDGE").param("quantityAmount", "0")
+                .param("quantityUnit", "모").param("memo", "입력 유지"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount"))
+                .andExpect(model().attribute("selectedMasterId", master))
+                .andExpect(content().string(containsString("입력 유지")));
+        mvc.perform(post("/inventory").param("registrationMode", "existing").param("foodName", "음식")
+                .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개"))
+                .andExpect(status().isOk()).andExpect(model().hasErrors());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT version_no FROM food_master WHERE master_id=?", Long.class, master)).isZero();
+    }
+
+    @Test
+    void unspecifiedSourceCanBeRestoredAfterExplicitEtc() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, FoodSourceType.ETC, FreezeType.NONE, null, false));
+        var food = service.findById(id);
+        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", food.updatedAt().toString())
+                .param("foodName", food.foodName()).param("storageType", "FRIDGE").param("sourceType", "")
+                .param("sourceMemo", "이전 메모").param("quantityAmount", "1").param("quantityUnit", "모"))
+                .andExpect(status().is3xxRedirection());
+        assertThat(service.findById(id).sourceType()).isNull();
+        assertThat(service.findById(id).sourceMemo()).isNull();
+        mvc.perform(get("/inventory/" + id)).andExpect(status().isOk()).andExpect(content().string(containsString("선택 안 함")));
+        mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk());
+        mvc.perform(get("/history")).andExpect(status().isOk());
+    }
+
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder editRequest(FoodItem food) {
         return post("/inventory/" + food.foodId() + "/edit")
                 .param("expectedUpdatedAt", food.updatedAt().toString()).param("foodName", food.foodName())
-                .param("storageType", food.storageType().name()).param("sourceType", food.sourceType().name())
+                .param("storageType", food.storageType().name()).param("sourceType", food.sourceType() == null ? "" : food.sourceType().name())
                 .param("quantityAmount", food.quantityAmount() == null ? "1" : food.quantityAmount().stripTrailingZeros().toPlainString())
                 .param("quantityUnit", food.quantityUnit() == null ? "개" : food.quantityUnit());
     }
@@ -503,7 +589,7 @@ class InventoryIntegrationTest {
 
     @Test
     void legacyQuantityRequiresExplicitConfirmationAndUpdatesWithoutGuessing() throws Exception {
-        long id = jdbc.queryForObject("INSERT INTO food_item(food_name,storage_type,quantity_text) VALUES ('기존 음식','FRIDGE','반 봉지') RETURNING food_id", Long.class);
+        long id = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(food_name) VALUES('기존 음식') RETURNING master_id) INSERT INTO food_item(master_id,storage_type,quantity_text) VALUES ((SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
         FoodItem before = service.findById(id);
         mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("기존 수량: 반 봉지")));
@@ -597,7 +683,7 @@ class InventoryIntegrationTest {
         String html=mvc.perform(get("/inventory")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(html.split("class=\"expiry-icon\"",-1).length-1).isEqualTo(warningCount);
         assertThat(html).doesNotContain("<small");
-        if(sellBy!=null)assertThat(html).contains(sellBy.replace('-','.'));
+        if(sellBy!=null)assertThat(html).doesNotContain(sellBy.replace('-','.'));
         long id=service.findActive().getFirst().foodId();
         String detail=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if(useBy!=null) assertThat(detail).doesNotContain("유통기한 경과");
@@ -631,10 +717,10 @@ class InventoryIntegrationTest {
         var food = service.findActive().getFirst();
         var list = mvc.perform(get("/inventory")).andExpect(status().isOk()).andReturn()
                 .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(list.split("class=\"expiry-icon\"", -1).length - 1).isEqualTo(warnings);
+        assertThat(list.split("class=\"expiry-icon\"", -1).length - 1).isEqualTo(warnings == 0 ? 0 : 1);
         assertThat(list).doesNotContain("기한 미입력");
         if (opened == null) assertThat(list).doesNotContain("<span>개봉일</span>");
-        else assertThat(list).contains("<span>개봉일</span>", opened.replace('-', '.'));
+        else assertThat(list).doesNotContain("<span>개봉일</span>", opened.replace('-', '.'));
         if (sellBy == null) assertThat(list).doesNotContain("<span>유통기한</span>");
         if (useBy == null) assertThat(list).doesNotContain("<span>소비기한</span>");
         var detail = mvc.perform(get("/inventory/" + food.foodId())).andExpect(status().isOk())
@@ -729,7 +815,7 @@ class InventoryIntegrationTest {
         var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
                 FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "3모", null,
                 "수량: 1 → 3\n개봉일: 2026-06-08 → 2026-06-09");
-        assertThat(entry.homeSummary()).isEqualTo("수정한 항목 2건");
+        assertThat(entry.homeSummary()).isEqualTo("수정한 정보 2건");
     }
 
     @Test
@@ -740,7 +826,8 @@ class InventoryIntegrationTest {
                 .param("memo", "첫째 줄\n둘째 줄 → 유지"))
                 .andExpect(status().is3xxRedirection());
         long id = service.findActive().getFirst().foodId();
-        jdbc.update("UPDATE food_item SET food_name='변경 이름', quantity_text='9개', capacity_text='900g', memo='바뀐 메모' WHERE food_id=?", id);
+        jdbc.update("UPDATE food_master SET food_name='변경 이름' WHERE master_id=(SELECT master_id FROM food_item WHERE food_id=?)", id);
+        jdbc.update("UPDATE food_item SET quantity_text='9개', capacity_text='900g', memo='바뀐 메모' WHERE food_id=?", id);
         var html = mvc.perform(get("/history")).andExpect(status().isOk()).andReturn()
                 .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(html).contains("처음 이름", "<dt>수량</dt><dd>1개</dd>", "<dt>용량</dt><dd>200g</dd>",

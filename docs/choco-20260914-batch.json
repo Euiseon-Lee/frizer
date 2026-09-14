@@ -1,0 +1,467 @@
+{
+  "images": [
+    {
+      "key": "belly-up-sprawl",
+      "filename": "belly-up-sprawl.png",
+      "emotion_group": "REST",
+      "pose_group": "belly-up",
+      "render_mode": "wide",
+      "size": [
+        1646,
+        1337
+      ],
+      "source_sha256": "1d8a46c2128e15504e9e6f198afe8200bf7bc9fff151aede7331087195da71bd",
+      "project_sha256": "1d8a46c2128e15504e9e6f198afe8200bf7bc9fff151aede7331087195da71bd",
+      "source_filename": "his_cutest_pose_on_the_floor.png"
+    },
+    {
+      "key": "sleeping-with-chicken-toy",
+      "filename": "sleeping-with-chicken-toy.png",
+      "emotion_group": "REST",
+      "pose_group": "sleeping-side",
+      "render_mode": "wide",
+      "size": [
+        641,
+        532
+      ],
+      "source_sha256": "fb9b48285fe6a7833e9da5d5013897e3694323c951222f26bcc8960cdc062061",
+      "project_sha256": "fb9b48285fe6a7833e9da5d5013897e3694323c951222f26bcc8960cdc062061",
+      "source_filename": "sleep_with_chicken_toy.png"
+    },
+    {
+      "key": "belly-up-curl",
+      "filename": "belly-up-curl.png",
+      "emotion_group": "REST",
+      "pose_group": "belly-up",
+      "render_mode": "wide",
+      "size": [
+        1047,
+        860
+      ],
+      "source_sha256": "c75ba7d7ccb3982d99c67d7a1ca7518af2f0ced4aac8474c48c284713915185a",
+      "project_sha256": "c75ba7d7ccb3982d99c67d7a1ca7518af2f0ced4aac8474c48c284713915185a",
+      "source_filename": "his_cutest_pose.png"
+    },
+    {
+      "key": "blank-stare",
+      "filename": "blank-stare.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "front-portrait",
+      "render_mode": "portrait",
+      "size": [
+        624,
+        1157
+      ],
+      "source_sha256": "8d63e3119d7d7278053ce0ab01c1e06ae77ced42cd8512d8968fca488eae21fc",
+      "project_sha256": "8d63e3119d7d7278053ce0ab01c1e06ae77ced42cd8512d8968fca488eae21fc",
+      "source_filename": "stare_blankly.png"
+    },
+    {
+      "key": "threshold-lounge",
+      "filename": "threshold-lounge.png",
+      "emotion_group": "REST",
+      "pose_group": "lying-portrait",
+      "render_mode": "portrait",
+      "size": [
+        901,
+        948
+      ],
+      "source_sha256": "2cae92566d30a6e1c8b7df1feb3598715cee5295c106931e0819a5f0f27e72f3",
+      "project_sha256": "2cae92566d30a6e1c8b7df1feb3598715cee5295c106931e0819a5f0f27e72f3",
+      "source_filename": "Lying_on_a_threshold.png"
+    },
+    {
+      "key": "curled-up-gaze",
+      "filename": "curled-up-gaze.png",
+      "emotion_group": "REST",
+      "pose_group": "curled",
+      "render_mode": "contain",
+      "size": [
+        898,
+        648
+      ],
+      "source_sha256": "0d0f105166b2414aa36c64b0e94f8ed5e669760f2cf6f2d057f880784f2e4030",
+      "project_sha256": "0d0f105166b2414aa36c64b0e94f8ed5e669760f2cf6f2d057f880784f2e4030",
+      "source_filename": "crouch_down_and_stare.png"
+    },
+    {
+      "key": "smiling-sit",
+      "filename": "smiling-sit.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "adult-sit",
+      "render_mode": "contain",
+      "size": [
+        589,
+        1041
+      ],
+      "source_sha256": "42e903f2ad762f3f27196f7031279c9f2392dd7297f1a55fce274af60c2adac5",
+      "project_sha256": "42e903f2ad762f3f27196f7031279c9f2392dd7297f1a55fce274af60c2adac5",
+      "source_filename": "sit_with_a_smile.png"
+    },
+    {
+      "key": "puppy-head-tilt-sit",
+      "filename": "puppy-head-tilt-sit.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "puppy-sit",
+      "render_mode": "contain",
+      "size": [
+        1548,
+        2592
+      ],
+      "source_sha256": "05c059949742b62eb7f522d9d13cc43455410584eda3d172571d177c874855fd",
+      "project_sha256": "05c059949742b62eb7f522d9d13cc43455410584eda3d172571d177c874855fd",
+      "source_filename": "lift_his_head_at_an_angle.png"
+    },
+    {
+      "key": "sideways-lounge",
+      "filename": "sideways-lounge.png",
+      "emotion_group": "REST",
+      "pose_group": "lying-side",
+      "render_mode": "contain",
+      "size": [
+        400,
+        367
+      ],
+      "source_sha256": "e95f647fea81c0c5962e4f92a331d1ded7765ad39cd9009e8660c4eda6e8d1d6",
+      "project_sha256": "e95f647fea81c0c5962e4f92a331d1ded7765ad39cd9009e8660c4eda6e8d1d6",
+      "source_filename": "lean_at_an_angle.png"
+    },
+    {
+      "key": "chicken-begging-side-gaze",
+      "filename": "chicken-begging-side-gaze.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "crossed-paws",
+      "render_mode": "contain",
+      "size": [
+        1589,
+        3221
+      ],
+      "source_sha256": "63924b1fc69692c6b8b40d4523dd2ea8c9ad0fd8c23cc2c1217bf3959e2f1ac6",
+      "project_sha256": "63924b1fc69692c6b8b40d4523dd2ea8c9ad0fd8c23cc2c1217bf3959e2f1ac6",
+      "source_filename": "earnestly_ask_for_chiken_breast_aside.png"
+    },
+    {
+      "key": "belly-up-sleep",
+      "filename": "belly-up-sleep.png",
+      "emotion_group": "REST",
+      "pose_group": "belly-up-wide",
+      "render_mode": "wide",
+      "size": [
+        3019,
+        1883
+      ],
+      "source_sha256": "8948dd6df5c2bc77089e8236a77cc6e3f49139ba6e2baead90aa435bbd0a0353",
+      "project_sha256": "8948dd6df5c2bc77089e8236a77cc6e3f49139ba6e2baead90aa435bbd0a0353",
+      "source_filename": "sleep_with_his_stomach_exposed.png"
+    },
+    {
+      "key": "chicken-begging-front-gaze",
+      "filename": "chicken-begging-front-gaze.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "crossed-paws",
+      "render_mode": "contain",
+      "size": [
+        1595,
+        3017
+      ],
+      "source_sha256": "f17d98b21c71499c7e1a9df8fa8885d26945c048dffeb8d1fbfef756d4243c2d",
+      "project_sha256": "f17d98b21c71499c7e1a9df8fa8885d26945c048dffeb8d1fbfef756d4243c2d",
+      "source_filename": "earnestly_ask_for_chicken_breast.png"
+    },
+    {
+      "key": "happy-drool",
+      "filename": "happy-drool.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "front-portrait",
+      "render_mode": "portrait",
+      "size": [
+        1068,
+        2200
+      ],
+      "source_sha256": "aa652aa178602440e375a3943a1ec96250a8219f0c39e00aece7a22c1f8f3be1",
+      "project_sha256": "aa652aa178602440e375a3943a1ec96250a8219f0c39e00aece7a22c1f8f3be1",
+      "source_filename": "happy_slobber.png"
+    },
+    {
+      "key": "tongue-out-side-sit",
+      "filename": "tongue-out-side-sit.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "side-sit",
+      "render_mode": "contain",
+      "size": [
+        1795,
+        2173
+      ],
+      "source_sha256": "28faed27c24120485e581f9e2dd08c231d4d85a0507bf913553040c9ff23c12d",
+      "project_sha256": "28faed27c24120485e581f9e2dd08c231d4d85a0507bf913553040c9ff23c12d",
+      "source_filename": "stick_out_his_tongue_for_rest.png"
+    },
+    {
+      "key": "playful-puppy-approach",
+      "filename": "playful-puppy-approach.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "puppy-portrait",
+      "render_mode": "portrait",
+      "size": [
+        1798,
+        2596
+      ],
+      "source_sha256": "0b57d62f38802f63520df5bbf11d702d5dd5ed2fdd3b59f789b8b6f35110e549",
+      "project_sha256": "0b57d62f38802f63520df5bbf11d702d5dd5ed2fdd3b59f789b8b6f35110e549",
+      "source_filename": "approach_with_cuteness.png"
+    },
+    {
+      "key": "puppy-proud-sit",
+      "filename": "puppy-proud-sit.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "puppy-sit",
+      "render_mode": "contain",
+      "size": [
+        1129,
+        1473
+      ],
+      "source_sha256": "8840972937e11ce708ec61319c55ccb283ce13b4779061c456c985a1d1349831",
+      "project_sha256": "8840972937e11ce708ec61319c55ccb283ce13b4779061c456c985a1d1349831",
+      "source_filename": "baby_sit_with_proud.png"
+    },
+    {
+      "key": "puppy-chin-up-sit",
+      "filename": "puppy-chin-up-sit.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "puppy-sit",
+      "render_mode": "contain",
+      "size": [
+        1596,
+        2615
+      ],
+      "source_sha256": "edc5e69fdf57466f743f4c84dba9f2d2c5b6fdc838ed852d3b110bbb8b8392da",
+      "project_sha256": "edc5e69fdf57466f743f4c84dba9f2d2c5b6fdc838ed852d3b110bbb8b8392da",
+      "source_filename": "baby_proud_sit.png"
+    },
+    {
+      "key": "wide-stance-smile",
+      "filename": "wide-stance-smile.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "smiling-standing",
+      "render_mode": "contain",
+      "size": [
+        2021,
+        2899
+      ],
+      "source_sha256": "4c8c5cdefe306bfff54eb8d507fb2312b227c54486f4b7e7369fd93d029cc13a",
+      "project_sha256": "4c8c5cdefe306bfff54eb8d507fb2312b227c54486f4b7e7369fd93d029cc13a",
+      "source_filename": "stand_with_stretched_legs.png"
+    },
+    {
+      "key": "bandaged-nose",
+      "filename": "bandaged-nose.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "bandaged-portrait",
+      "render_mode": "contain",
+      "size": [
+        1783,
+        3555
+      ],
+      "source_sha256": "fe659dd4769fb7db870353315e3215c7b67fc23128b2c0f4e8a89609cc38e668",
+      "project_sha256": "fe659dd4769fb7db870353315e3215c7b67fc23128b2c0f4e8a89609cc38e668",
+      "source_filename": "put_a_bandage_on_his_face.png"
+    },
+    {
+      "key": "walk-ready-side-gaze",
+      "filename": "walk-ready-side-gaze.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "lying-portrait",
+      "render_mode": "contain",
+      "size": [
+        2252,
+        3305
+      ],
+      "source_sha256": "20125c6c16693c44963d2286f48f8de8bb998de2a6b52bdb22e518ac78d28ffc",
+      "project_sha256": "20125c6c16693c44963d2286f48f8de8bb998de2a6b52bdb22e518ac78d28ffc",
+      "source_filename": "an_expectant_look_at_others_for_a_walk.png"
+    },
+    {
+      "key": "walk-ready-front-gaze",
+      "filename": "walk-ready-front-gaze.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "lying-rest",
+      "render_mode": "contain",
+      "size": [
+        2440,
+        3056
+      ],
+      "source_sha256": "71cbde844c271ceed8f48e30dca1c7cbafdf28751007abbecca04bc4c35a2e0a",
+      "project_sha256": "71cbde844c271ceed8f48e30dca1c7cbafdf28751007abbecca04bc4c35a2e0a",
+      "source_filename": "an_expectant_look_for_a_walk.png"
+    },
+    {
+      "key": "proud-howl",
+      "filename": "proud-howl.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "howling",
+      "render_mode": "contain",
+      "size": [
+        1921,
+        2851
+      ],
+      "source_sha256": "666e7672a4c73ae015b96fb3fc714f3030bb381a4781adbea5a6afedd1b60172",
+      "project_sha256": "666e7672a4c73ae015b96fb3fc714f3030bb381a4781adbea5a6afedd1b60172",
+      "source_filename": "proud_howling.png"
+    },
+    {
+      "key": "apple-box-chin-rest",
+      "filename": "apple-box-chin-rest.png",
+      "emotion_group": "REST",
+      "pose_group": "box-lounge",
+      "render_mode": "contain",
+      "size": [
+        2252,
+        2798
+      ],
+      "source_sha256": "a4541d5bc0080558ed0461d2cafedea0ef6bf0abf259a42bf9ff17fed5402f0e",
+      "project_sha256": "a4541d5bc0080558ed0461d2cafedea0ef6bf0abf259a42bf9ff17fed5402f0e",
+      "source_filename": "lean_on_an_apple_box_corner.png"
+    },
+    {
+      "key": "proud-lounge",
+      "filename": "proud-lounge.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "lying-rest",
+      "render_mode": "contain",
+      "size": [
+        2252,
+        2212
+      ],
+      "source_sha256": "a090f315e1634d393476be6326de48fb416a5280a681f093d9d66a1f8950a4c0",
+      "project_sha256": "a090f315e1634d393476be6326de48fb416a5280a681f093d9d66a1f8950a4c0",
+      "source_filename": "lying_with_proud.png"
+    },
+    {
+      "key": "smiling-lounge",
+      "filename": "smiling-lounge.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "lying-rest",
+      "render_mode": "wide",
+      "size": [
+        3024,
+        2434
+      ],
+      "source_sha256": "152497b2d205d2342403a21f48b44e82a3d6766cd6752cacc3073b5a77930909",
+      "project_sha256": "152497b2d205d2342403a21f48b44e82a3d6766cd6752cacc3073b5a77930909",
+      "source_filename": "lie_and_gaze_with_a_smile.png"
+    },
+    {
+      "key": "blissful-rest",
+      "filename": "blissful-rest.png",
+      "emotion_group": "REST",
+      "pose_group": "relaxed-portrait",
+      "render_mode": "portrait",
+      "size": [
+        2694,
+        3662
+      ],
+      "source_sha256": "41d2d6e7f753f951c3a99120bb174160048d13c46cc2cb6fba5dc209e593b197",
+      "project_sha256": "41d2d6e7f753f951c3a99120bb174160048d13c46cc2cb6fba5dc209e593b197",
+      "source_filename": "happlily_relaxed.png"
+    },
+    {
+      "key": "handsome-profile-closeup",
+      "filename": "handsome-profile-closeup.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "side-portrait",
+      "render_mode": "portrait",
+      "size": [
+        2782,
+        2883
+      ],
+      "source_sha256": "39cff83bdca58563a3b7b734965f08745eb6d1ed0971bbab18f222fda8c5eebb",
+      "project_sha256": "39cff83bdca58563a3b7b734965f08745eb6d1ed0971bbab18f222fda8c5eebb",
+      "source_filename": "good-looking_profile.png"
+    },
+    {
+      "key": "handsome-profile-lounge",
+      "filename": "handsome-profile-lounge.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "lying-side",
+      "render_mode": "contain",
+      "size": [
+        2741,
+        2946
+      ],
+      "source_sha256": "0cebe99a0dbba040530ad24b0cb4355a67b0feb20ca84879d15facc9a6e204bc",
+      "project_sha256": "0cebe99a0dbba040530ad24b0cb4355a67b0feb20ca84879d15facc9a6e204bc",
+      "source_filename": "handsome profile.png"
+    },
+    {
+      "key": "hopeful-upward-gaze",
+      "filename": "hopeful-upward-gaze.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "upward-portrait",
+      "render_mode": "portrait",
+      "size": [
+        2293,
+        3206
+      ],
+      "source_sha256": "b7b5f4e07dc38e2a0f7ad084b725312492bc1bf4275cac8ccb7d066ce3909aed",
+      "project_sha256": "b7b5f4e07dc38e2a0f7ad084b725312492bc1bf4275cac8ccb7d066ce3909aed",
+      "source_filename": "stare_at_the_sky_with_hope.png"
+    },
+    {
+      "key": "lion-king-puppy",
+      "filename": "lion-king-puppy.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "puppy-held",
+      "render_mode": "contain",
+      "size": [
+        3024,
+        3741
+      ],
+      "source_sha256": "fe26ede317534e7acea1ec7e7d617ac39ae2923f0133fc5b3033fb2c611d3340",
+      "project_sha256": "fe26ede317534e7acea1ec7e7d617ac39ae2923f0133fc5b3033fb2c611d3340",
+      "source_filename": "baby_like_lion_king.png"
+    },
+    {
+      "key": "walk-ready-head-tilt",
+      "filename": "walk-ready-head-tilt.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "tilt-portrait",
+      "render_mode": "portrait",
+      "size": [
+        2784,
+        3750
+      ],
+      "source_sha256": "41211ea8508aa8e2e4260ebba18f40044c67cd09874214dfec0686bb7644e40e",
+      "project_sha256": "41211ea8508aa8e2e4260ebba18f40044c67cd09874214dfec0686bb7644e40e",
+      "source_filename": "hope_for_a_walk.png"
+    },
+    {
+      "key": "curious-puppy-gaze",
+      "filename": "curious-puppy-gaze.png",
+      "emotion_group": "NEUTRAL",
+      "pose_group": "puppy-portrait",
+      "render_mode": "portrait",
+      "size": [
+        2426,
+        3274
+      ],
+      "source_sha256": "b1144996fa8ed5401cf6de8733e782a9a9ae6b2195285d3fd8b1bbb820f06468",
+      "project_sha256": "b1144996fa8ed5401cf6de8733e782a9a9ae6b2195285d3fd8b1bbb820f06468",
+      "source_filename": "baby_curious_gaze.png"
+    },
+    {
+      "key": "chair-sit",
+      "filename": "chair-sit.png",
+      "emotion_group": "HAPPY",
+      "pose_group": "chair-sit",
+      "render_mode": "contain",
+      "size": [
+        2942,
+        3765
+      ],
+      "source_sha256": "120f5930f6d88428dca42134855ae7e40f92b656936921561fbc348467f6bdcf",
+      "project_sha256": "120f5930f6d88428dca42134855ae7e40f92b656936921561fbc348467f6bdcf",
+      "source_filename": "sit_on_a_chair.png"
+    }
+  ],
+  "processing": "Original PNG bytes preserved; filenames normalized to lowercase kebab-case; JPG excluded."
+}

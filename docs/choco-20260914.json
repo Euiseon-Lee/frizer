@@ -1,0 +1,232 @@
+{
+  "images": [
+    {
+      "source_filename": "KakaoTalk_20260913_142514860_03.png",
+      "key": "upside-down-gaze",
+      "filename": "upside-down-gaze.png",
+      "emotion_group": "REST",
+      "size": [
+        2252,
+        2988
+      ],
+      "adjustment": "눈 주변 그림자만 보정",
+      "face_settings": [
+        0.65,
+        0.79,
+        0.35,
+        0.19,
+        0.65
+      ],
+      "alpha_identical": true,
+      "source_sha256": "e053bd8c549b1a81a5df24ce7543250445e01638077783e7f9a7d75a612c3971",
+      "project_sha256": "25b57b335c8455f6cb48d56cfdba01742c21a92eaa20d7bde8de95375de82fdb"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_142514860_04.png",
+      "key": "leash-hold",
+      "filename": "leash-hold.png",
+      "emotion_group": "NEUTRAL",
+      "size": [
+        2015,
+        3048
+      ],
+      "adjustment": "얼굴 그림자를 부드럽게 보정",
+      "face_settings": [
+        0.74,
+        0.24,
+        0.2,
+        0.17,
+        0.78
+      ],
+      "alpha_identical": true,
+      "source_sha256": "c7bc71fb78a19b5865c8e2d991d2205da4c58a4aadb5fa90bd81c82579b01a33",
+      "project_sha256": "873150ef651a61fc730b85383248d406ee1a461702b8dc5f874563f2341a89dc"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_142514860_06.png",
+      "key": "chin-scratch-closeup",
+      "filename": "chin-scratch-closeup.png",
+      "emotion_group": "REST",
+      "size": [
+        3024,
+        3867
+      ],
+      "adjustment": "이목구비가 충분히 보여 원본 유지",
+      "face_settings": null,
+      "alpha_identical": true,
+      "source_sha256": "090c2506f0377406f4173531cbcfbbe700b4896a941fb6d5d270ee065bd7617f",
+      "project_sha256": "090c2506f0377406f4173531cbcfbbe700b4896a941fb6d5d270ee065bd7617f"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_142517829_02.png",
+      "key": "breeze-sly-smile",
+      "filename": "breeze-sly-smile.png",
+      "emotion_group": "HAPPY",
+      "size": [
+        2281,
+        2765
+      ],
+      "adjustment": "원본 밝기 유지",
+      "face_settings": null,
+      "alpha_identical": true,
+      "source_sha256": "3579ec54a0c0c81e968496ede2d5d298315c60a52ee31b04ee99e205340d7020",
+      "project_sha256": "3579ec54a0c0c81e968496ede2d5d298315c60a52ee31b04ee99e205340d7020"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_142517829_03.png",
+      "key": "breeze-happy-smile",
+      "filename": "breeze-happy-smile.png",
+      "emotion_group": "HAPPY",
+      "size": [
+        2287,
+        2773
+      ],
+      "adjustment": "원본 밝기 유지",
+      "face_settings": null,
+      "alpha_identical": true,
+      "source_sha256": "5cfc2781a44cf920b2989571741c6dbe5703449a48d94b4554fcc0227fe4b160",
+      "project_sha256": "5cfc2781a44cf920b2989571741c6dbe5703449a48d94b4554fcc0227fe4b160"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_195044544_08.png",
+      "key": "lying-blank-gaze",
+      "filename": "lying-blank-gaze.png",
+      "emotion_group": "REST",
+      "size": [
+        966,
+        933
+      ],
+      "adjustment": "원본 밝기 유지",
+      "face_settings": null,
+      "alpha_identical": true,
+      "source_sha256": "293df09c9cd5cd294c6b12f826e51a247f2da0b5cfc2ebb9b23bce133613a045",
+      "project_sha256": "293df09c9cd5cd294c6b12f826e51a247f2da0b5cfc2ebb9b23bce133613a045"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_195044544_09.png",
+      "key": "relaxed-smile-portrait",
+      "filename": "relaxed-smile-portrait.png",
+      "emotion_group": "REST",
+      "size": [
+        1997,
+        3434
+      ],
+      "face_settings": [
+        0.5,
+        0.29,
+        0.33,
+        0.24,
+        0.12
+      ],
+      "face_method": "localized exposure, deep blacks and highlights protected",
+      "redaction": null,
+      "alpha_identical": true,
+      "source_sha256": "5efc40a4bd51f669aebd1b9d6d7039ee2981813af36d7bc31e9623856ec4d227",
+      "project_sha256": "26bf825851f9d546ed18f4ac3ead85ccf6eef1639e1ffddd4f469c25ed343793"
+    },
+    {
+      "source_filename": "KakaoTalk_20260913_142517829.png",
+      "key": "side-smile-stand",
+      "filename": "side-smile-stand.png",
+      "emotion_group": "HAPPY",
+      "size": [
+        1276,
+        2587
+      ],
+      "face_settings": [
+        0.3,
+        0.24,
+        0.28,
+        0.18,
+        0.28
+      ],
+      "face_method": "localized exposure, deep blacks and highlights protected",
+      "redaction": {
+        "type": "opaque metal-color replacement",
+        "polygon": [
+          [
+            690,
+            1089
+          ],
+          [
+            800,
+            1074
+          ],
+          [
+            804,
+            1116
+          ],
+          [
+            692,
+            1133
+          ]
+        ]
+      },
+      "alpha_identical": true,
+      "source_sha256": "1852fa49a2a9cefb06742a0945a1cb142ed44582ad4fab970b326a559ce83b30",
+      "project_sha256": "bf3e965b9b540f98fc87de0d48a63ef4dd32a97a8e525c4bb42e8ceb04fb5939"
+    }
+  ],
+  "retouches": {
+    "belly-up-play.png": {
+      "previous_sha256": "e8b6dcb2f8b4b852737fd8c47797a5a1ac1a737dc8aa39f2f26ab8f094479568",
+      "project_sha256": "4a3af7270212cfdf9189d775b96dff44d672ca01bdc9d55437889839d13bbe0b",
+      "reason": "User-requested face-shadow correction"
+    },
+    "calm-closeup.png": {
+      "previous_sha256": "98088950b6a873e009a920f1dbc932e391203d0fff2305f5bf7d08f7b9ec3ddf",
+      "project_sha256": "3f7218c512b00a9cf52a9408f7b482cd047144b357bde85d16acdc7d7d6ac3d2",
+      "reason": "User-requested face-shadow correction"
+    },
+    "extra-curled-smile.png": {
+      "previous_sha256": "5174773e7bc5f606e6e1ff97c909a0eb3e16c8b79ded050e1dbfea3dcf0f235f",
+      "project_sha256": "65ab02c38cdedc812238bd955dc62b9482d842a84fa32316f652607fcd1f504a",
+      "reason": "User-requested face-shadow correction"
+    },
+    "extra-tongue-step.png": {
+      "previous_sha256": "5dc0d8ae86ff9bb20388bb66a81fb4682157fcadcdf9d2b914975b3f6e00ae85",
+      "project_sha256": "880c6bc6e009f6d0dc2565d66909803a3f0b14a96e2679b48e049f25ffcd1ed2",
+      "reason": "User-requested face-shadow correction"
+    },
+    "proud-sit.png": {
+      "previous_sha256": "bebedc384aa9bce55cf342052a9ba518af5dc4c4909041132ae11e54a9a30925",
+      "project_sha256": "c5bb9b046174c70df67b5153dfcedb64116d9329cbea8f040915b8b891df8a4a",
+      "reason": "User-requested face-shadow correction"
+    },
+    "puppy-paw-reach.png": {
+      "previous_sha256": "7cd0aedec4a883b99537773445f02c931f50c26239a7d4c881f75d9c5d618784",
+      "project_sha256": "201f094f5c180a9cc57c0a0f9dbffcf1fd634b09e0bc6cb3fa61920bad2f6a2a",
+      "reason": "User-requested gentle additional face brightness (+0.20 EV, tapered shadows, deep blacks protected)"
+    },
+    "puppy-ready.png": {
+      "previous_sha256": "54d7253d7d9bfcf306099b307509f9d3db0ac3ec763fb9446c7f7d852872f1db",
+      "project_sha256": "122bea97d2adb05f976fdbac2e77bc45008b091499aa2a917ebcbc9bfb6f9835",
+      "reason": "User replaced with approved face-shadow correction"
+    },
+    "puppy-sit.png": {
+      "previous_sha256": "c9bca78d3342d247e07ec266f08008f976dc50f607ee4b4ee9f4f803ff6825fb",
+      "project_sha256": "cafd4ec3ca5804edc51ff52b4222855ab7032b44413754c33f83b1fffc97bdcd",
+      "reason": "User-requested face-shadow correction"
+    },
+    "puppy-tilt.png": {
+      "previous_sha256": "30af87ec982f875e9a6c7d292c732728879dc83806ca4a49d56320bbabc07b49",
+      "project_sha256": "7532738babf08f625b43e55d6de63ae1b0a871288cf6b9ced47f7ff105ba5453",
+      "reason": "User-requested gentle additional face brightness (+0.20 EV, tapered shadows, deep blacks protected)"
+    },
+    "red-collar-puppy.png": {
+      "previous_sha256": "f68e4c8d991d8b4e6b6c258c88df21ae1da0d388c548b48a7b5b37acab412592",
+      "project_sha256": "cd3d634f77065f2394f4456f8e4fd8a02d9fb9044555852b26fff2c1b95692e4",
+      "reason": "User-requested face-shadow correction"
+    },
+    "striped-socks-puppy.png": {
+      "previous_sha256": "95bd89665e04988131d73e2ea37b853543574c3a6524ad81c72c9f1e1ceb6dbb",
+      "project_sha256": "e0cc782c5622d5e802c7b2a1df22f49a90f49cf8c15cf8d7076c48c2d6498436",
+      "reason": "User-requested face-shadow correction"
+    },
+    "extra-puppy-gaze.png": {
+      "previous_sha256": "ce2ec994710688611fed0217415bfcba397da57cd585577231c0cf62ec851d22",
+      "project_sha256": "81bbaff5546088f36d10bf6fe62c7fdc282d7130891f24f30e9ecc40108302dd",
+      "reason": "User-requested localized shadow exposure; deep blacks preserved"
+    }
+  }
+}

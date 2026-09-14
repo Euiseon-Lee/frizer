@@ -28,7 +28,7 @@ function render(){
         if(img.classList.contains('choco-left-edge')!==(asset.renderMode==='left-edge')) img.classList.toggle('choco-left-edge',asset.renderMode==='left-edge');
         if(img.classList.contains('choco-wide')!==(asset.renderMode==='wide'))img.classList.toggle('choco-wide',asset.renderMode==='wide');
         const base=new URL(img.dataset.chocoBase||'/assets/choco/',location.href);
-        const url=new URL(key+'.png',base).href;
+        const url=new URL(encodeURIComponent(key+'.png'),base).href;
         img.dataset.chocoKey=key;
         img.dataset.poseGroup=asset.poseGroup;
         img.dataset.emotionGroup=asset.emotionGroup;

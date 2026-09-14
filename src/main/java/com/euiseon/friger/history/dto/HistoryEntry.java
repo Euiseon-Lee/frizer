@@ -6,8 +6,26 @@ import com.euiseon.friger.common.type.StorageType;
 
 public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
-        String quantityText, OffsetDateTime createdAt, String changesText) {
+        String quantityText, OffsetDateTime createdAt, String changesText,
+        Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName, Integer mergedItemCount) {
+    @org.apache.ibatis.annotations.AutomapConstructor
+    public HistoryEntry {}
+
+    public HistoryEntry(Long historyId, Long foodId, String foodName, FoodActionType actionType,
+                        StorageType previousStorageType, StorageType newStorageType,
+                        String quantityText, OffsetDateTime createdAt, String changesText) {
+        this(historyId, foodId, foodName, actionType, previousStorageType, newStorageType,
+                quantityText, createdAt, changesText, null, null, null, null, null);
+    }
+    public boolean isMerge() { return mergedFromName != null; }
+    public String currentLocationNote() {
+        if (currentFoodName == null) return isMerge() ? "현재 음식은 전체 목록에서 확인해줘." : null;
+        if (isMerge()) return "이동 이력이 있어 클릭 시 ‘" + currentFoodName + "’로 이동해.";
+        return currentFoodName.equals(displayFoodName()) ? null
+                : "현재 ‘" + currentFoodName + "’의 개별 구매 항목으로 이동해.";
+    }
     public String actionLabel() {
+        if (isMerge()) return "이동";
         return switch (actionType) {
             case CREATE -> "등록";
             case UPDATE -> "수정";
@@ -18,6 +36,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         };
     }
     public String homeSummary() {
+        if (isMerge()) return "개별 구매 " + mergedItemCount + "건을 이동했어";
         if (actionType == FoodActionType.CREATE || changesText == null || changesText.isBlank()) return actionLabel() + "했어";
         if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 정보 " + detailFields().size() + "건";
         return changesText.replaceAll("\\R+", " · ");
@@ -38,6 +57,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
     }
 
     public String displayFoodName() {
+        if (isMerge()) return mergedFromName + " → " + mergedIntoName;
         return registrationValues().getOrDefault("음식명", foodName);
     }
 
@@ -47,6 +67,10 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
 
     public java.util.List<DetailField> detailFields() {
         var result = new java.util.ArrayList<DetailField>();
+        if (isMerge()) {
+            result.add(new DetailField("개별 항목", mergedItemCount + "건"));
+            return result;
+        }
         if (actionType == FoodActionType.CREATE) {
             var snapshot = registrationValues();
             if (!snapshot.isEmpty()) {

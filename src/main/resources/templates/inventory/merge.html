@@ -1,38 +1,44 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>음식 합치기 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<title>음식 이동하기 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}">
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
-<section class="heading character-heading tab-heading"><div><p class="eyebrow">잘못 등록했을 때</p><h1>음식 합치기</h1></div>
+<section class="heading character-heading tab-heading"><div><p class="eyebrow">잘못 등록했을 때</p><h1>음식 이동하기</h1></div>
 <img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet" id="mergeContent" th:attr="data-preview-url=@{/foods/{id}/merge(id=${master.masterId()})},data-source-id=${master.masterId()}">
 <p class="error-summary" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
-<section class="merge-source"><p class="merge-label">옮길 음식</p><p class="merge-source-name" th:text="${master.foodName()}"></p></section>
-<div class="field merge-choice"><label for="targetId">어느 음식으로 옮길까?</label>
+<section class="merge-source"><p class="merge-label">이동할 음식</p><p class="merge-source-name" th:text="${master.foodName()}"></p></section>
+<div class="field merge-choice"><label id="mergeTargetLabel" for="targetId">어느 음식으로 이동할까?</label>
 <select id="targetId" name="targetId">
 <option value="">음식을 골라줘</option>
 <option th:each="choice : ${choices}" th:value="${choice.masterId()}" th:selected="${preview != null and preview.target().masterId() == choice.masterId()}" th:text="${choice.foodName() + ' · ' + (choice.category() ?: '분류 없음') + ' (#' + choice.masterId() + ')'}"></option>
-</select></div>
+</select>
+<details class="merge-picker" id="mergePicker" hidden>
+<summary aria-labelledby="mergeTargetLabel mergeSelectedLabel"><span id="mergeSelectedLabel" class="merge-option-text">음식을 골라줘</span><span aria-hidden="true">⌄</span></summary>
+<div class="merge-options" role="group" aria-label="이동 대상 음식">
+<button type="button" data-value=""><span class="merge-option-text">음식을 골라줘</span></button>
+<button type="button" th:each="choice : ${choices}" th:attr="data-value=${choice.masterId()}" th:title="${choice.foodName() + ' · ' + (choice.category() ?: '분류 없음') + ' (#' + choice.masterId() + ')'}"><span class="merge-option-text" th:text="${choice.foodName() + ' · ' + (choice.category() ?: '분류 없음') + ' (#' + choice.masterId() + ')'}"></span></button>
+</div></details></div>
 <p id="mergeStatus" class="small muted merge-status" role="status" aria-live="polite"></p>
 <button id="mergeRetry" class="merge-text-button" type="button" hidden>다시 시도</button>
 <div id="mergePreviewSlot" aria-busy="false">
 <section id="mergePreview" class="merge-preview" th:if="${preview != null}" th:attr="data-source-id=${preview.source().masterId()}">
-<h2>이렇게 모아둘게</h2>
+<h2>이렇게 변경할 거야</h2>
 <dl class="merge-facts">
-<div><dt>합친 후 음식명</dt><dd th:text="${preview.target().foodName()}"></dd></div>
+<div class="merge-final-name"><dt>최종 음식명</dt><dd th:text="${preview.target().foodName()}"></dd></div>
 <div><dt>이동할 개별 구매 총 건수</dt><dd th:text="${preview.itemCount() + '건'}"></dd></div>
-<div><dt>같이 이동할 이력 총 건수</dt><dd th:text="${preview.historyCount() + '건'}"></dd></div>
+<div><dt>이동할 음식 이력 총 건수</dt><dd th:text="${preview.historyCount() + '건'}"></dd></div>
 </dl>
-<div class="merge-help"><p>수량·단위·날짜·개봉 상태는 각각 그대로 유지될 거야.</p><p>개별 구매 항목을 섞거나 수량을 환산하지 않아.</p></div>
-<p class="merge-caution" th:text="${'합친 뒤에는 ‘' + preview.target().foodName() + '’만 남아. 이 작업은 되돌릴 수 없어.'}"></p>
+<div class="merge-help"><p>수량, 단위, 날짜, 개봉 상태는 그대로 유지될 거야.</p><p>개별 구매 항목이나 수량이 합산되지 않아.</p></div>
+<p class="merge-caution"><span th:text="${'최종적으로 ‘' + preview.target().foodName() + '’만 남아.'}"></span><br><span>이 작업은 되돌릴 수 없어.</span></p>
 <form id="mergeSubmit" method="post" th:action="@{/foods/{id}/merge(id=${master.masterId()})}">
 <input type="hidden" name="targetId" th:value="${preview.target().masterId()}">
 <input type="hidden" name="sourceVersion" th:value="${preview.source().versionNo()}">
 <input type="hidden" name="targetVersion" th:value="${preview.target().versionNo()}">
 <input type="hidden" name="requestId" th:value="${requestId}">
-<button class="button merge-submit" type="submit">확인했어, 합치자!</button>
+<button class="button merge-submit" type="submit">확인 완료, 이동해줘!</button>
 </form></section></div>
 <a class="merge-text-button merge-back" th:href="@{/foods/{id}(id=${master.masterId()})}">돌아가기</a>
-<noscript><p class="small muted">합칠 내용을 확인하려면 JavaScript를 켜줘.</p></noscript>
-</div><script th:src="@{/js/food-merge.js}" defer></script></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>
+<noscript><p class="small muted">이동할 내용을 확인하려면 JavaScript를 켜줘.</p></noscript>
+</div><script th:src="@{/js/food-merge.js}" defer></script><script th:src="@{/js/food-target-picker.js}" defer></script></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

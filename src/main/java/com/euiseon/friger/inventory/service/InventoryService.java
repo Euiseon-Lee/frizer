@@ -55,7 +55,7 @@ public class InventoryService {
         if (masterId != null) {
             var master = masters.lock(masterId);
             if (master == null || expectedVersion == null || master.versionNo() != expectedVersion)
-                throw new InvalidFoodException(Map.of("", "선택한 음식이 변경되었어. 기존 음식을 다시 선택해 줘."));
+                throw new InvalidFoodException(Map.of("", "선택한 음식이 변경되었어. 기존 음식을 다시 선택해줘."));
             form = form.withIdentity(master.foodName(), master.category());
         }
         OffsetDateTime now = OffsetDateTime.now(clock);
@@ -74,12 +74,12 @@ public class InventoryService {
         if (masterId == null) throw new FoodNotFoundException(id);
         var master = masters.lock(masterId);
         if (master == null || !masterId.equals(masters.masterIdForItem(id)))
-            throw new InvalidFoodException(Map.of("", "음식이 병합되었어. 상세를 다시 열어 줘."));
+            throw new InvalidFoodException(Map.of("", "음식이 다른 음식에 합쳐졌어. 상세를 다시 열어줘."));
         FoodItem before = inventory.findByIdForUpdate(id);
         if (before == null) throw new FoodNotFoundException(id);
         if (before.status() != FoodStatus.ACTIVE) throw new InvalidFoodException(Map.of("", "보관 중인 음식만 수정할 수 있어."));
         if (expectedUpdatedAt == null || !before.updatedAt().isEqual(expectedUpdatedAt)) {
-            throw new InvalidFoodException(Map.of("", "다른 화면에서 음식 정보가 바뀌었어. 상세를 다시 열어 최신 내용을 확인해 줘."));
+            throw new InvalidFoodException(Map.of("", "다른 화면에서 음식 정보가 바뀌었어. 상세를 다시 열어 최신 내용을 확인해줘."));
         }
         OffsetDateTime now = OffsetDateTime.now(clock).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         if (!now.isAfter(before.updatedAt())) now = before.updatedAt().plusNanos(1000);
@@ -118,7 +118,7 @@ public class InventoryService {
     private static Map<String, String> values(FoodItem food) {
         Map<String, String> values = new LinkedHashMap<>();
         values.put("음식명", raw(food.foodName()));
-        values.put("수량", food.quantityAmount() == null ? display(food.quantityText()) + " (기존 입력)"
+        values.put("수량", food.quantityAmount() == null ? raw(food.quantityText())
                 : food.quantityAmount().stripTrailingZeros().toPlainString());
         values.put("단위", food.quantityUnit());
         values.put("용량", raw(food.capacityText()));
@@ -141,6 +141,7 @@ public class InventoryService {
     }
 
     private static String raw(Object value) { return value == null ? null : value.toString(); }
+
 
     private static String display(Object value) { return value == null ? "-" : value.toString(); }
 

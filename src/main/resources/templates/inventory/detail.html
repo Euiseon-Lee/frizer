@@ -18,7 +18,7 @@
     <section class="form-section">
 
         <dl class="detail-grid">
-            <div><dt>수량</dt><dd th:text="${food.displayQuantity() ?: '-'}"></dd></div>
+            <div><dt>수량</dt><dd th:text="${food.quantityAmount() != null and food.quantityUnit() != null ? food.quantityAmount().stripTrailingZeros().toPlainString() + food.quantityUnit().strip() : (food.quantityText() ?: '-')}"></dd></div>
             <div><dt>용량</dt><dd th:text="${food.capacityText() ?: '-'}"></dd></div>
             <div th:classappend="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())} ? 'detail-wide-field' : ''"><dt>출처</dt><dd><span th:text="${food.sourceType() == null ? '선택 안 함' : sourceLabels[food.sourceType()]}"></span><span th:if="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}" th:text="${' (' + food.sourceMemo() + ')'}"></span></dd></div>
             <div><dt>분류</dt><dd th:text="${food.category() ?: '-'}"></dd></div>
@@ -26,19 +26,19 @@
             <div><dt>상태</dt><dd th:text="${food.status().name() == 'ACTIVE' ? '보관 중' : (food.status().name() == 'CONSUMED' ? '소비 완료' : '폐기 완료')}"></dd></div>
         </dl>
         <dl class="detail-grid detail-group">
-            <div th:classappend="${food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한<span class="expiry-icon" aria-hidden="true" th:if="${food.sellByOverdue(today)}">!</span></dt><dd th:text="${food.sellByAt() ?: '-'}"></dd></div>
-            <div th:classappend="${food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한<span class="expiry-icon" aria-hidden="true" th:if="${food.useByOverdue(today)}">!</span></dt><dd th:classappend="${food.expiredAt() != null} ? 'date-emphasis' : ''" th:text="${food.expiredAt() ?: '-'}"></dd></div>
-            <div><dt>구매일</dt><dd th:text="${food.purchasedAt() ?: '-'}"></dd></div>
-            <div th:classappend="${food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일<span class="expiry-icon" aria-hidden="true" th:if="${food.openedOverdue(today)}">!</span></dt><dd th:text="${food.openedAt() ?: '-'}"></dd></div>
+            <div th:classappend="${food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한<span class="expiry-icon" aria-hidden="true" th:if="${food.sellByOverdue(today)}">!</span></dt><dd><span th:text="${food.sellByAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.sellByAt()}, ${today})}"></span></dd></div>
+            <div th:classappend="${food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한<span class="expiry-icon" aria-hidden="true" th:if="${food.useByOverdue(today)}">!</span></dt><dd th:classappend="${food.expiredAt() != null} ? 'date-emphasis' : ''"><span th:text="${food.expiredAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.expiredAt()}, ${today})}"></span></dd></div>
+            <div><dt>구매일</dt><dd><span th:text="${food.purchasedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.purchasedAt()}, ${today})}"></span></dd></div>
+            <div th:classappend="${food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일<span class="expiry-icon" aria-hidden="true" th:if="${food.openedOverdue(today)}">!</span></dt><dd><span th:text="${food.openedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
             <div th:if="${food.storageType().name() == 'FREEZER'}"><dt>냉동 유형</dt><dd th:text="${food.freezeType().name() == 'COMMERCIAL_FROZEN' ? '시판 냉동식품' : '직접 냉동'}"></dd></div>
-            <div th:if="${food.storageType().name() == 'FREEZER'}"><dt>냉동 보관 시작일</dt><dd th:text="${food.frozenAt() ?: '-'}"></dd></div>
+            <div th:if="${food.storageType().name() == 'FREEZER'}"><dt>냉동 보관 시작일</dt><dd><span th:text="${food.frozenAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.frozenAt()}, ${today})}"></span></dd></div>
         </dl>
         <dl class="detail-grid detail-group">
             <div class="detail-memo-field"><dt>메모</dt><dd class="detail-memo" th:text="${food.memo() ?: '-'}"></dd></div>
         </dl>
     </section>
     <p class="small muted detail-timestamps"><span>등록 <time th:text="${#temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}">수정 <time th:text="${#temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span></p>
-    <div class="form-actions"><a class="button button-secondary" th:href="@{/foods/{id}(id=${masterId})}">개별 목록으로</a><a class="button" th:if="${food.status().name() == 'ACTIVE'}" th:href="@{/inventory/{id}/edit(id=${food.foodId()})}">수정</a></div>
+    <div class="form-actions"><a class="cancel-link" th:href="@{/foods/{id}(id=${masterId})}">개별 목록으로</a><a class="button" th:if="${food.status().name() == 'ACTIVE'}" th:href="@{/inventory/{id}/edit(id=${food.foodId()})}">수정</a></div>
     </div>
 </main>
 <nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body>

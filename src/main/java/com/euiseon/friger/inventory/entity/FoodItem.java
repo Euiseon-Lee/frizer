@@ -34,7 +34,7 @@ public record FoodItem(
     /** Format structured quantities without parsing or rewriting legacy free text. */
     public String displayQuantity() {
         return quantityAmount == null || quantityUnit == null ? quantityText
-                : quantityAmount.stripTrailingZeros().toPlainString() + " " + quantityUnit.strip();
+                : quantityAmount.stripTrailingZeros().toPlainString() + quantityUnit.strip();
     }
     public boolean useByOverdue(LocalDate today) {
         return expiredAt != null && expiredAt.isBefore(today);

@@ -2,10 +2,33 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.euiseon.friger.history.dao.HistoryDao">
     <select id="findRecent" resultType="com.euiseon.friger.history.dto.HistoryEntry">
-        SELECT h.history_id, h.food_id, COALESCE(h.recorded_food_name,m.food_name) AS food_name, h.action_type,
-            h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text
-        FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id
-        ORDER BY h.created_at DESC, h.history_id DESC LIMIT #{limit}
+        WITH RECURSIVE destinations(request_id, current_id) AS (
+            SELECT request_id, target_id FROM food_merge_receipt
+            UNION
+            SELECT d.request_id, r.target_id FROM destinations d
+            JOIN food_merge_receipt r ON r.source_id=d.current_id
+        ), events AS (
+            SELECT h.history_id, h.food_id, COALESCE(h.recorded_food_name,m.food_name) AS food_name, h.action_type,
+                h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text,
+                m.master_id AS current_master_id, m.food_name AS current_food_name,
+                NULL::varchar AS merged_from_name, NULL::varchar AS merged_into_name,
+                NULL::integer AS merged_item_count, 0 AS event_order, h.history_id::text AS event_key
+            FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id
+            UNION ALL
+            SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
+                NULL::varchar, NULL::varchar, NULL::varchar, r.created_at, NULL::text,
+                m.master_id, m.food_name, r.source_name, r.target_name, r.item_count, 1, r.request_id::text
+            FROM food_merge_receipt r
+            LEFT JOIN (
+                SELECT d.request_id, m.master_id, m.food_name FROM destinations d
+                JOIN food_master m ON m.master_id=d.current_id
+            ) m ON m.request_id=r.request_id
+        )
+        SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
+            quantity_text, created_at, changes_text, current_master_id, current_food_name,
+            merged_from_name, merged_into_name, merged_item_count
+        FROM events
+        ORDER BY created_at DESC, event_order DESC, history_id DESC NULLS LAST, event_key DESC LIMIT #{limit}
     </select>
     <insert id="insert">
         INSERT INTO food_history (food_id, action_type, previous_storage_type,

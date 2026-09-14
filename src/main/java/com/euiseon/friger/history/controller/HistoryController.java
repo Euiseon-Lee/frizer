@@ -12,6 +12,7 @@ public class HistoryController {
     @GetMapping("/history")
     String history(Model model) {
         model.addAttribute("entries", service.recent(100));
+        model.addAttribute("historyDetailsReady", true);
         return "history/list";
     }
 }

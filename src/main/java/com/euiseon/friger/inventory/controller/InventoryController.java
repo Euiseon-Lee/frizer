@@ -23,13 +23,16 @@ public class InventoryController {
     private final Clock clock;
     private final jakarta.validation.Validator validator;
     private final com.euiseon.friger.inventory.service.FoodMasterService masters;
+    private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
 
     public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
-                               jakarta.validation.Validator validator) {
+                               jakarta.validation.Validator validator,
+                               com.euiseon.friger.inventory.service.FoodRegistrationService registrations) {
         this.service = service;
         this.clock = clock;
         this.masters = masters;
         this.validator = validator;
+        this.registrations = registrations;
     }
 
     @ModelAttribute
@@ -65,6 +68,7 @@ public class InventoryController {
             version = master.versionNo();
         }
         model.addAttribute("foodForm", form);
+        model.addAttribute("registrationRequestId", java.util.UUID.randomUUID());
         registrationContext(masterId == null ? "new" : "existing", masterId, version, model);
         return "inventory/new";
     }
@@ -137,20 +141,25 @@ public class InventoryController {
             @RequestParam(defaultValue = "new") String registrationMode,
             @RequestParam(required = false) Long masterId,
             @RequestParam(required = false) Long masterVersion,
+            @RequestParam(required = false) java.util.UUID registrationRequestId,
             Model model, RedirectAttributes redirect) {
         boolean existing = "existing".equals(registrationMode);
         registrationContext(existing ? "existing" : "new", masterId, masterVersion, model);
-        if (!existing && !"new".equals(registrationMode)) errors.reject("invalidMode", "등록 방식을 다시 선택해 줘.");
+        model.addAttribute("registrationRequestId", registrationRequestId == null ? java.util.UUID.randomUUID() : registrationRequestId);
+        if (!existing && registrationRequestId == null)
+            errors.reject("missingRequestId", "등록 요청을 확인하지 못했어. 입력 내용을 확인하고 다시 등록해줘.");
+        if (!existing && !"new".equals(registrationMode)) errors.reject("invalidMode", "등록 방식을 다시 선택해줘.");
         var validatedForm = form;
         if (existing) {
             var selected = masters.registrationChoices().stream().filter(m -> java.util.Objects.equals(m.masterId(), masterId)).findFirst();
-            if (selected.isEmpty()) errors.reject("missingMaster", "추가할 기존 음식을 선택해 줘.");
+            if (selected.isEmpty()) errors.reject("missingMaster", "추가할 기존 음식을 선택해줘.");
             else validatedForm = form.withIdentity(selected.get().foodName(), selected.get().category());
         }
         collectValidationErrors(validatedForm, errors);
         if (errors.hasErrors()) return "inventory/new";
         try {
-            service.create(validatedForm, existing ? masterId : null, existing ? masterVersion : null);
+            if (existing) service.create(validatedForm, masterId, masterVersion);
+            else registrations.create(validatedForm, registrationRequestId);
         } catch (InvalidFoodException invalid) {
             invalid.errors().forEach((field, message) -> {
                 if (field.isEmpty()) errors.reject("registrationConflict", message);

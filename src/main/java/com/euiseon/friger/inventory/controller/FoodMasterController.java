@@ -48,7 +48,7 @@ public class FoodMasterController {
                  @RequestParam long targetVersion,@RequestParam UUID requestId,RedirectAttributes redirect) {
         try {
             masters.merge(id,targetId,sourceVersion,targetVersion,requestId);
-            redirect.addFlashAttribute("successMessage","음식을 합쳤어. 개별 구매 항목과 기록은 그대로 보관했어.");
+            redirect.addFlashAttribute("successMessage","음식을 이동했어. 개별 구매 항목과 기록은 그대로 보관했어.");
             return "redirect:/inventory";
         } catch(InvalidFoodException invalid) {
             redirect.addFlashAttribute("successMessage",invalid.errors().get(""));

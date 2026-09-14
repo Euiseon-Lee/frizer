@@ -28,8 +28,28 @@ const ok=target=>({ok:true,redirected:false,text:async()=>JSON.stringify({target
  e.retry.listeners.click();e.requests[4].resolve(ok('2'));await tick();assert.equal(e.slot.children.length,1);
  const button=element(),form={matches:()=>true,querySelector:s=>s==='button[type="submit"]'?button:{value:'2'}};
  let prevented=0;const event={target:form,preventDefault(){prevented++}};
- e.root.listeners.submit(event);assert.equal(e.select.disabled,true);assert.equal(button.textContent,'합치는 중…');assert.equal(prevented,0);
+ e.root.listeners.submit(event);assert.equal(e.select.disabled,true);assert.equal(button.textContent,'이동하는 중…');assert.equal(prevented,0);
  e.root.listeners.submit(event);assert.equal(prevented,1);assert.equal(e.requests.length,5,'selection only makes preview requests');
  e.window.listeners.pageshow({persisted:true});assert.equal(e.slot.children.length,0);assert.equal(e.select.disabled,false);
+ for (const response of [
+   {ok:false,redirected:false}, {ok:true,redirected:true},
+   {ok:true,redirected:false,text:async()=>JSON.stringify({invalid:true})},
+   {ok:true,redirected:false,text:async()=>JSON.stringify({target:'2',source:'999'})},
+   {ok:true,redirected:false,text:async()=>{throw new Error('truncated response')}}
+ ]) {
+   const failure=setup();failure.select.value='2';failure.select.listeners.change();
+   failure.requests[0].resolve(response);await tick();
+   assert.equal(failure.slot.children.length,0);assert.equal(failure.retry.hidden,false);
+   assert.equal(failure.slot['aria-busy'],'false');
+ }
+ const cleared=setup();cleared.select.value='2';cleared.select.listeners.change();
+ cleared.select.value='';cleared.select.listeners.change();cleared.requests[0].resolve(ok('2'));await tick();
+ assert.equal(cleared.slot.children.length,0);assert.equal(cleared.status.textContent,'');
+ const mismatch=setup();mismatch.select.value='3';let blocked=0;
+ mismatch.root.listeners.submit({target:form,preventDefault(){blocked++}});
+ assert.equal(blocked,1);assert.equal(mismatch.select.disabled,false);
+ const restored=setup();restored.select.value='2';restored.window.listeners.pageshow({persisted:true});
+ assert.equal(restored.requests.length,1);restored.requests[0].resolve(ok('2'));await tick();
+ assert.equal(restored.slot.children.length,1);
  console.log('food-merge: stale response, clear, failure/retry, mismatch, duplicate submission and history restore passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

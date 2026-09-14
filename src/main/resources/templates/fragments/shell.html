@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="historyChange(value)"><span th:each="part : ${value.split('(?<=→)|(?=→)', -1)}" th:class="${part == '→' ? 'history-change-arrow' : null}" th:text="${part}"></span></th:block>
+<span th:fragment="elapsedDays(date, today)" class="elapsed-days" th:if="${date != null and !date.isAfter(today)}" th:text="${' (+' + T(java.time.temporal.ChronoUnit).DAYS.between(date, today) + '일)'}"></span>
 <header th:fragment="header" class="site-header">
     <a class="brand" th:href="@{/}" aria-label="FR!ZER 홈">fr<span>!</span>zer<span class="brand-dot">●</span></a>
     <a class="profile-link" th:href="@{/}" aria-label="쪼코와 우리 집 냉장고"><span>쪼코와 함께</span><img width="32" height="32" alt="쪼코" data-choco-region="profile" data-choco-role="profile" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
@@ -12,18 +14,19 @@
 </nav>
 <div th:fragment="historyRows(entries)" class="history-rows">
     <article class="history-row" th:each="entry : ${entries}">
-        <span class="action-badge history-badge" th:attr="data-event=${entry.actionType()}" th:text="${entry.actionLabel()}"></span>
-        <div><a th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
-            <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd th:text="${field.value()}"></dd></div></dl>
-            <p class="small muted" th:if="${entry.incompleteRegistration()}">이전 등록 기록은 당시 저장된 항목만 표시해.</p>
+        <span class="action-badge history-badge" th:attr="data-event=${entry.actionType() != null ? entry.actionType() : 'MERGE'}" th:text="${entry.actionLabel()}"></span>
+        <div><a th:if="${entry.foodId() != null}" th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
+            <a th:if="${entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:aria-label="${entry.displayFoodName()}"><span th:text="${entry.mergedFromName()}"></span><span class="history-change-arrow"> → </span><span th:text="${entry.mergedIntoName()}"></span></a>
+            <th:block th:if="${historyDetailsReady == true}"><p class="small muted history-current-location" th:if="${entry.currentLocationNote() != null}" th:text="${entry.currentLocationNote()}"></p></th:block>
+            <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd th:if="${entry.actionType() != null and entry.actionType().name() == 'UPDATE'}"><th:block th:replace="~{fragments/shell :: historyChange(${field.value()})}"></th:block></dd><dd th:unless="${entry.actionType() != null and entry.actionType().name() == 'UPDATE'}" th:text="${field.value()}"></dd></div></dl>
             <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time>
         </div>
     </article>
 </div>
 <div th:fragment="recentHistoryRows(entries)" class="recent-history-rows">
     <a class="recent-history-row" th:each="entry : ${entries}" th:href="@{/history}">
-        <span class="action-badge history-badge" th:attr="data-event=${entry.actionType()}" th:text="${entry.actionLabel()}"></span>
-        <span class="recent-food-name" th:text="${entry.foodName()}" th:title="${entry.foodName()}"></span>
+        <span class="action-badge history-badge" th:attr="data-event=${entry.actionType() != null ? entry.actionType() : 'MERGE'}" th:text="${entry.actionLabel()}"></span>
+        <span class="recent-food-name" th:text="${entry.displayFoodName()}" th:title="${entry.displayFoodName()}"></span>
         <span class="recent-change" th:text="${entry.homeSummary()}"></span>
     </a>
 </div>

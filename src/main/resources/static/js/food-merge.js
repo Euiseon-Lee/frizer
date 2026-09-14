@@ -21,7 +21,7 @@
         const target = select.value, request = sequence;
         if (!target) return;
         controller = new AbortController();
-        status.textContent = '합칠 내용을 확인하고 있어.';
+        status.textContent = '이동할 내용을 확인하고 있어.';
         slot.setAttribute('aria-busy', 'true');
         try {
             const url = new URL(root.dataset.previewUrl, location.origin);
@@ -35,11 +35,11 @@
             if (!preview || preview.querySelector('[name="targetId"]')?.value !== target ||
                 preview.dataset.sourceId !== root.dataset.sourceId) throw new Error('Preview mismatch');
             slot.replaceChildren(document.importNode(preview, true));
-            status.textContent = '합칠 내용을 확인했어.';
+            status.textContent = '';
         } catch (error) {
             if (request !== sequence || error.name === 'AbortError') return;
             slot.replaceChildren();
-            status.textContent = '합칠 내용을 불러오지 못했어. 다시 시도해줘.';
+            status.textContent = '이동할 내용을 불러오지 못했어. 다시 시도해줘.';
             retry.hidden = false;
         } finally {
             if (request === sequence) slot.setAttribute('aria-busy', 'false');
@@ -58,7 +58,7 @@
         select.disabled = true;
         const button = form.querySelector('button[type="submit"]');
         button.disabled = true;
-        button.textContent = '합치는 중…';
+        button.textContent = '이동하는 중…';
     });
     // A restored history page must not reuse an old confirmation or request token.
     window.addEventListener('pageshow', event => {

@@ -20,7 +20,7 @@
             <div class="card-top">
                 <span class="stock-location-quantity">
                     <span class="storage-tag" th:classappend="${food.storageType().name().toLowerCase()}" th:text="${storageLabels[food.storageType()]}"></span>
-                    <span class="quantity"><span th:if="${food.quantityAmount() != null and food.quantityUnit() != null}"><strong th:text="${food.quantityAmount().stripTrailingZeros().toPlainString()}"></strong> <span th:text="${food.quantityUnit().strip()}"></span></span><span th:unless="${food.quantityAmount() != null and food.quantityUnit() != null}" th:text="${food.quantityText() ?: '수량 미입력'}"></span></span>
+                    <span class="quantity"><span th:if="${food.quantityAmount() != null and food.quantityUnit() != null}"><strong th:text="${food.quantityAmount().stripTrailingZeros().toPlainString()}"></strong><span th:text="${food.quantityUnit().strip()}"></span></span><span th:unless="${food.quantityAmount() != null and food.quantityUnit() != null}" th:text="${food.quantityText() ?: '수량 미입력'}"></span></span>
                     <span class="expiry-icon" th:if="${food.needsAttention(today)}" role="img" aria-label="날짜 경고 · 확인 필요" title="날짜 경고 · 확인 필요">!</span>
                 </span>
             </div>

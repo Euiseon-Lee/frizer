@@ -35,12 +35,13 @@ class FoodMergeIntegrationTest {
     @Autowired InventoryService inventory;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
+    @Autowired com.euiseon.friger.history.dao.HistoryDao histories;
     @BeforeEach void clean() {
         jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");
         jdbc.update("DELETE FROM food_master");jdbc.update("DELETE FROM food_merge_receipt");
     }
     private long create(String name,String unit,String storage) throws Exception {
-        mvc.perform(post("/inventory").param("foodName",name).param("quantityAmount","2")
+        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName",name).param("quantityAmount","2")
                 .param("quantityUnit",unit).param("storageType",storage))
                 .andExpect(status().is3xxRedirection());
         return masters.masterId(inventory.findActive().getFirst().foodId());
@@ -110,15 +111,15 @@ class FoodMergeIntegrationTest {
         long source=create("듀부","모","FRIDGE"),target=create("<b>두부</b>","모","ROOM");
         long sameName=create("<b>두부</b>","모","FREEZER");
         mvc.perform(get("/foods/"+source+"/merge"))
-                .andExpect(content().string(containsString("옮길 음식")))
+                .andExpect(content().string(containsString("이동할 음식")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"mergeSubmit\""))));
         mvc.perform(get("/foods/"+source+"/merge").param("targetId",""+target))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"targetId\"")))
                 .andExpect(content().string(containsString("(#"+sameName+")")))
                 .andExpect(content().string(containsString("&lt;b&gt;두부&lt;/b&gt;")))
-                .andExpect(content().string(containsString("같이 이동할 이력 총 건수</dt><dd>1건")))
-                .andExpect(content().string(containsString("확인했어, 합치자!")));
+                .andExpect(content().string(containsString("이동할 음식 이력 총 건수</dt><dd>1건")))
+                .andExpect(content().string(containsString("확인 완료, 이동해줘!")));
         dao.touch(target);
         mvc.perform(post("/foods/"+source+"/merge").param("targetId",""+target)
                 .param("sourceVersion","0").param("targetVersion","0").param("requestId",UUID.randomUUID().toString()))
@@ -186,5 +187,74 @@ class FoodMergeIntegrationTest {
         afterHistory.forEach(row->assertThat(row.remove("recorded_food_name")).isEqualTo("옛 이름"));
         assertThat(afterHistory).isEqualTo(history);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM master_upgrade.food_master",Integer.class)).isEqualTo(2);
+    }
+    @Test void mergeAppearsOnceInHistoryAndHomeWithoutRewritingItemHistory() throws Exception {
+        long source=create("치킨","개","FRIDGE"),target=create("두부","모","ROOM");
+        long item=masters.items(source).getFirst().foodId();
+        var before=jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
+        UUID token=UUID.randomUUID();masters.merge(source,target,0,0,token);masters.merge(source,target,0,0,token);
+        var entries=histories.findRecent(100);
+        assertThat(entries).hasSize(3);
+        var merge=entries.stream().filter(e->e.isMerge()).findFirst().orElseThrow();
+        assertThat(merge.actionLabel()).isEqualTo("이동");
+        assertThat(merge.displayFoodName()).isEqualTo("치킨 → 두부");
+        assertThat(merge.currentLocationNote()).isEqualTo("이동 이력이 있어 클릭 시 ‘두부’로 이동해.");
+        assertThat(merge.detailFields()).containsExactly(new com.euiseon.friger.history.dto.HistoryEntry.DetailField("개별 항목", "1건"));
+        assertThat(merge.mergedItemCount()).isEqualTo(1);assertThat(merge.currentMasterId()).isEqualTo(target);
+        var original=entries.stream().filter(e->Long.valueOf(item).equals(e.foodId())).findFirst().orElseThrow();
+        assertThat(original.displayFoodName()).isEqualTo("치킨");
+        assertThat(original.currentLocationNote()).isEqualTo("현재 ‘두부’의 개별 구매 항목으로 이동해.");
+        assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(before);
+        mvc.perform(get("/history")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("이동")))
+                .andExpect(content().string(containsString("치킨 → 두부")))
+                .andExpect(content().string(containsString("현재 ‘두부’의 개별 구매 항목으로 이동해.")))
+                .andExpect(content().string(containsString("href=\"/foods/"+target+"\"")));
+        mvc.perform(get("/")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("개별 구매 1건을 이동했어")));
+    }
+    @Test void previousMergeReceiptsBecomeVisibleWithoutBackfill() throws Exception {
+        long target=create("두부","모","FRIDGE");
+        jdbc.update("INSERT INTO food_merge_receipt(request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES(?,99999,?,0,0,'옛 음식','당시 두부',7)",UUID.randomUUID(),target);
+        var rows=histories.findRecent(100);var merge=rows.stream().filter(e->e.isMerge()).findFirst().orElseThrow();
+        assertThat(merge.displayFoodName()).isEqualTo("옛 음식 → 당시 두부");
+        assertThat(merge.mergedItemCount()).isEqualTo(7);assertThat(merge.currentFoodName()).isEqualTo("두부");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(1);
+    }
+    @Test void chainedMergesResolveAllLinksToCurrentFood() throws Exception {
+        long a=create("A","개","FRIDGE"),b=create("B","팩","ROOM"),c=create("C","모","FREEZER");
+        masters.merge(a,b,0,0,UUID.randomUUID());masters.merge(b,c,1,0,UUID.randomUUID());
+        var rows=histories.findRecent(100);assertThat(rows).hasSize(5);
+        assertThat(rows.stream().filter(e->e.isMerge()).toList()).hasSize(2)
+                .allSatisfy(e->assertThat(e.currentMasterId()).isEqualTo(c));
+        assertThat(rows.stream().filter(e->e.isMerge()).map(e->e.displayFoodName()).toList()).containsExactlyInAnyOrder("A → B","B → C");
+        mvc.perform(get("/history")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("href=\"/foods/"+b+"\""))))
+                .andExpect(content().string(containsString("href=\"/foods/"+c+"\"")));
+    }
+    @Test void renamedItemsExplainCurrentNameWithoutInventingMerge() throws Exception {
+        long master=create("옛 이름","개","FRIDGE");var item=masters.items(master).getFirst();
+        inventory.update(item.foodId(),com.euiseon.friger.inventory.dto.FoodCreateForm.from(item).withIdentity("새 이름",null),item.updatedAt());
+        var rows=histories.findRecent(100);assertThat(rows).noneMatch(e->e.isMerge());
+        var original=rows.stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.CREATE).findFirst().orElseThrow();
+        assertThat(original.displayFoodName()).isEqualTo("옛 이름");assertThat(original.currentLocationNote()).contains("새 이름");
+    }
+    @Test void mergeHistoryUsesCombinedLimitAndStableTieOrder() throws Exception {
+        long a=create("A","개","FRIDGE"),b=create("B","개","FRIDGE");masters.merge(a,b,0,0,UUID.randomUUID());
+        jdbc.update("UPDATE food_history SET created_at='2026-09-14T00:00:00Z'");
+        jdbc.update("UPDATE food_merge_receipt SET created_at='2026-09-14T00:00:00Z'");
+        var first=histories.findRecent(2);assertThat(first).hasSize(2);assertThat(first.getFirst().isMerge()).isTrue();
+        assertThat(histories.findRecent(2)).isEqualTo(first);
+        assertThat(histories.findRecent(0)).isEmpty();
+    }
+    @Test void mergeHistoryEscapesNamesAndMissingCurrentTargetFallsBackToList() throws Exception {
+        long a=create("<b>A</b>","개","FRIDGE"),b=create("<b>B</b>","개","ROOM");
+        masters.merge(a,b,0,0,UUID.randomUUID());
+        mvc.perform(get("/history")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("&lt;b&gt;A&lt;/b&gt; → &lt;b&gt;B&lt;/b&gt;")));
+        jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");jdbc.update("DELETE FROM food_master");
+        var row=histories.findRecent(100).getFirst();assertThat(row.isMerge()).isTrue();assertThat(row.currentMasterId()).isNull();
+        mvc.perform(get("/history")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("현재 음식은 전체 목록에서 확인해줘.")));
     }
 }

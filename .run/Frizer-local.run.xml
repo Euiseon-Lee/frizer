@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Frizer local" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="frizer.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.euiseon.friger.FrizerApplication" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local --server.address=127.0.0.1" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

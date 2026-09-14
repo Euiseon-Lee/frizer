@@ -72,6 +72,41 @@ JPA, Lombok, H2, SPA 프레임워크는 사용하지 않습니다.
 
 ## 사전 준비
 
+### Docker로 앱과 DB 함께 실행
+
+Docker Desktop의 Linux containers 엔진만으로 실행할 수 있습니다. 이 경로는 호스트 JDK가 필요 없습니다.
+최초 실행 시 `.env.example`을 `.env`로 복사하고 `FRIZER_DB_PASSWORD`를 입력합니다.
+기존 `.env`와 DB 볼륨은 유지합니다.
+
+```powershell
+docker compose --profile app up -d --build --wait
+docker compose --profile app ps
+docker compose --profile app logs --tail 100 app
+```
+
+브라우저에서 `http://localhost:8080/`를 엽니다. `FRIZER_APP_PORT`로 앱 포트를 바꿀 수 있습니다.
+앱과 DB는 로컬 PC의 `127.0.0.1`에만 노출합니다. 앱은 `prod` 프로필로 Compose 내부 DB에
+접속하며 Flyway migration을 자동 적용합니다. DB 준비 후 앱을 실행하고 HTTP healthcheck로 준비 상태를 확인합니다.
+이미지에는 `.env`, 로컬 JDK 설정, Git 기록을 포함하지 않습니다.
+
+```powershell
+# 코드 수정 후 다시 빌드하고 실행
+docker compose --profile app up -d --build --wait
+# 중지 (DB 데이터 보존)
+docker compose --profile app stop
+```
+
+기존 `docker compose up -d --wait` 명령은 DB만 실행합니다. IntelliJ 또는 `bootRun`으로
+개발할 때는 Docker 앱을 먼저 `docker compose stop app`으로 중지해 8080 포트 충돌을 피합니다.
+Docker 이미지 빌드는 `bootJar`를 실행하며, Docker가 필요한 통합 테스트는 별도로 실행해야 합니다.
+
+2026-09-14 실행 검증: 앱과 PostgreSQL 컨테이너 모두 healthy, Flyway V6 적용,
+`/`, `/inventory`, `/inventory/new`, `/history` HTTP 200 확인.
+호스트 JDK 21에서 `test bootJar` 성공: 통합 테스트 177개, 실패·오류·건너뜀 0개.
+`node src/test/js/choco-selector.test.cjs`도 통과했습니다.
+
+### 호스트에서 Java 앱을 실행하는 경우
+
 - JDK 21 설치, `JAVA_HOME` 및 PATH 설정.
 - Docker Desktop 설치 후 Linux containers 엔진 실행.
 - 최초 실행 시 Gradle, Maven Central 의존성, Docker 이미지 다운로드를 위한 네트워크 접근.
@@ -89,31 +124,34 @@ docker version
 Gradle Wrapper가 있어 시스템 Gradle 설치는 필요하지 않습니다.
 Toolchain 설정은 JDK 설치 자체를 대신하지 않습니다. JDK 21 자동 다운로드 저장소는 설정하지 않았습니다.
 
-### 이 PC에서 검증한 실행 설정
+### 개발자별 Java 설정
 
-검증용 Amazon Corretto JDK 21을 프로젝트의 `.gradle/jdks`에 준비했습니다.
-시스템 JAVA_HOME/PATH는 변경하지 않았습니다. 기존 PostgreSQL이 5432를 사용하므로
-이 PC에서는 아래 환경변수를 설정한 다음 로컬 실행 명령을 사용합니다.
-
-```powershell
-Set-Location C:\dev\frizer
-$env:JAVA_HOME = 'C:\dev\frizer\.gradle\jdks\jdk21.0.12_9'
-$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-$env:FRIZER_DB_PORT = '55432'
-```
-
-이 JDK는 Git에서 제외되는 로컬 검증 도구입니다. `.gradle`을 삭제하거나 다른 PC에서 실행할 때는
-JDK 21을 별도로 준비하고 JAVA_HOME을 해당 경로로 바꿉니다.
-
-IntelliJ의 Gradle이 Java 21 toolchain을 찾도록 이 PC의 `gradle.properties`에
-`org.gradle.java.installations.paths`를 지정했습니다. 이 파일은 PC 전용 경로를 포함해 Git에서 제외합니다.
-IntelliJ에서는 Gradle 창의 **Reload All Gradle Projects**로 다시 동기화합니다.
-다른 PC에서는 해당 JDK 경로를 별도로 설정해야 합니다.
+설치한 JDK 21을 `JAVA_HOME` 또는 IntelliJ의 Project SDK와 Gradle JVM으로 지정합니다.
+Gradle에서 JDK를 찾지 못하면 Git에서 제외된 `gradle.properties`에
+`org.gradle.java.installations.paths`를 자신의 JDK 경로로 설정한 뒤 Gradle 프로젝트를 다시 동기화합니다.
+개인 JDK 절대 경로와 DB 비밀번호는 공유 실행 구성에 넣지 않습니다.
 
 ## 로컬 실행
 
+### IntelliJ 실행
+
+먼저 `docker compose up -d --wait postgres`로 DB를 실행합니다.
+실행 구성에서 **Frizer local**을 선택합니다. 저장소의 `.run/Frizer-local.run.xml`은
+`local` 프로필과 프로젝트 루트 작업 디렉터리를 지정해 `.env`의 DB 설정을 읽습니다.
+기본 접속 주소는 `http://localhost:8080/`입니다. Docker 앱이 실행 중이면
+`docker compose stop app`으로 앱 컨테이너를 중지한 뒤 IntelliJ에서 실행합니다.
+
+기존 실행 구성을 직접 사용할 때는 Program arguments에
+`--spring.profiles.active=local --server.address=127.0.0.1`을 입력하고 Working directory를 프로젝트 루트로 지정합니다.
+프로필이 빠지면 `Failed to configure a DataSource` / `Failed to determine suitable jdbc url`로 기동이 실패합니다.
+
+개인 포트나 OS별 JVM 옵션이 필요하면 실행 구성을 복제해
+`.run/*.local.run.xml`로 저장합니다. 이 파일은 Git에서 제외됩니다.
+Docker 앱과 함께 실행하려면 개인 구성에 `--server.port=8081`처럼 다른 포트를 지정합니다.
+두 앱은 같은 개발 DB를 사용합니다.
+
 새 환경에서는 `.env.example`을 `.env`로 복사하고 `FRIZER_DB_PASSWORD`에 개인 개발용 비밀번호를 입력합니다.
-현재 PC에는 기존 개발 DB와 일치하는 값을 Git 제외 `.env`에 보관했습니다.
+`.env`는 Git에서 제외되며 기존 DB가 있으면 그 계정의 비밀번호를 사용합니다.
 기존 DB 볼륨의 비밀번호는 `.env` 변경만으로 바뀌지 않습니다. 비밀번호를 바꾸려면 DB 계정도 함께 변경해야 합니다.
 
 ```powershell
@@ -126,7 +164,7 @@ docker compose ps
 ```
 
 테스트 실패 시 원인을 해결한 뒤 진행합니다. 애플리케이션 기본 포트는 8080입니다.
-STEP 2부터 `http://localhost:8080/`를 열면 재고 목록으로 이동합니다. 음식 등록 버튼으로 등록과 저장 결과를 확인할 수 있습니다.
+`http://localhost:8080/`를 열면 홈 화면이 표시됩니다. 음식 등록 버튼으로 등록과 저장 결과를 확인할 수 있습니다.
 로컬 profile 없이 실행하면 DB 접속 설정이 없으므로 정상 기동을 기대하지 않습니다.
 
 ### 로컬 PostgreSQL

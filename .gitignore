@@ -8,6 +8,7 @@ out/
 
 # Personal IDE settings (IntelliJ IDEA / Eclipse)
 .idea/
+.run/*.local.run.xml
 *.iml
 .classpath
 .project

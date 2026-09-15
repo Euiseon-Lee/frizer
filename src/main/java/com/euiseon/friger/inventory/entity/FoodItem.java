@@ -52,4 +52,9 @@ public record FoodItem(
     public boolean needsAttention(LocalDate today) {
         return useByOverdue(today) || sellByOverdue(today) || openedOverdue(today);
     }
+
+    /** Home WARNING scope includes the effective deadline falling today. */
+    public boolean needsReview(LocalDate today) {
+        return needsAttention(today) || today.equals(expiredAt != null ? expiredAt : sellByAt);
+    }
 }

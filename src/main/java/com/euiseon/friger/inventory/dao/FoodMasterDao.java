@@ -34,7 +34,7 @@ public interface FoodMasterDao {
     int delete(long id);
     @Select("SELECT count(*) FROM food_item WHERE master_id=#{id}")
     int countItems(long id);
-    @Select("SELECT count(*) FROM food_history h JOIN food_item i ON i.food_id=h.food_id WHERE i.master_id=#{id}")
+    @Select("SELECT (SELECT count(*) FROM food_history h JOIN food_item i ON i.food_id=h.food_id WHERE i.master_id=#{id}) + (SELECT count(*) FROM food_item_move_receipt r JOIN food_item i ON i.food_id=r.food_id WHERE i.master_id=#{id})")
     int countHistory(long id);
     @Select("SELECT target_id FROM food_merge_receipt WHERE request_id=#{token} AND source_id=#{source} AND target_id=#{target} AND source_version=#{sourceVersion} AND target_version=#{targetVersion}")
     Long completed(UUID token, long source, long target, long sourceVersion, long targetVersion);

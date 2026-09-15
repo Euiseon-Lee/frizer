@@ -1,24 +1,29 @@
 (() => {
     const picker = document.getElementById('mergePicker');
-    const select = document.getElementById('targetId');
+    const select = document.getElementById(picker?.dataset.selectId || 'targetId');
     if (!picker || !select) return;
     const summary = picker.querySelector('summary');
     const label = picker.querySelector('#mergeSelectedLabel');
-    const options = [...picker.querySelectorAll('button[data-value]')];
+    let options = [...picker.querySelectorAll('button[data-value]')];
     function sync() {
         const selected = options.find(button => button.dataset.value === select.value) || options[0];
         label.textContent = selected.textContent;
         summary.title = selected.textContent;
         options.forEach(button => button.setAttribute('aria-pressed', String(button === selected)));
     }
-    options.forEach(button => button.addEventListener('click', () => {
+    function bindOptions() { options.forEach(button => button.addEventListener('click', () => {
         if (select.disabled) return;
         select.value = button.dataset.value;
         sync();
         picker.open = false;
         summary.focus();
         select.dispatchEvent(new Event('change', {bubbles: true}));
-    }));
+    })); }
+    bindOptions();
+    select.addEventListener('optionschange', () => {
+        options = [...picker.querySelectorAll('button[data-value]')];
+        bindOptions(); picker.open = false; sync();
+    });
     summary.addEventListener('click', event => {
         if (select.disabled) event.preventDefault();
     });

@@ -84,6 +84,51 @@ class InventoryIntegrationTest {
         mvc.perform(get("/history")).andExpect(status().isOk());
     }
 
+    @ParameterizedTest
+    @CsvSource(value={"2026-09-13,NULL,NULL,true", "2026-09-12,NULL,NULL,true",
+            "2026-09-14,2026-09-12,NULL,false", "NULL,2026-09-13,NULL,true",
+            "NULL,NULL,2026-06-12,true", "NULL,NULL,2026-06-13,false",
+            "NULL,NULL,NULL,false", "2026-09-14,NULL,NULL,false"}, nullValues="NULL")
+    void warningFilterUsesExactlyHomeReviewScope(String useBy, String sellBy, String opened, boolean included) throws Exception {
+        var request=post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+                .param("foodName","필터 확인").param("quantityAmount","1").param("quantityUnit","개").param("storageType","FRIDGE");
+        if(useBy!=null)request.param("expiredAt",useBy);
+        if(sellBy!=null)request.param("sellByAt",sellBy);
+        if(opened!=null)request.param("openedAt",opened);
+        mvc.perform(request).andExpect(status().is3xxRedirection());
+        var home=mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
+        var filtered=mvc.perform(get("/inventory").param("warning","true")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
+        assertThat((java.util.List<FoodItem>)filtered.get("foods")).isEqualTo(home.get("overviewFoods"));
+        assertThat((java.util.List<?>)filtered.get("foods")).hasSize(included?1:0);
+        mvc.perform(get("/inventory").param("warning","true").param("storage","ROOM"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("이 조건에 맞는 음식이 없어")));
+    }
+
+    @Test
+    void warningFilterKeepsMasterIdentityCountsAndReturnContext() throws Exception {
+        for(int i=0;i<3;i++) {
+            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+                    .param("foodName","같은 이름").param("quantityAmount","1").param("quantityUnit","개")
+                    .param("storageType","FRIDGE").param("expiredAt",i==1?"2026-09-20":"2026-09-13"))
+                    .andExpect(status().is3xxRedirection());
+        }
+        var ids=jdbc.queryForList("SELECT food_id FROM food_item ORDER BY food_id",Long.class);
+        long master=jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?",Long.class,ids.get(0));
+        jdbc.update("UPDATE food_item SET master_id=? WHERE food_id=?",master,ids.get(1));
+        var result=mvc.perform(get("/inventory").param("warning","true").param("storage","FRIDGE"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("확인할 구매 1건 / 전체 2건")))
+                .andReturn();
+        assertThat((java.util.List<?>)result.getModelAndView().getModel().get("groups")).hasSize(2);
+        mvc.perform(get("/foods/"+master).param("warning","true").param("storage","FRIDGE"))
+                .andExpect(status().isOk()).andExpect(model().attribute("items",java.util.List.of(service.findById(ids.get(0)))))
+                .andExpect(content().string(containsString("/inventory?storage=FRIDGE&amp;warning=true")))
+                .andExpect(content().string(containsString("/inventory/"+ids.get(0)+"?storage=FRIDGE&amp;warning=true")));
+        mvc.perform(get("/inventory/"+ids.get(0)).param("warning","true").param("storage","FRIDGE"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("/foods/"+master+"?storage=FRIDGE&amp;warning=true")));
+        mvc.perform(get("/foods/"+master)).andExpect(status().isOk())
+                .andExpect(model().attribute("items",org.hamcrest.Matchers.hasSize(2)));
+    }
+
     @Test
     void homeSeparatesExpiredTodayAndUnknownDatesAndFiltersStorage() throws Exception {
         mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "경과 음식").param("quantityAmount", "1").param("quantityUnit", "개")

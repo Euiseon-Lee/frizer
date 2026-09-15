@@ -21,6 +21,7 @@
                     <span th:if="${food.openedAt() != null and food.openedAt().isBefore(today)}">개봉 후 +<span th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(food.openedAt(), today)}"></span>일</span>
                     <span th:if="${today.equals(food.openedAt())}">오늘 개봉</span>
                 </span></a></li></ul>
+                <a class="cancel-link warning-view-all" th:href="@{/inventory(warning=true)}">전체 확인하기</a>
             </section>
             <div class="daily-card" th:if="${overviewFoods.isEmpty()}"><img class="choco" width="78" height="88" alt="" loading="lazy" data-choco-region="home-summary" th:attr="data-choco-role=${totalCount == 0 ? 'empty' : 'rest'},data-choco-base=@{/assets/choco/}" hidden><div><h3 th:text="${totalCount == 0 ? '아직 등록된 음식이 없어' : '지금 확인이 필요한 음식은 없어.'}"></h3><p th:if="${totalCount == 0}">우리 집에 뭐가 있는지 알려줘.</p><p th:unless="${totalCount == 0}">입력한 기한과 개봉일을 기준으로 확인했어.</p></div></div>
         </section>

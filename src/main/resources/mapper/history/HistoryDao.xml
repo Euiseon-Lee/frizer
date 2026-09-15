@@ -2,11 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.euiseon.friger.history.dao.HistoryDao">
     <select id="findRecent" resultType="com.euiseon.friger.history.dto.HistoryEntry">
-        WITH RECURSIVE destinations(request_id, current_id) AS (
+        WITH RECURSIVE redirects(source_id,target_id) AS (
+            SELECT source_id,target_id FROM food_merge_receipt
+            UNION ALL
+            SELECT source_id,target_id FROM food_item_move_receipt WHERE source_removed
+        ), destinations(request_id, current_id) AS (
             SELECT request_id, target_id FROM food_merge_receipt
             UNION
             SELECT d.request_id, r.target_id FROM destinations d
-            JOIN food_merge_receipt r ON r.source_id=d.current_id
+            JOIN redirects r ON r.source_id=d.current_id
         ), events AS (
             SELECT h.history_id, h.food_id, COALESCE(h.recorded_food_name,m.food_name) AS food_name, h.action_type,
                 h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text,
@@ -23,6 +27,13 @@
                 SELECT d.request_id, m.master_id, m.food_name FROM destinations d
                 JOIN food_master m ON m.master_id=d.current_id
             ) m ON m.request_id=r.request_id
+            UNION ALL
+            SELECT NULL::bigint, r.food_id, r.source_name, 'MOVE'::varchar,
+                NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
+                '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
+                m.master_id, m.food_name, NULL::varchar, NULL::varchar, NULL::integer, 2, r.request_id::text
+            FROM food_item_move_receipt r
+            JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id
         )
         SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
             quantity_text, created_at, changes_text, current_master_id, current_food_name,

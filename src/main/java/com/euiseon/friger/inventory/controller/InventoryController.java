@@ -49,12 +49,22 @@ public class InventoryController {
     }
 
     @GetMapping("/inventory")
-    String inventory(@RequestParam(required = false) StorageType storage, Model model) {
-        var all = service.findActive();
-        model.addAttribute("foods", all.stream().filter(food -> storage == null || food.storageType() == storage).toList());
+    String inventory(@RequestParam(required = false) StorageType storage,
+                     @RequestParam(defaultValue = "false") boolean warning, Model model) {
+        var today = LocalDate.now(clock);
+        var allGroups = masters.groups(null);
+        var groups = allGroups.stream().map(group -> new com.euiseon.friger.inventory.service.FoodMasterService.Group(
+                group.master(), group.items().stream()
+                .filter(food -> storage == null || food.storageType() == storage)
+                .filter(food -> !warning || food.needsReview(today)).toList()))
+                .filter(group -> !group.items().isEmpty()).toList();
+        model.addAttribute("foods", groups.stream().flatMap(group -> group.items().stream()).toList());
         model.addAttribute("selectedStorage", storage);
-        model.addAttribute("totalCount", all.size());
-        model.addAttribute("groups", masters.groups(storage));
+        model.addAttribute("warningOnly", warning);
+        model.addAttribute("totalCount", allGroups.stream().mapToInt(group -> group.items().size()).sum());
+        model.addAttribute("groupTotals", allGroups.stream().collect(java.util.stream.Collectors.toMap(
+                group -> group.master().masterId(), group -> group.items().size())));
+        model.addAttribute("groups", groups);
         return "inventory/list";
     }
 
@@ -74,7 +84,10 @@ public class InventoryController {
     }
 
     @GetMapping("/inventory/{id}")
-    String detail(@PathVariable long id, Model model) {
+    String detail(@PathVariable long id, @RequestParam(required = false) StorageType storage,
+                  @RequestParam(defaultValue = "false") boolean warning, Model model) {
+        model.addAttribute("selectedStorage", storage);
+        model.addAttribute("warningOnly", warning);
         model.addAttribute("food", service.findById(id));
         model.addAttribute("masterId", masters.masterId(id));
         return "inventory/detail";

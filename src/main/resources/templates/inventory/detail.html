@@ -4,7 +4,7 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>개별 구매 항목 · FR!ZER</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -38,7 +38,8 @@
         </dl>
     </section>
     <p class="small muted detail-timestamps"><span>등록 <time th:text="${#temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}">수정 <time th:text="${#temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span></p>
-    <div class="form-actions"><a class="cancel-link" th:href="@{/foods/{id}(id=${masterId})}">개별 목록으로</a><a class="button" th:if="${food.status().name() == 'ACTIVE'}" th:href="@{/inventory/{id}/edit(id=${food.foodId()})}">수정</a></div>
+    <div class="form-actions purchase-primary-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button button-secondary button-merge" th:href="@{/inventory/{id}/move(id=${food.foodId()})}">다른 음식으로 이동</a><a class="button" th:href="@{/inventory/{id}/edit(id=${food.foodId()})}">수정</a></div>
+    <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/foods/{id}(id=${masterId},storage=${selectedStorage},warning=${warningOnly ? true : null})}">개별 목록으로</a></div>
     </div>
 </main>
 <nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body>

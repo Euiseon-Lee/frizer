@@ -19,10 +19,18 @@ public class FoodMasterController {
         this.clock=clock;
     }
     @GetMapping("/foods/{id}")
-    String detail(@PathVariable long id,Model model) {
-        model.addAttribute("today",LocalDate.now(clock));
+    String detail(@PathVariable long id,
+                  @RequestParam(required=false) com.euiseon.friger.common.type.StorageType storage,
+                  @RequestParam(defaultValue="false") boolean warning, Model model) {
+        var today = LocalDate.now(clock);
+        model.addAttribute("today",today);
+        model.addAttribute("selectedStorage",storage);
+        model.addAttribute("warningOnly",warning);
         model.addAttribute("master",masters.find(id));
-        model.addAttribute("items",masters.items(id));
+        model.addAttribute("items",masters.items(id).stream()
+                .filter(food -> storage == null || food.storageType() == storage)
+                .filter(food -> !warning || (food.status() == com.euiseon.friger.common.type.FoodStatus.ACTIVE && food.needsReview(today)))
+                .toList());
         model.addAttribute("canMerge",!masters.choices(id).isEmpty());
         return "inventory/master";
     }

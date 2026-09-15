@@ -34,4 +34,10 @@ summary.dispatchEvent({type:'click',preventDefault(){prevented++}});assert.equal
 select.disabled=false;picker.open=true;document.dispatchEvent({type:'click',target:{}});assert.equal(picker.open,false);
 select.value='1';window.dispatchEvent({type:'pageshow'});assert.equal(label.textContent,options[1].textContent);
 options[0].dispatchEvent({type:'click'});assert.equal(select.value,'');assert.equal(changes,2);
+const refreshed=element('이름과 분류만 '.repeat(30));refreshed.dataset.value='42';
+const blank=element('음식을 골라줘');blank.dataset.value='';
+options.splice(0,options.length,blank,refreshed);
+select.dispatchEvent({type:'optionschange'});
+refreshed.dispatchEvent({type:'click'});
+assert.equal(select.value,'42');assert.equal(label.textContent,refreshed.textContent);assert.equal(changes,3);
 console.log('food-target-picker: full labels, selection, clear, keyboard, disabled guard, outside close and restore passed');

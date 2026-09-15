@@ -26,12 +26,11 @@
 <section id="mergePreview" class="merge-preview" th:if="${preview != null}" th:attr="data-source-id=${preview.source().masterId()}">
 <h2>이렇게 변경할 거야</h2>
 <dl class="merge-facts">
-<div class="merge-final-name"><dt>최종 음식명</dt><dd th:text="${preview.target().foodName()}"></dd></div>
 <div><dt>이동할 개별 구매 총 건수</dt><dd th:text="${preview.itemCount() + '건'}"></dd></div>
 <div><dt>이동할 음식 이력 총 건수</dt><dd th:text="${preview.historyCount() + '건'}"></dd></div>
 </dl>
 <div class="merge-help"><p>수량, 단위, 날짜, 개봉 상태는 그대로 유지될 거야.</p><p>개별 구매 항목이나 수량이 합산되지 않아.</p></div>
-<p class="merge-caution"><span th:text="${'최종적으로 ‘' + preview.target().foodName() + '’만 남아.'}"></span><br><span>이 작업은 되돌릴 수 없어.</span></p>
+<div class="merge-caution"><p>이 작업은 되돌릴 수 없어.</p></div>
 <form id="mergeSubmit" method="post" th:action="@{/foods/{id}/merge(id=${master.masterId()})}">
 <input type="hidden" name="targetId" th:value="${preview.target().masterId()}">
 <input type="hidden" name="sourceVersion" th:value="${preview.source().versionNo()}">

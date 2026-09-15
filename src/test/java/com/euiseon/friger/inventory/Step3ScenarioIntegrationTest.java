@@ -188,15 +188,15 @@ class Step3ScenarioIntegrationTest {
             inventory.create(f,a,dao.find(a).versionNo());
         }
         var original=masters.items(a);
-        jdbc.update("UPDATE food_item SET status='CONSUMED' WHERE food_id=?",original.get(0).foodId());
-        jdbc.update("UPDATE food_item SET status='DISCARDED' WHERE food_id=?",original.get(1).foodId());
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개' WHERE food_id=?",original.get(0).foodId());
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개' WHERE food_id=?",original.get(1).foodId());
         jdbc.update("UPDATE food_item SET quantity_amount=NULL,quantity_unit=NULL,quantity_text='반 봉지쯤' WHERE food_id=?",original.get(2).foodId());
         var items=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         var history=jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
         var p=masters.preview(a,b); assertThat(p.itemCount()).isEqualTo(4); assertThat(p.historyCount()).isEqualTo(4);
         merge(a,b);
         var after=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
-        for(var rows:List.of(items,after)) rows.forEach(row->{row.remove("master_id");row.remove("updated_at");});
+        for(var rows:List.of(items,after)) rows.forEach(row->{row.remove("master_id");row.remove("updated_at");row.remove("version_no");row.remove("stock_revision");});
         assertThat(after).isEqualTo(items); assertThat(masters.items(b)).hasSize(5);
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(history);
         for(StorageType storage:StorageType.values()) {
@@ -316,7 +316,9 @@ class Step3ScenarioIntegrationTest {
         var before=jdbc.queryForList("SELECT * FROM source_upgrade_audit.food_item");
         org.flywaydb.core.Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
-        assertThat(jdbc.queryForList("SELECT * FROM source_upgrade_audit.food_item")).isEqualTo(before);
+        var migrated=jdbc.queryForList("SELECT * FROM source_upgrade_audit.food_item");
+        migrated.forEach(row->{assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});
+        assertThat(migrated).isEqualTo(before);
         assertThatThrownBy(()->jdbc.update("UPDATE source_upgrade_audit.food_item SET source_type=NULL"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         jdbc.update("UPDATE source_upgrade_audit.food_item SET source_type=NULL,source_memo=NULL");

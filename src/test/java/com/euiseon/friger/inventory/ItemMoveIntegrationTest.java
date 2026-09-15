@@ -58,7 +58,7 @@ class ItemMoveIntegrationTest {
         assertThat(p.historyCount()).isEqualTo(1);assertThat(p.remainingCount()).isEqualTo(1);
         execute(p);
         var after=jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",a);
-        before.remove("master_id");before.remove("updated_at");after.remove("master_id");after.remove("updated_at");
+        before.remove("master_id");before.remove("updated_at");before.remove("version_no");before.remove("stock_revision");after.remove("master_id");after.remove("updated_at");after.remove("version_no");after.remove("stock_revision");
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(originalHistory);
         assertThat(masters.masterId(b)).isEqualTo(source);
@@ -88,7 +88,7 @@ class ItemMoveIntegrationTest {
     }
     @Test void inactiveRemainingItemPreventsDeletingSource() throws Exception {
         long a=create("두부"),b=create("두부"),t=create("콩"),source=masters.masterId(a),old=masters.masterId(b);
-        jdbc.update("UPDATE food_item SET master_id=?,status='CONSUMED' WHERE food_id=?",source,b);dao.delete(old);
+        jdbc.update("UPDATE food_item SET master_id=?,status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개' WHERE food_id=?",source,b);dao.delete(old);
         execute(existing(a,t));assertThat(dao.find(source)).isNotNull();
         assertThatThrownBy(()->existing(b,t)).isInstanceOf(InvalidFoodException.class);
     }

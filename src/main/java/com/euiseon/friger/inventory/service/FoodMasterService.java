@@ -32,10 +32,14 @@ public class FoodMasterService {
     }
     @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public List<Group> groups(StorageType storage) {
+        return groups(storage,false);
+    }
+    @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public List<Group> groups(StorageType storage,boolean ended) {
         // Keep the existing recent-item ordering, but group by explicit identity only.
         var result=new LinkedHashMap<Long,List<FoodItem>>();
-        var identities=inventory.activeMasterIds();
-        for(var item:inventory.findActive()) {
+        var identities=ended ? inventory.endedLinks().stream().collect(java.util.stream.Collectors.toMap(InventoryDao.ItemMaster::foodId,InventoryDao.ItemMaster::masterId)) : inventory.activeMasterIds();
+        for(var item:ended ? inventory.findEnded() : inventory.findActive()) {
             if(storage==null || item.storageType()==storage)
                 result.computeIfAbsent(identities.get(item.foodId()), ignored -> new ArrayList<>()).add(item);
         }

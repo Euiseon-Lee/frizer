@@ -6,8 +6,8 @@
     </select>
 
     <select id="insertFood" resultType="long" affectData="true" flushCache="true">
-        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type, freeze_type, frozen_at, status)
-        VALUES ((SELECT master_id FROM m), #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status})
+        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type, freeze_type, frozen_at, status,quantity_amount,quantity_unit)
+        VALUES ((SELECT master_id FROM m), #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status},CASE WHEN #{status}='DEPLETED' THEN 0 ELSE 1 END,'개')
         RETURNING food_id
     </select>
 

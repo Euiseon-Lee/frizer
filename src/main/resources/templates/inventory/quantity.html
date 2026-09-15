@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>처리 확인 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header>
+<main class="page form-page">
+<section class="heading tab-heading quantity-heading"><div><p class="eyebrow" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '소비 처리' : '폐기 처리')}"></p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div></section>
+<div class="tab-sheet" th:with="available=${action == 'CANCEL' ? preview.cancellable() : (preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() != null)}">
+<section class="form-section"><dl class="detail-grid quantity-info-grid">
+<div><dt>구매일</dt><dd th:text="${preview.item().purchasedAt() ?: '미입력'}"></dd></div>
+<div><dt>보관 위치</dt><dd th:text="${preview.item().storageType().name() == 'ROOM' ? '실온' : (preview.item().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></dd></div>
+<div><dt th:text="${action == 'CANCEL' ? '복구할 수량' : '기준 수량'}"></dt><dd class="quantity-reference" th:text="${action == 'CANCEL' and preview.event() != null ? preview.event().quantity() : preview.item().displayQuantity()}"></dd></div>
+<div th:if="${action != 'CANCEL' and available}"><dt><label for="quantityAmount" th:text="${action == 'CONSUME' ? '먹은 수량' : '버릴 수량'}"></label></dt><dd>
+<div class="quantity-entry"><input id="quantityAmount" name="quantityAmount" form="quantity-form" type="text" inputmode="decimal" maxlength="13" autocomplete="off" required pattern="[0-9]{1,9}(\.[0-9]{1,3})?" aria-describedby="quantityInputError" th:value="${preview.item().quantityAmount().stripTrailingZeros().toPlainString()}" th:attr="data-maximum=${preview.item().quantityAmount().stripTrailingZeros().toPlainString()},data-unit=${preview.item().quantityUnit()},data-action=${action}"><span class="small" th:text="${preview.item().quantityUnit()}"></span></div>
+<span id="quantityInputError" class="quantity-message" role="status" aria-live="polite"></span>
+</dd></div>
+</dl></section>
+<p class="quantity-message" id="quantityQuestion" th:if="${available}" th:text="${action == 'CANCEL' ? '이 처리를 취소하고 다시 보관 중으로 바꿀까?' : (action == 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : '입력한 수량을 버린 것으로 기록할까?')}"></p>
+<p class="quantity-message muted" th:if="${available}" th:text="${action == 'CANCEL' ? '원래 처리 기록과 취소 기록은 함께 남아.' : '이후 수량이나 보관 정보가 바뀌기 전에는 처리를 취소할 수 있어.'}"></p>
+<p role="status" th:unless="${available}" th:text="${action == 'CANCEL' ? '이미 취소했거나 이후 수량·보관 정보가 바뀌어 취소할 수 없어.' : (preview.item().quantityAmount() == null ? '먼저 수정 화면에서 현재 수량과 단위를 확인해 입력해줘.' : '이미 보관 종료된 항목이야.')}"></p>
+<a class="button" th:if="${action != 'CANCEL' and preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() == null}" th:href="@{/inventory/{id}/edit(id=${preview.item().foodId()})}">수정</a>
+<form id="quantity-form" th:if="${available}" method="post" data-quantity-form th:action="@{/inventory/{id}/quantity(id=${preview.item().foodId()})}">
+<input type="hidden" name="action" th:value="${action}"><input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
+<input type="hidden" name="historyId" th:if="${action == 'CANCEL'}" th:value="${preview.event().historyId()}">
+<input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
+<div class="form-actions"><button class="button" th:classappend="${action == 'CANCEL' ? '' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button></div>
+</form>
+<div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
+</div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

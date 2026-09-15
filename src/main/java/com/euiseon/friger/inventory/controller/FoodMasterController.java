@@ -21,15 +21,19 @@ public class FoodMasterController {
     @GetMapping("/foods/{id}")
     String detail(@PathVariable long id,
                   @RequestParam(required=false) com.euiseon.friger.common.type.StorageType storage,
+                  @RequestParam(defaultValue="false") boolean ended,
                   @RequestParam(defaultValue="false") boolean warning, Model model) {
         var today = LocalDate.now(clock);
         model.addAttribute("today",today);
-        model.addAttribute("selectedStorage",storage);
-        model.addAttribute("warningOnly",warning);
+        model.addAttribute("selectedStorage",ended ? null : storage);
+        model.addAttribute("warningOnly",!ended && warning);
+        model.addAttribute("savedWarning",warning);
+        model.addAttribute("ended",ended);
         model.addAttribute("master",masters.find(id));
         model.addAttribute("items",masters.items(id).stream()
-                .filter(food -> storage == null || food.storageType() == storage)
-                .filter(food -> !warning || (food.status() == com.euiseon.friger.common.type.FoodStatus.ACTIVE && food.needsReview(today)))
+                .filter(food -> ended == (food.status() != com.euiseon.friger.common.type.FoodStatus.ACTIVE))
+                .filter(food -> ended || storage == null || food.storageType() == storage)
+                .filter(food -> ended || !warning || food.needsReview(today))
                 .toList());
         model.addAttribute("canMerge",!masters.choices(id).isEmpty());
         return "inventory/master";

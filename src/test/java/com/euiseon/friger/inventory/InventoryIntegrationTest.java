@@ -78,7 +78,7 @@ class InventoryIntegrationTest {
     void pagesRenderWithChocoNavigation() throws Exception {
         mvc.perform(get("/")).andExpect(status().isOk()).andExpect(view().name("home"));
         mvc.perform(get("/inventory")).andExpect(status().isOk())
-                .andExpect(content().string(containsString("첫 음식 등록하기")));
+                .andExpect(content().string(containsString("음식 등록하기")));
         mvc.perform(get("/inventory/new")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("음식 등록하기")));
         mvc.perform(get("/history")).andExpect(status().isOk());
@@ -244,7 +244,7 @@ class InventoryIntegrationTest {
         long first = service.create(form(StorageType.FRIDGE, null, null, null, false));
         long second = service.create(form(StorageType.FREEZER, null, null, null, false));
         long terminal = service.create(form(StorageType.ROOM, null, null, null, false));
-        jdbc.update("UPDATE food_item SET status='CONSUMED' WHERE food_id=?", terminal);
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개' WHERE food_id=?", terminal);
         assertThat(service.findActive()).extracting(FoodItem::foodId).containsExactly(second, first);
     }
 
@@ -680,10 +680,10 @@ class InventoryIntegrationTest {
     void terminalAndMissingFoodCannotBeEdited() throws Exception {
         long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
         FoodItem before = service.findById(id);
-        jdbc.update("UPDATE food_item SET status='CONSUMED' WHERE food_id=?",id);
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개' WHERE food_id=?",id);
         mvc.perform(get("/inventory/" + id + "/edit")).andExpect(redirectedUrl("/inventory/" + id));
         mvc.perform(editRequest(before)).andExpect(status().isOk()).andExpect(model().hasErrors());
-        assertThat(service.findById(id).status()).isEqualTo(FoodStatus.CONSUMED);
+        assertThat(service.findById(id).status()).isEqualTo(FoodStatus.DEPLETED);
         mvc.perform(get("/inventory/999999/edit")).andExpect(status().isNotFound());
     }
 
@@ -849,7 +849,7 @@ class InventoryIntegrationTest {
                 }
             }
         }
-        jdbc.update("UPDATE food_item SET status='CONSUMED', expired_at='2026-09-01', opened_at='2026-01-01' WHERE food_id=?", id);
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개', expired_at='2026-09-01', opened_at='2026-01-01' WHERE food_id=?", id);
         var model = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
         assertThat((java.util.List<FoodItem>) model.get("overviewFoods")).isEmpty();
     }

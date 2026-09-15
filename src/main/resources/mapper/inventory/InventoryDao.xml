@@ -31,6 +31,13 @@
         WHERE status = 'ACTIVE'
         ORDER BY i.created_at DESC, food_id DESC
     </select>
+    <select id="findEnded" resultType="com.euiseon.friger.inventory.entity.FoodItem">
+        SELECT food_id,m.food_name,storage_type,m.category,quantity_text,expired_at,purchased_at,opened_at,
+        frozen_at,source_type,freeze_type,status,memo,i.created_at,i.updated_at,capacity_text,source_memo,
+        sell_by_at,quantity_amount,quantity_unit
+        FROM food_item i JOIN food_master m ON m.master_id=i.master_id
+        WHERE status='DEPLETED' ORDER BY i.created_at DESC,food_id DESC
+    </select>
     <select id="findById" resultType="com.euiseon.friger.inventory.entity.FoodItem">
         SELECT food_id, m.food_name, storage_type, m.category, quantity_text,
             expired_at, purchased_at, opened_at, frozen_at, source_type, freeze_type,

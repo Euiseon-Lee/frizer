@@ -17,6 +17,9 @@ public interface InventoryDao {
     long insertForMaster(@org.apache.ibatis.annotations.Param("food") FoodItem food,
                          @org.apache.ibatis.annotations.Param("masterId") long masterId);
     List<FoodItem> findActive();
+    List<FoodItem> findEnded();
+    @org.apache.ibatis.annotations.Select("SELECT food_id,master_id FROM food_item WHERE status='DEPLETED'")
+    List<ItemMaster> endedLinks();
     FoodItem findById(long id);
     FoodItem findByIdForUpdate(long id);
     int update(FoodItem food);

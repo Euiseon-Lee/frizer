@@ -24,15 +24,18 @@ public class InventoryController {
     private final jakarta.validation.Validator validator;
     private final com.euiseon.friger.inventory.service.FoodMasterService masters;
     private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
+    private final com.euiseon.friger.inventory.service.FoodQuantityService quantities;
 
     public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
                                jakarta.validation.Validator validator,
-                               com.euiseon.friger.inventory.service.FoodRegistrationService registrations) {
+                               com.euiseon.friger.inventory.service.FoodRegistrationService registrations,
+                               com.euiseon.friger.inventory.service.FoodQuantityService quantities) {
         this.service = service;
         this.clock = clock;
         this.masters = masters;
         this.validator = validator;
         this.registrations = registrations;
+        this.quantities = quantities;
     }
 
     @ModelAttribute
@@ -50,17 +53,20 @@ public class InventoryController {
 
     @GetMapping("/inventory")
     String inventory(@RequestParam(required = false) StorageType storage,
+                     @RequestParam(defaultValue = "false") boolean ended,
                      @RequestParam(defaultValue = "false") boolean warning, Model model) {
         var today = LocalDate.now(clock);
-        var allGroups = masters.groups(null);
+        var allGroups = masters.groups(null,ended);
         var groups = allGroups.stream().map(group -> new com.euiseon.friger.inventory.service.FoodMasterService.Group(
                 group.master(), group.items().stream()
-                .filter(food -> storage == null || food.storageType() == storage)
-                .filter(food -> !warning || food.needsReview(today)).toList()))
+                .filter(food -> ended || storage == null || food.storageType() == storage)
+                .filter(food -> ended || !warning || food.needsReview(today)).toList()))
                 .filter(group -> !group.items().isEmpty()).toList();
         model.addAttribute("foods", groups.stream().flatMap(group -> group.items().stream()).toList());
-        model.addAttribute("selectedStorage", storage);
-        model.addAttribute("warningOnly", warning);
+        model.addAttribute("selectedStorage", ended ? null : storage);
+        model.addAttribute("warningOnly", !ended && warning);
+        model.addAttribute("savedWarning", warning);
+        model.addAttribute("ended", ended);
         model.addAttribute("totalCount", allGroups.stream().mapToInt(group -> group.items().size()).sum());
         model.addAttribute("groupTotals", allGroups.stream().collect(java.util.stream.Collectors.toMap(
                 group -> group.master().masterId(), group -> group.items().size())));
@@ -85,9 +91,15 @@ public class InventoryController {
 
     @GetMapping("/inventory/{id}")
     String detail(@PathVariable long id, @RequestParam(required = false) StorageType storage,
+                  @RequestParam(required = false) Boolean ended,
                   @RequestParam(defaultValue = "false") boolean warning, Model model) {
+        var preview = quantities.preview(id);
+        boolean endedView = ended == null ? preview.item().status() != FoodStatus.ACTIVE : ended;
+        model.addAttribute("quantityPreview", preview);
+        model.addAttribute("ended", endedView);
+        model.addAttribute("savedWarning", warning);
         model.addAttribute("selectedStorage", storage);
-        model.addAttribute("warningOnly", warning);
+        model.addAttribute("warningOnly", !endedView && warning);
         model.addAttribute("food", service.findById(id));
         model.addAttribute("masterId", masters.masterId(id));
         return "inventory/detail";

@@ -77,8 +77,8 @@ class FoodMergeIntegrationTest {
         assertThat(masters.items(target)).hasSize(2);
         var after=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         for(int i=0;i<items.size();i++) {
-            items.get(i).remove("master_id");items.get(i).remove("updated_at");
-            after.get(i).remove("master_id");after.get(i).remove("updated_at");
+            items.get(i).remove("master_id");items.get(i).remove("updated_at");items.get(i).remove("version_no");items.get(i).remove("stock_revision");
+            after.get(i).remove("master_id");after.get(i).remove("updated_at");after.get(i).remove("version_no");after.get(i).remove("stock_revision");
         }
         assertThat(after).isEqualTo(items);
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(histories);
@@ -182,9 +182,13 @@ class FoodMergeIntegrationTest {
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
         var after=jdbc.queryForList("SELECT i.*,m.food_name,m.category FROM master_upgrade.food_item i JOIN master_upgrade.food_master m ON m.master_id=i.master_id ORDER BY food_id");
-        after.forEach(row->row.remove("master_id"));assertThat(after).isEqualTo(before);
+        after.forEach(row->{row.remove("master_id");assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});assertThat(after).isEqualTo(before);
         var afterHistory=jdbc.queryForList("SELECT * FROM master_upgrade.food_history ORDER BY history_id");
         afterHistory.forEach(row->assertThat(row.remove("recorded_food_name")).isEqualTo("옛 이름"));
+        afterHistory.forEach(row->{
+            var added=new java.util.HashSet<>(row.keySet());added.removeAll(history.getFirst().keySet());
+            added.forEach(key->assertThat(row.remove(key)).isNull());
+        });
         assertThat(afterHistory).isEqualTo(history);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM master_upgrade.food_master",Integer.class)).isEqualTo(2);
     }

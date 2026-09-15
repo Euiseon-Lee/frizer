@@ -33,7 +33,7 @@
                 <a class="storage-card all" th:href="@{/inventory}"><span class="storage-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" focusable="false"><path d="M7 5 4 3 1.5 10 5 13M17 5l3-2 2.5 7-3.5 3M7 5c3-2 7-2 10 0l2 8v3c0 3-3 5-7 5s-7-2-7-5v-3l2-8Z"/><circle cx="8.5" cy="11" r=".65"/><circle cx="15.5" cy="11" r=".65"/><path d="m10 15 2 2 2-2h-4Zm2 2v2m-3-1c1 2 5 2 6 0"/></svg></span><h3>전체</h3><p><b th:text="${totalCount}"></b></p><img class="choco choco-portrait" width="80" height="82" alt="" loading="lazy" data-choco-region="all" data-choco-role="all" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
             </div>
         </section>
-        <a class="add-banner" th:href="@{/inventory/new}"><div><p class="eyebrow">킁킁, 맛있는 냄새가 나는데?</p><h2>등록을 안 하면 쪼코 거라구</h2><span>음식 등록하기</span></div><img class="choco" width="88" height="100" alt="" loading="lazy" data-choco-region="banner" data-choco-role="banner" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
+        <a class="add-banner" th:href="@{/inventory/new}"><div><p class="eyebrow">킁킁, 맛있는 냄새가 나는데?</p><h2>등록을 안 하면 쪼코 거라구</h2><span>음식 등록하러 갈까?</span></div><img class="choco" width="88" height="100" alt="" loading="lazy" data-choco-region="banner" data-choco-role="banner" th:attr="data-choco-base=@{/assets/choco/}" hidden></a>
         <section class="home-section recent-history"><div class="section-heading"><h2>최근 기록</h2><a class="text-link" th:href="@{/history}">전체 보기 →</a></div><p class="muted small" th:if="${entries.isEmpty()}">음식을 등록하면 여기에 기록이 남아.</p><div th:replace="~{fragments/shell :: recentHistoryRows(${entries})}"></div></section>
         <footer class="page-footer">쪼코와 함께 냉장고 파먹기</footer>
     </div>

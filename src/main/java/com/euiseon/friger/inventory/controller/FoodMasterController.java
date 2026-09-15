@@ -14,9 +14,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class FoodMasterController {
     private final FoodMasterService masters;
     private final Clock clock;
-    public FoodMasterController(FoodMasterService masters, Clock clock) {
+    private final com.euiseon.friger.inventory.service.FoodQuantityService quantities;
+    public FoodMasterController(FoodMasterService masters, Clock clock, com.euiseon.friger.inventory.service.FoodQuantityService quantities) {
         this.masters=masters;
         this.clock=clock;
+        this.quantities=quantities;
     }
     @GetMapping("/foods/{id}")
     String detail(@PathVariable long id,
@@ -29,6 +31,7 @@ public class FoodMasterController {
         model.addAttribute("warningOnly",!ended && warning);
         model.addAttribute("savedWarning",warning);
         model.addAttribute("ended",ended);
+        if (ended) model.addAttribute("endedSummaries", quantities.endedSummaries(id));
         model.addAttribute("master",masters.find(id));
         model.addAttribute("items",masters.items(id).stream()
                 .filter(food -> ended == (food.status() != com.euiseon.friger.common.type.FoodStatus.ACTIVE))

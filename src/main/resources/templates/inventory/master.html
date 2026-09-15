@@ -9,36 +9,38 @@
 <h1 class="detail-title" th:text="${master.foodName()}"></h1><p class="muted" th:text="${master.category()}"></p></div>
 <img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet">
-<p class="notice" role="status" th:if="${successMessage}" th:text="${successMessage}"></p>
+<div class="notice purchase-notice" role="status" th:if="${successMessage}">
+<div class="purchase-notice-content"><span th:text="${successMessage}"></span>
+<a class="purchase-undo" th:if="${processedItemId != null}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">처리 취소</a></div>
+</div>
 <div class="purchase-status-toolbar">
-<nav class="filter-tabs" aria-label="구매 항목 보관 상태">
-<a th:href="@{/foods/{id}(id=${master.masterId()},warning=${savedWarning ? true : null})}" th:attr="aria-current=${!ended ? 'page' : null}">보관 중</a>
-<a th:href="@{/foods/{id}(id=${master.masterId()},ended=true,warning=${savedWarning ? true : null})}" th:attr="aria-current=${ended ? 'page' : null}">종료</a>
+<nav class="filter-tabs purchase-status-tabs" aria-label="구매 항목 보관 상태">
+<a data-filter="ALL" th:href="@{/foods/{id}(id=${master.masterId()},warning=${savedWarning ? true : null})}" th:attr="aria-current=${!ended ? 'page' : null}">보관 중</a>
+<a data-filter="ENDED" th:href="@{/foods/{id}(id=${master.masterId()},ended=true,warning=${savedWarning ? true : null})}" th:attr="aria-current=${ended ? 'page' : null}">종료</a>
 </nav>
-<a class="purchase-undo" th:if="${processedItemId != null}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">처리 취소</a>
 </div>
 <div class="stock-list-toolbar" th:if="${!items.isEmpty() or warningOnly or selectedStorage != null}"><p class="small muted stock-list-hint" th:text="${ended ? '보관 종료된 구매 항목을 확인할 수 있어.' : '정보를 확인하고 수정할 수 있어.'}"></p>
 <form th:unless="${ended}" class="warning-filter master-warning-filter" method="get" th:action="@{/foods/{id}(id=${master.masterId()})}"><input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><label><input type="checkbox" name="warning" value="true" th:checked="${warningOnly}" onchange="this.form.requestSubmit()">확인이 필요한 음식만</label><noscript><button type="submit">적용</button></noscript></form>
 </div>
-<section class="empty-state purchase-empty" th:if="${items.isEmpty()}"><h2>여기에는 음식이 없어</h2><img class="choco" width="160" height="150" alt="" data-choco-region="list-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"></section>
+<section class="empty-state purchase-empty" th:if="${items.isEmpty()}"><h2 th:text="${ended ? '아직 보관이 끝난 구매 항목이 없어.' : '여기에는 음식이 없어'}"></h2><p class="purchase-ended-help" th:if="${ended}">먹거나 버려서 남은 수량이 0이 된 항목이 여기로 이동해.</p><img class="choco" width="160" height="150" alt="" data-choco-region="list-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"></section>
 <div class="food-grid" th:unless="${items.isEmpty()}" aria-label="개별 구매 목록">
-<a class="food-card master-item-card" th:each="food : ${items}" th:href="@{/inventory/{id}(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">
+<a class="food-card master-item-card" th:each="food : ${items}" th:classappend="${ended} ? 'ended-item-card' : ''" th:with="summary=${ended ? endedSummaries[food.foodId()] : null}" th:href="@{/inventory/{id}(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">
 <div class="stock-card-top"><span class="storage-tag" th:classappend="${food.storageType().name().toLowerCase()}" th:text="${food.storageType().name() == 'FRIDGE' ? '냉장실' : (food.storageType().name() == 'FREEZER' ? '냉동실' : '실온')}"></span>
 <h3 class="stock-quantity" th:if="${!ended and food.quantityAmount() != null}"><span th:text="${food.quantityAmount().stripTrailingZeros().toPlainString()}"></span><span class="stock-unit" th:text="${food.quantityUnit().strip()}"></span></h3>
 <h3 class="stock-quantity" th:if="${!ended and food.quantityAmount() == null}" th:text="${food.quantityText() ?: '수량 미입력'}"></h3>
-<h3 class="stock-quantity" th:if="${ended}">보관 종료</h3>
+<span class="ended-registration" th:if="${ended}">최초 등록 수량 <strong th:text="${summary.registrationQuantity() ?: '미상'}"></strong></span><time class="ended-at" th:if="${ended and summary.endedAt() != null}" th:datetime="${summary.endedAt()}" th:text="${'(' + #temporals.format(summary.endedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm') + ')'}"></time>
 </div>
-<dl class="stock-dates">
+<dl class="stock-dates" th:unless="${ended}">
 <div th:classappend="${!ended and food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한</dt><dd th:classappend="${food.sellByAt() == null ? 'date-unknown' : ''}"><span th:text="${food.sellByAt() == null ? '미입력' : #temporals.format(food.sellByAt(), 'yyyy.MM.dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.sellByAt()}, ${today})}"></span></dd></div>
 <div class="stock-expiry" th:classappend="${!ended and food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한</dt><dd th:classappend="${food.expiredAt() == null ? 'date-unknown' : ''}"><span th:text="${food.expiredAt() == null ? '미입력' : #temporals.format(food.expiredAt(), 'yyyy.MM.dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.expiredAt()}, ${today})}"></span></dd></div>
 <div><dt>구매일</dt><dd th:classappend="${food.purchasedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.purchasedAt() == null ? '미입력' : #temporals.format(food.purchasedAt(), 'yyyy.MM.dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.purchasedAt()}, ${today})}"></span></dd></div>
 <div th:classappend="${!ended and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일</dt><dd th:classappend="${food.openedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.openedAt() == null ? '미입력' : #temporals.format(food.openedAt(), 'yyyy.MM.dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
 </dl>
-<div class="stock-card-footer"><span th:text="${'등록 ' + #temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}" th:text="${'수정 ' + #temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span></div>
+<div class="stock-card-footer" th:unless="${ended}"><span th:text="${'등록 ' + #temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}" th:text="${'수정 ' + #temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span></div>
 </a></div>
-<div class="form-actions purchase-primary-actions">
-<a class="button button-secondary button-merge" th:if="${canMerge}" th:href="@{/foods/{id}/merge(id=${master.masterId()})}">다른 음식으로 이동</a>
-<button class="button button-secondary button-merge" th:unless="${canMerge}" type="button" disabled title="이동할 수 있는 다른 음식이 없어">다른 음식으로 이동</button>
-<a class="button" th:href="@{/inventory/new(masterId=${master.masterId()})}">구매 항목 추가</a></div>
+<div class="form-actions purchase-primary-actions" th:unless="${ended}">
+<a class="button button-secondary button-merge action-move" th:if="${canMerge}" th:href="@{/foods/{id}/merge(id=${master.masterId()})}">다른 음식으로 이동</a>
+<button class="button button-secondary button-merge action-move" th:unless="${canMerge}" type="button" disabled title="이동할 수 있는 다른 음식이 없어">다른 음식으로 이동</button>
+<a class="button action-create" th:href="@{/inventory/new(masterId=${master.masterId()})}">기존 음식에 추가</a></div>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory(storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">전체 목록으로</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

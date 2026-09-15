@@ -80,7 +80,7 @@ class InventoryIntegrationTest {
         mvc.perform(get("/inventory")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("음식 등록하기")));
         mvc.perform(get("/inventory/new")).andExpect(status().isOk())
-                .andExpect(content().string(containsString("음식 등록하기")));
+                .andExpect(content().string(containsString("등록 완료")));
         mvc.perform(get("/history")).andExpect(status().isOk());
     }
 
@@ -542,7 +542,7 @@ class InventoryIntegrationTest {
                 .andExpect(status().is3xxRedirection());
         assertThat(service.findById(id).sourceType()).isNull();
         assertThat(service.findById(id).sourceMemo()).isNull();
-        mvc.perform(get("/inventory/" + id)).andExpect(status().isOk()).andExpect(content().string(containsString("선택 안 함")));
+        mvc.perform(get("/inventory/" + id)).andExpect(status().isOk()).andExpect(content().string(containsString("<dt>출처</dt><dd><span>-</span>")));
         mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk());
         mvc.perform(get("/history")).andExpect(status().isOk());
     }
@@ -567,7 +567,7 @@ class InventoryIntegrationTest {
         FoodItem food = service.findActive().getFirst();
         mvc.perform(get("/inventory/" + food.foodId() + "/edit")).andExpect(status().isOk())
                 .andExpect(model().attribute("foodForm", FoodCreateForm.from(food)))
-                .andExpect(content().string(containsString("수정 내용 저장하기")))
+                .andExpect(content().string(containsString("수정 완료")))
                 .andExpect(content().string(containsString("value=\"0.5\"")))
                 .andExpect(content().string(containsString("name=\"expectedUpdatedAt\"")))
                 .andExpect(content().string(containsString("action=\"/inventory/" + food.foodId() + "/edit\"")));
@@ -749,7 +749,7 @@ class InventoryIntegrationTest {
         if(warningCount==1) {
             String warning=(useBy==null ? "유통기한" : "소비기한")+" 경과됐어. 확인이 필요해!";
             assertThat(detail).contains(warning);
-            assertThat(detail.indexOf(warning)).isLessThan(detail.indexOf("<section class=\"form-section\">"));
+            assertThat(detail.indexOf(warning)).isLessThan(detail.indexOf("<section class=\"form-section purchase-detail-card\">"));
         }
     }
 
@@ -788,7 +788,7 @@ class InventoryIntegrationTest {
         if (food.openedOverdue(LocalDate.of(2026, 9, 13))) {
             assertThat(detail).contains("개봉 후 3개월이 지났어. 확인이 필요해!",
                     "class=\"detail-warning\"><dt>개봉일<span class=\"expiry-icon\"");
-            assertThat(detail.indexOf("개봉 후 3개월이 지났어.")).isLessThan(detail.indexOf("<section class=\"form-section\">"));
+            assertThat(detail.indexOf("개봉 후 3개월이 지났어.")).isLessThan(detail.indexOf("<section class=\"form-section purchase-detail-card\">"));
         }
         var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
         assertThat((java.util.List<FoodItem>) home.getModelAndView().getModel().get("attentionFoods"))

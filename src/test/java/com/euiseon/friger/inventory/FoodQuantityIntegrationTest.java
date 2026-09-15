@@ -70,7 +70,7 @@ class FoodQuantityIntegrationTest {
         mvc.perform(get("/inventory/"+id+"/quantity").param("action","DISCARD"))
             .andExpect(status().isOk()).andExpect(content().string(containsString("응, 버리자!"))).andExpect(content().string(containsString("2.5모")));
         quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID());
-        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("폐기 완료")));
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>상태</dt>"))));
         mvc.perform(get("/history")).andExpect(status().isOk()).andExpect(content().string(containsString("폐기")));
     }
     @Test void duplicateTokenIsIdempotentButDifferentPayloadIsRejected() throws Exception {
@@ -179,7 +179,7 @@ class FoodQuantityIntegrationTest {
         assertThat(inventory.findById(id).status()).isEqualTo(FoodStatus.ACTIVE);
         assertThat(quantities.preview(id).cancellable()).isTrue();
         assertThat(masters.groups(null)).hasSize(1);assertThat(masters.groups(null,true)).isEmpty();
-        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("최근 소비 · 0.5모")));
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("수량 변경 이력")));
         cancel(id,event);assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.5");
         assertThat(jdbc.queryForObject("SELECT after_quantity_amount-before_quantity_amount FROM food_history WHERE reversal_of_history_id=?",java.math.BigDecimal.class,event)).isEqualByComparingTo("0.5");
     }
@@ -223,5 +223,188 @@ class FoodQuantityIntegrationTest {
             .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.125"))
             .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
         assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.375");
+    }
+
+    @Test void purchaseHistoryShowsQuantityChangesAndCancellationsNewestFirst() throws Exception {
+        long id=create(),other=create();
+        quantities.apply(other,CONSUME,quantities.preview(other).version(),null,UUID.randomUUID());
+        long first=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        long last=quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("1"));
+        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(last,first);
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("1모","2모");
+        mvc.perform(get("/inventory/"+id))
+            .andExpect(status().isOk())
+            .andExpect(htmlCount("<details[^>]* open",0))
+            .andExpect(htmlCount("<strong class=\"quantity-history-amount\"",2))
+            .andExpect(content().string(containsString("class=\"quantity-history-amount\">-1모</strong>")))
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
+            .andExpect(content().string(containsString("aria-label=\"폐기 -1모 처리 취소\"")));
+        long reversal=cancel(id,last);
+        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(reversal,last,first);
+        assertThat(quantities.preview(id).cancellable()).isFalse();
+        assertThatThrownBy(()->cancel(id,first)).isInstanceOf(InvalidFoodException.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE history_id=?",Integer.class,last)).isEqualTo(1);
+        jdbc.update("UPDATE food_item SET quantity_amount=5,quantity_text='5모' WHERE food_id=?",id);
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("2모","1모","2모");
+        assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
+    }
+    @Test void purchaseHistoryCancellationIsAbsentWithoutHistoryAndOnlyOnLatestEligibleRow() throws Exception {
+        long id=create();
+        String purchaseHelp="새로 구매했다면 ‘기존 음식에 추가’를 이용해줘.";
+        var edit=mvc.perform(get("/inventory/"+id+"/edit")).andExpect(status().isOk())
+            .andExpect(content().string(containsString(purchaseHelp))).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        mvc.perform(get("/inventory/new")).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString(purchaseHelp))));
+        if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
+            var dir=java.nio.file.Path.of("build/reports/purchase-detail-preview");java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("edit.html"),edit);
+        }
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",0))
+            .andExpect(htmlCount("class=\"consumption-history-list\"",0));
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        var partial=mvc.perform(get("/inventory/"+id).param("warning","true").param("storage","FRIDGE"))
+            .andExpect(status().isOk())
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
+            .andExpect(content().string(containsString(">처리 취소</a>")))
+            .andExpect(htmlCount("(?s)<section class=\"form-section purchase-detail-card\">.*?<div class=\"stock-card-footer purchase-detail-footer\">.*?등록.*?수정.*?</div>\\s*</section>",1))
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
+            var dir=java.nio.file.Path.of("build/reports/purchase-detail-preview");java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("partial.html"),partial);
+        }
+        long event=finish(id);
+        var ended=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(content().string(containsString("<dt>최초 등록 수량</dt><dd>2.5모</dd>")))
+            .andExpect(content().string(containsString("(잔량: <span>0모)</span>")))
+            .andExpect(htmlCount("class=\"button quantity-(consume|discard)\"",0))
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        if(Boolean.getBoolean("frizer.exportPurchasePreview"))java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/purchase-detail-preview/ended.html"),ended);
+        jdbc.update("UPDATE food_item SET opened_at='2026-09-01' WHERE food_id=?",id);
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",0));
+        assertThatThrownBy(()->cancel(id,event)).isInstanceOf(InvalidFoodException.class);
+    }
+
+    @Test void cancelledProcessingRemainsInQuantityTimelineWithoutCancelButton() throws Exception {
+        long id=create(),event=finish(id);
+        mvc.perform(get("/foods/"+masters.masterId(id)).param("ended","true")).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("다른 음식으로 이동"))))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("기존 음식에 추가"))))
+            .andExpect(content().string(containsString("전체 목록으로")));
+        cancel(id,event);
+        mvc.perform(get("/foods/"+masters.masterId(id))).andExpect(status().isOk())
+            .andExpect(content().string(containsString("기존 음식에 추가")))
+            .andExpect(content().string(containsString("다른 음식으로 이동")));
+        assertThat(quantities.history(id)).hasSize(2);
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(htmlCount("class=\"consumption-history-list\"",1))
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",0))
+            .andExpect(content().string(containsString("data-event=\"CANCEL\">취소</span>")))
+            .andExpect(content().string(containsString("+2.5모")));
+        mvc.perform(get("/history")).andExpect(status().isOk())
+            .andExpect(content().string(containsString("data-event=\"CANCEL\">취소</span>")));
+    }
+
+    @Test void endedCardsUseOriginalQuantityAndLatestUncancelledZeroBalanceTime() throws Exception {
+        long id=create(),master=masters.masterId(id);
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>상태</dt>"))));
+        long first=finish(id);
+        jdbc.update("UPDATE food_history SET created_at='2026-09-14T01:00:00Z' WHERE history_id=?",first);
+        assertThat(quantities.endedSummaries(master).get(id).endedAt().toInstant())
+            .isEqualTo(java.time.Instant.parse("2026-09-14T01:00:00Z"));
+        cancel(id,first);
+        assertThat(quantities.endedSummaries(master)).isEmpty();
+        long last=quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID());
+        jdbc.update("UPDATE food_history SET created_at='2026-09-15T13:41:00Z' WHERE history_id=?",last);
+        jdbc.update("UPDATE food_item SET updated_at='2026-09-16T01:00:00Z' WHERE food_id=?",id);
+        assertThat(quantities.endedSummaries(master).get(id).registrationQuantity()).isEqualTo("2.5모");
+        var card=mvc.perform(get("/foods/"+master).param("ended","true")).andExpect(status().isOk())
+            .andExpect(content().string(containsString("(2026.09.15 22:41)")))
+            .andExpect(content().string(containsString("최초 등록 수량 <strong>2.5모</strong>")))
+            .andExpect(htmlCount("class=\"stock-dates\"",0))
+            .andExpect(htmlCount("class=\"stock-card-footer\"",0))
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        mvc.perform(get("/inventory/"+id).param("ended","true")).andExpect(status().isOk())
+            .andExpect(content().string(containsString("2026.09.15 22:41")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>상태</dt>"))))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>구매일</dt>"))))
+            .andExpect(htmlCount("class=\"stock-card-footer purchase-detail-footer\"",0))
+            .andExpect(htmlCount("<details[^>]*open=\"open\"",1));
+        if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
+            var dir=java.nio.file.Path.of("build/reports/purchase-detail-preview");java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("ended-list.html"),card);
+        }
+    }
+
+    @Test void purchaseUndoBelongsToDismissibleNoticeOnly() throws Exception {
+        long id=create(),master=masters.masterId(id);
+        var html=mvc.perform(get("/foods/"+master).flashAttr("successMessage","먹은 것으로 기록했어.")
+                .flashAttr("processedItemId",id)).andExpect(status().isOk())
+            .andExpect(htmlCount("(?s)<div class=\"notice purchase-notice\"[^>]*>.*?<a class=\"purchase-undo\".*?</div>\\s*</div>",1))
+            .andExpect(htmlCount("class=\"purchase-undo\"",1))
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        mvc.perform(get("/foods/"+master)).andExpect(status().isOk()).andExpect(htmlCount("class=\"purchase-undo\"",0));
+        mvc.perform(get("/foods/"+master).flashAttr("successMessage","처리를 취소했어. 다시 보관 중이야."))
+            .andExpect(status().isOk()).andExpect(htmlCount("class=\"purchase-undo\"",0));
+        if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
+            var dir=java.nio.file.Path.of("build/reports/purchase-detail-preview");java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("purchase-notice.html"),html);
+        }
+    }
+
+    private void correct(long id,String amount,String unit,String memo) throws Exception {
+        mvc.perform(post("/inventory/"+id+"/edit").param("foodName","두부").param("storageType","FRIDGE")
+            .param("quantityAmount",amount).param("quantityUnit",unit).param("sourceType","PURCHASE").param("memo",memo)
+            .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString()))
+            .andExpect(redirectedUrl("/inventory/"+id));
+    }
+    @Test void quantityCorrectionsUseStoredDeltasAndDoNotBecomePurchases() throws Exception {
+        long id=create();
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        correct(id,"5","모","원래 메모");
+        quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("1"));
+        assertThat(quantities.history(id)).extracting(QuantityChange::changeQuantity).containsExactly("-1모","+3모","-0.5모");
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("4모","5모","2모");
+        assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=? AND action_type='CREATE'",Integer.class,id)).isEqualTo(1);
+        var page=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(content().string(containsString("수량 변경 이력")))
+            .andExpect(content().string(containsString("data-event=\"UPDATE\">수정</span>")))
+            .andExpect(content().string(containsString("+3모")))
+            .andExpect(content().string(containsString("(잔량: <span>5모)</span>")))
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
+            var dir=java.nio.file.Path.of("build/reports/purchase-detail-preview");java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("changes.html"),page);
+            for (var route : Map.of("history-tags.html", "/history", "home-tags.html", "/").entrySet()) {
+                var html=mvc.perform(get(route.getValue())).andExpect(status().isOk())
+                    .andExpect(content().string(containsString("data-event=\"UPDATE\">수정</span>")))
+                    .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+                java.nio.file.Files.writeString(dir.resolve(route.getKey()),html);
+            }
+        }
+        correct(id,"4","모","메모만 바꿔");
+        assertThat(quantities.history(id)).hasSize(3);
+        assertThat(quantities.preview(id).cancellable()).isTrue();
+        correct(id,"3.5","모","메모만 바꿔");
+        assertThat(quantities.history(id).getFirst().changeQuantity()).isEqualTo("-0.5모");
+        assertThat(quantities.preview(id).cancellable()).isFalse();
+    }
+    @Test void unitCorrectionPreservesBeforeUnitWithoutConvertingQuantities() throws Exception {
+        long id=create();correct(id,"2.5","봉지","원래 메모");
+        var change=quantities.history(id).getFirst();
+        assertThat(change.actionLabel()).isEqualTo("수정");
+        assertThat(change.changeQuantity()).isEqualTo("2.5모 → 2.5봉지");
+        assertThat(change.remainingQuantity()).isEqualTo("2.5봉지");
+        assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
+        correct(id,"2.5","봉지","원래 메모");
+        assertThat(quantities.history(id)).hasSize(1);
+    }
+    private static org.springframework.test.web.servlet.ResultMatcher htmlCount(String pattern,long count) {
+        return result -> assertThat(java.util.regex.Pattern.compile(pattern).matcher(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8)).results().count()).isEqualTo(count);
     }
 }

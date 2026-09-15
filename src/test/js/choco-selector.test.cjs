@@ -13,44 +13,62 @@ function valid(regions,result,complete=true){
 }
 const originalGroups={PROFILE:['happy-closeup'],WAITING:['puppy-sit','empty-curious','extra-chin-on-paw','extra-puppy-gaze'],REST:['cozy-curl','extra-curled-smile','leaf-hat-front','leaf-hat-side','rest','sniff'],NEUTRAL:['proud-sit','puppy-tilt','puppy-ready','look-aside'],HAPPY:['come-running','extra-sunny-sit','extra-tongue-step','happy-lounge','happy-sit','puppy-front-paws']};
 const expected={PROFILE:[...originalGroups.PROFILE,'back-view-harness'],WAITING:[...originalGroups.WAITING,'pink-coat-look-back'],REST:[...originalGroups.REST,'flower-sniff','side-rest','belly-up-lounge','flower-collar-sit','plastic-flower-hat','striped-socks-puppy','snack-ring-tilt','upside-down-gaze','chin-scratch-closeup','lying-blank-gaze','relaxed-smile-portrait'],NEUTRAL:[...originalGroups.NEUTRAL,'calm-closeup','red-collar-puppy','puppy-paw-reach','puppy-look-down','leash-hold'],HAPPY:[...originalGroups.HAPPY,'happy-run-front','belly-up-play','breeze-sly-smile','breeze-happy-smile','side-smile-stand']};
-const batch=JSON.parse(fs.readFileSync('docs/choco-20260914-batch.json','utf8')).images;
+const batch=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260914-batch.json','utf8')).images;
 assert.equal(batch.length,33);
 for(const row of batch)expected[row.emotion_group].push(row.key);
 assert.deepEqual(groups,expected);assert.equal(Object.keys(assets).length,77);
 // Historical import accounting remains intact; approved retouches have explicit replacement hashes.
-const addition=JSON.parse(fs.readFileSync('docs/ui-v5-addon/image-add/results.json','utf8'));
+const addition=JSON.parse(fs.readFileSync('src/test/resources/choco/addition-results.json','utf8'));
 assert.equal(addition.images.length,20);assert.equal(addition.added,15);assert.equal(addition.reused,5);assert.equal(addition.missing,0);
 assert.equal(new Set(addition.images.map(r=>r.zip_filename)).size,20);
-const sourceRows=fs.readFileSync('docs/ui-v5-addon/image-add/image-mapping.csv','utf8').trim().split(/\r?\n/).slice(1);
+const sourceRows=fs.readFileSync('src/test/resources/choco/image-mapping.csv','utf8').trim().split(/\r?\n/).slice(1);
 assert.equal(sourceRows.length,20);
 for(const line of sourceRows){const [original,zip]=line.split(',');assert.ok(addition.images.some(r=>r.original_filename===original&&r.zip_filename===zip));}
 const digest=name=>crypto.createHash('sha256').update(fs.readFileSync('src/main/resources/static/assets/choco/'+name)).digest('hex');
+const current=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260914.json','utf8'));
+const replacements=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260915-replacements.json','utf8')).images;
+assert.equal(replacements.length,14);
+assert.equal(new Set(replacements.map(r=>r.filename)).size,replacements.length,'duplicate replacement');
+const replacementByName=Object.fromEntries(replacements.map(r=>[r.filename,r]));
+const priorHashes={...addition.existing_asset_sha256,...Object.fromEntries(addition.images.map(r=>[r.project_filename,r.project_sha256]))};
+const importedHashes={...priorHashes,...Object.fromEntries(Object.entries(current.retouches).map(([name,row])=>[name,row.project_sha256])),...Object.fromEntries([...current.images,...batch].map(row=>[row.filename,row.project_sha256]))};
+for(const row of replacements){
+ assert.ok(assets[row.filename.replace(/\.png$/,'')],'unknown replacement '+row.filename);
+ assert.match(row.commit,/^[a-f0-9]{40}$/);
+ assert.equal(row.previous_sha256,importedHashes[row.filename],row.filename+' replacement provenance');
+ assert.notEqual(row.previous_sha256,row.project_sha256,'replacement must change bytes');
+ assert.equal(digest(row.filename),row.project_sha256,row.filename+' committed replacement');
+ const bytes=fs.readFileSync('src/main/resources/static/assets/choco/'+row.filename);
+ assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+ assert.equal(row.png_color_type,6,'replacement must retain RGBA');
+ assert.equal(bytes[25],row.png_color_type);
+ assert.deepEqual([bytes.readUInt32BE(16),bytes.readUInt32BE(20)],row.size);
+}
+const replacedHash=(name,hash)=>replacementByName[name]?.project_sha256||hash;
 for(const row of batch){
  assert.equal(row.filename,row.key+'.png');
- assert.equal(digest(row.filename),row.source_sha256,'original bytes changed: '+row.filename);
- assert.equal(digest(row.filename),row.project_sha256);
+ assert.equal(row.project_sha256,row.source_sha256,'batch import must preserve original bytes');
+ assert.equal(digest(row.filename),replacedHash(row.filename,row.project_sha256));
  assert.equal(assets[row.key].renderMode,row.render_mode);
  assert.ok(assets[row.key].poseGroup);
 }
 assert.ok(!Object.keys(assets).some(k=>/kakao|\.jpg$/i.test(k)));
 for(const keys of Object.values(scopes))assert.equal(new Set(keys).size,keys.length,'duplicate in scope');
-const current=JSON.parse(fs.readFileSync('docs/choco-20260914.json','utf8'));
-const priorHashes={...addition.existing_asset_sha256,...Object.fromEntries(addition.images.map(r=>[r.project_filename,r.project_sha256]))};
 for(const [name,row] of Object.entries(current.retouches)){
  assert.equal(row.previous_sha256,priorHashes[name],name+' retouch provenance');
- assert.equal(digest(name),row.project_sha256,name+' approved retouch');
+ assert.equal(digest(name),replacedHash(name,row.project_sha256),name+' approved retouch/replacement');
 }
-const approvedHash=(name,hash)=>current.retouches[name]?.project_sha256||hash;
+const approvedHash=(name,hash)=>replacedHash(name,current.retouches[name]?.project_sha256||hash);
 for(const [name,hash] of Object.entries(addition.existing_asset_sha256))assert.equal(digest(name),approvedHash(name,hash),'unapproved change '+name);
 for(const row of addition.images){assert.ok(['ADDED','REUSED'].includes(row.status));assert.ok(assets[row.project_filename.replace(/\.png$/,'')]);assert.equal(digest(row.project_filename),approvedHash(row.project_filename,row.project_sha256));if(row.status==='ADDED')assert.equal(row.project_sha256,row.source_sha256);else{assert.ok(row.comparison_mse<0.00001);assert.ok(!fs.existsSync('src/main/resources/static/assets/choco/'+row.zip_filename));}}
 const newKeys=['upside-down-gaze','leash-hold','chin-scratch-closeup','breeze-sly-smile','breeze-happy-smile','lying-blank-gaze','relaxed-smile-portrait','side-smile-stand'];
 assert.deepEqual(current.images.map(r=>r.key),newKeys);
 for(const row of current.images){
  const bytes=fs.readFileSync('src/main/resources/static/assets/choco/'+row.filename);
- assert.equal(digest(row.filename),row.project_sha256);
+ assert.equal(digest(row.filename),replacedHash(row.filename,row.project_sha256));
  assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10]);
  assert.equal(bytes[25],6,'RGBA PNG');
- assert.deepEqual([bytes.readUInt32BE(16),bytes.readUInt32BE(20)],row.size);
+ assert.deepEqual([bytes.readUInt32BE(16),bytes.readUInt32BE(20)],replacementByName[row.filename]?.size||row.size);
  assert.equal(assets[row.key].emotionGroup,row.emotion_group);
  if(!row.face_settings)assert.equal(row.project_sha256,row.source_sha256,'unnecessary edit');
  assert.equal(core.isEligible(row.key,'error'),false);
@@ -218,4 +236,4 @@ for(const key of ['handsome-profile-lounge','threshold-lounge','puppy-proud-sit'
  vm.runInContext(adapter,fileSandbox);
  assert.equal(target.src,'http://localhost/assets/choco/'+encodeURIComponent(key+'.png'));
 }
-console.log('PASS: 77 live assets; 41 added PNGs; approved retouch hashes; 62-image headers; independent shuffle bags; 360 home allocations; old-session migration; normalized filenames and asset URLs; DOM stability and BFCache');
+console.log('PASS: 77 live assets; 41 added PNGs; approved retouch hashes and 14 committed replacements; 62-image headers; independent shuffle bags; 360 home allocations; old-session migration; normalized filenames and asset URLs; DOM stability and BFCache');

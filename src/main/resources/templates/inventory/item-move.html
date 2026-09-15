@@ -14,7 +14,7 @@
 <label><input type="radio" name="moveMode" value="EXISTING"><span>기존 음식으로 이동</span></label>
 <label><input type="radio" name="moveMode" value="NEW"><span>새로운 음식으로 변경</span></label></fieldset>
 <div id="existingMove" hidden>
-<form id="moveSearch" class="field"><label for="moveQuery">어느 음식으로 이동할까?</label><div class="item-move-search"><input id="moveQuery" type="search" maxlength="100" placeholder="음식 이름" autocomplete="off"><button class="button" type="submit">검색</button></div></form>
+<form id="moveSearch" class="field"><label for="moveQuery">어느 음식으로 이동할까?</label><div class="item-move-search"><input id="moveQuery" type="search" maxlength="100" placeholder="음식 이름" autocomplete="off"><button class="search-button" type="submit">검색</button></div></form>
 <div class="field merge-choice" id="moveResults" hidden><label id="mergeTargetLabel" for="moveTarget">선택한 음식</label><select id="moveTarget"><option value="">음식을 골라줘</option></select>
 <details class="merge-picker" id="mergePicker" data-select-id="moveTarget" hidden><summary aria-labelledby="mergeTargetLabel mergeSelectedLabel"><span id="mergeSelectedLabel" class="merge-option-text">음식을 골라줘</span><span aria-hidden="true">⌄</span></summary><div class="merge-options" id="itemMoveOptions" role="group" aria-label="선택할 음식"><button type="button" data-value=""><span class="merge-option-text">음식을 골라줘</span></button></div></details></div>
 </div>
@@ -23,7 +23,7 @@
 <section id="itemMovePreview" class="merge-preview" hidden aria-busy="false"><h2>이렇게 이동할 거야</h2>
 <dl class="merge-facts"><div><dt>이동할 개별 구매 총 건수</dt><dd>1건</dd></div><div><dt>이동할 음식 이력 총 건수</dt><dd data-result="historyCount"></dd></div><div><dt>기존 음식의 총 개별 구매 건수</dt><dd data-result="sourceCount"></dd></div></dl>
 <div class="merge-help"><p>수량·단위·날짜·개봉 상태·보관 위치·메모 정보는 그대로 유지돼.</p></div><p class="merge-caution">이 작업은 되돌릴 수 없어.</p>
-<form id="itemMoveSubmit" method="post" th:action="@{/inventory/{id}/move(id=${food.foodId()})}"><div id="moveFields"></div><button class="button merge-submit" type="submit">확인했어, 이동하자!</button></form></section>
+<form id="itemMoveSubmit" method="post" th:action="@{/inventory/{id}/move(id=${food.foodId()})}"><div id="moveFields"></div><button class="button merge-submit action-move" type="submit">확인했어, 이동하자!</button></form></section>
 <a class="merge-text-button merge-back" th:href="@{/inventory/{id}(id=${food.foodId()})}">돌아가기</a>
 <noscript><p>이동 내용을 확인하려면 JavaScript를 켜줘.</p></noscript>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

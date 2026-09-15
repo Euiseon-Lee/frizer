@@ -97,8 +97,8 @@ public class InventoryService {
             masters.invalidateOtherItems(masterId, id);
         } else masters.touch(masterId);
         if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
-        if (history.insert(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
-                after.quantityText(), "음식 수정", now, changes)) != 1) {
+        if (history.insertUpdate(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
+                after.quantityText(), "음식 수정", now, changes), before, after) != 1) {
             throw new IllegalStateException("수정 이력을 저장하지 못했습니다.");
         }
         return true;

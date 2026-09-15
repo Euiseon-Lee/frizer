@@ -5,31 +5,25 @@
 1인 가구의 냉장고 재고 누적과 냉동 악성재고를 최소한의 입력으로 관리하는 개인용 모바일 웹 프로젝트입니다.
 재고의 정확한 수량보다 유지하기 쉬운 입력과 먼저 확인할 음식의 발견을 우선합니다.
 
-## 현재 상태
+## 현재 상태와 기준 문서
 
-STEP 3 설계·구현·검증의 기준 문서는 [STEP 3 보고서](STEP3_REPORT.md)입니다.
-최종 UI·검증 범위와 보류 사항은 [오늘 작업 정리](SESSION_SUMMARY.md)를 확인합니다.
-현재 STEP 3은 **음식별 목록·구매분 상세·음식 단위 전체 이동을 구현**했습니다.
-현재 구현 범위의 [테스트 목록 및 결과](STEP3_TEST_MATRIX.md), [Java 실행 목록](STEP3_TEST_CASES.md)을 확인할 수 있습니다. 2026-09-14 검증 보강 후 Java 389개와 등록 UI JavaScript 25개·기존 JS 검사·bootJar가 통과했습니다. 신규 등록은 클릭 직후 중복 제출을 막고 V9 요청 영수증으로 동일 요청의 재전송·동시 전송을 한 번만 저장합니다.
-`/foods/{id}`에서 개별 구매 목록을 확인하고, **다른 음식으로 이동**에서 대상을 선택하면 같은 화면에 미리보기가 표시됩니다. 확인 후 실행하면 구매 항목과 이력을 보존하고 전체 음식 목록으로 이동합니다.
-새 음식 등록은 같은 이름이어도 별도 음식으로 생성합니다. 등록 화면에서 기존 음식을 선택하거나 개별 구매 목록의 '구매 항목 추가'로 기존 음식에 추가할 수 있습니다. 출처 미선택은 기타와 구분합니다. 소비·폐기·분리·취소·엑셀은 후속 범위입니다.
-아래 STEP 2 수치는 당시 결과이며 이후 수정·경고·이미지 정책의 인계 상태는
-[최근 인계 문서](ui-v5-addon/NEXT_SESSION.md)를 참고합니다.
+STEP 3은 음식 그룹/개별 구매 관리, 신규/추가 등록, 수정, 전체/개별 이동, 부분 소비·폐기·제한적 취소, 종료 목록과 수량 변경 이력을 구현했다. 통계·부분 분리·일괄 등록·물리 삭제 등은 후속 범위다.
 
-**STEP 2 등록·조회 및 쪼코 V5 UI 구현 완료 (2026-09-13).**
-Java 기본 패키지는 `com.euiseon.friger`이며 모델은 `inventory.entity.FoodItem`, `history.entity.FoodHistory`에 둡니다.
-등록 폼, 서버 검증, 음식과 CREATE 이력의 트랜잭션 저장, ACTIVE 목록과 모바일 레이아웃을 구현했습니다.
+- [STEP 3 설계와 후속 범위](STEP3_REPORT.md)
+- [수량·소비·폐기·취소](ITEM_QUANTITY_DESIGN.md)
+- [개별 구매 이동](ITEM_MOVE_DESIGN.md)
+- [공통 UI 규격](UI_DESIGN.md)
+- [회귀 검증 범위](STEP3_TEST_MATRIX.md)
+- [날짜 정책 초안](DATE_POLICY_DRAFT.md), [일괄 등록 초안](BULK_REGISTRATION_DRAFT.md)
+- [쪼코 이미지 정책](UI_DESIGN.md)
 
-- `/`: 보관 수량·소비기한 요약·위치별 카드·최근 기록
-- `/inventory`: 위치별 보관 목록과 카드 전체 클릭으로 상세 이동
-- /inventory/new: 음식 등록 폼
-- /inventory/{id}: 음식 상세
-- /history: 최근 음식 기록 조회
-- `POST /inventory`: 저장 후 목록으로 이동
+2026-09-16 검증: Java 430개(실패/오류/건너뜀 0), JS 테스트 6개 파일, bootJar 통과. 마지막 입력창 포커스·보관 상태 탭 변경 후 관련 통합 테스트 2개와 bootJar 재검증도 통과했다. 모든 임의 수량·음식명 조합이나 실제 모바일 기기를 검증한 것은 아니다.
 
-`test bootJar` 성공, STEP 1 97개 + STEP 2 26개 = **123개 테스트 통과**.
-자세한 결과는 [STEP 1 보고서](STEP1_REPORT.md), [STEP 2 보고서](STEP2_REPORT.md)를 참고합니다.
-현재 등록 정보 수정은 구현되어 있습니다. 소비·폐기·개별 항목 이동, 엑셀 일괄 처리·다중 삭제, 대시보드 점수, PWA, 인증 및 배포는 아직 구현하지 않았습니다.
+Java/Mapper/V13은 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수량·단위를 저장하며 과거 텍스트를 추정 변환하지 않는다. 취소 태그도 공통 Java 명칭으로 제공하므로 이전 앱은 재시작이 필요하다.
+
+문서는 작업별로 새로 만들지 않고 위 기준 문서를 갱신한다. 임시 화면·스크린샷·테스트 실행 덤프는 Git 제외된 build/reports에 둔다. 이미지 해시 JSON·매핑 CSV는 src/test/resources/choco에 테스트 입력으로 보존한다.
+
+수정 완료 후 복귀 경로, 최초 구매량 정정과 통계 정책은 후속 논의다. 현재 수정 완료는 상세로 돌아간다.
 
 ## 명칭
 
@@ -247,9 +241,9 @@ prod 설정은 향후 운영 실행을 위한 기반이며 배포 스크립트�
 
 STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은 `food_item`으로 분리합니다.
 기존 ITEM ID와 이력을 유지하며 병합 요청 결과는 `food_merge_receipt`에 기록합니다.
-아래 STEP 1·2 설명과 달라진 현재 구조와 전환 검증은 [STEP 3 보고서](STEP3_REPORT.md)를 참고합니다.
+현재 구조와 전환 계약은 [STEP 3 보고서](STEP3_REPORT.md)를 참고합니다.
 
-`src/main/resources/db/migration/V1__init_schema.sql`을 Flyway가 적용합니다.
+Flyway는 src/main/resources/db/migration의 V1부터 V13까지 순서대로 적용합니다.
 기존 운영 DB에 적용된 migration을 이후에 수정하지 않고, 추가 변경은 V2 이상으로 작성합니다.
 
 - `food_item`: 현재 상태. 같은 이름의 식품 복수 등록 허용.
@@ -258,7 +252,7 @@ STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은
 - enum: VARCHAR + CHECK. PostgreSQL enum 타입은 사용하지 않습니다.
 - 필수값: NOT NULL. 이름은 빈 문자열/일반 공백만 있는 값도 거부합니다.
 - FK: `ON DELETE RESTRICT`, 연쇄 삭제 없음.
-- 인덱스: ACTIVE 소비기한, ACTIVE 냉동 재고 냉동일, 이력 발생 시각 내림차순의 세 개.
+- 인덱스와 요청 영수증 제약의 정확한 정의는 migration SQL을 기준으로 합니다.
 
 ### 확정된 냉동 상태 제약
 
@@ -269,7 +263,7 @@ STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은
 
 냉동실에서 NULL은 ‘냉동일 미상’입니다. 임의로 오늘로 대체하는 DB DEFAULT는 없습니다.
 `freeze_type DEFAULT NONE`은 비냉동 등록용 기본값이므로 FREEZER INSERT는 유형을 명시해야 합니다.
-이 제약은 ACTIVE, CONSUMED, DISCARDED 모두 동일하게 적용됩니다.
+이 제약은 ACTIVE, DEPLETED 모두 동일하게 적용됩니다.
 
 ### 시간 정책과 Domain
 
@@ -277,72 +271,10 @@ STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은
 DB 연결마다 `SET TIME ZONE 'Asia/Seoul'`을 적용합니다.
 TIMESTAMPTZ는 시점을 저장하므로 표시할 때 한국 시간대로 변환하며, 입력 시각의 원래 오프셋 보존을 전제하지 않습니다.
 `created_at`, `updated_at`은 NOT NULL 및 기본 현재 시각을 사용합니다.
-`updated_at`은 자동 갱신 트리거가 없으며 향후 UPDATE SQL에서 명시적으로 갱신합니다.
+시각·버전 갱신 및 재고 revision의 정확한 규칙은 최신 migration과 UPDATE SQL을 따릅니다.
 
 FoodItem/FoodHistory는 불변 Java record입니다. MyBatis의 이름 기반 생성자 매핑과
 underscore → camelCase 설정을 사용하며, XML에서 enum 이름 및 LocalDate/OffsetDateTime을 매핑합니다.
-
-## 확정 정책과 구현 범위
-
-등록 정책은 STEP 2에서 구현했습니다. 위치 이동·소비·폐기·대시보드 정책은 이후 단계에서 구현합니다.
-
-### 등록과 보관 위치
-
-- 음식명·보관 위치·수량은 신규 등록 시 필수. 수량은 자유 문자열이며 용량은 선택 자유 문자열(예: 2인분, 300g). 수량·용량으로 자동 차감하거나 계산하지 않음.
-- 출처 미입력은 ETC. 배달 잔반 출처의 기본 위치는 FREEZER지만 사용자가 명시한 위치가 우선.
-- 배달 잔반 + FREEZER는 HOME_FROZEN으로 정규화. 그 외 FREEZER의 유형 미입력도 HOME_FROZEN.
-- 시판 냉동식품은 COMMERCIAL_FROZEN을 명시적으로 선택.
-- 기존 냉동 재고를 등록하면서 날짜를 모르면 NULL 유지, 화면에는 ‘냉동일 미상’.
-- 새 냉동 처리 시 한국 기준 오늘. 새로 구매한 시판 냉동식품은 우리 집 냉동 보관 시작일을 기록.
-- 기존 재고 등록에서 비어 있는 냉동일을 새 냉동 처리와 혼동하여 자동 보정하지 않음.
-- FRIDGE/ROOM → FREEZER: HOME_FROZEN, 오늘, FREEZE 이력.
-- FREEZER → FRIDGE/ROOM: NONE, NULL, MOVE 이력.
-- FRIDGE ↔ ROOM: MOVE. 같은 위치로의 요청은 변경과 이력 없음.
-- 최초 등록은 위치와 무관하게 CREATE 이력 1건만 작성.
-- 날짜 미입력은 NULL. 구매·개봉·냉동일의 미래 날짜는 서버 검증에서 거부하고, 과거 소비기한 등록은 허용.
-
-### 소비·폐기 및 History
-
-- 물리 삭제 없음. 소비·폐기는 각각 CONSUMED/DISCARDED로 변경.
-- 실행 전 확인 절차 제공. V1에 취소·복원 없음.
-- 소비·폐기 이후 마지막 storage_type, freeze_type, frozen_at 유지.
-- ACTIVE 조건부 UPDATE가 1건 성공했을 때만 History INSERT.
-- 상태 변경과 History INSERT는 동일 Service 트랜잭션. 이력 실패 시 상태 변경도 롤백.
-- 동일 완료 요청은 추가 변경과 이력 없음. 완료된 항목의 다른 상태 전환·이동·일반 수정은 허용하지 않음.
-- History의 수량은 행동 당시 문자열이며, 메모는 행동 메모. 이름은 현재 FoodItem에서 조회.
-- 일반 정보 수정 이력, 과거 냉동일 복원은 지원하지 않음.
-- CREATE의 이전 위치는 NULL, 새 위치는 등록 위치.
-- CONSUME/DISCARD의 이전·신규 위치는 같은 마지막 위치.
-- History는 append-only 정책이며 이후에도 수정·삭제 Mapper를 제공하지 않음.
-
-DB FK와 CHECK만으로 관리자 SQL의 모든 삭제나 수정이 금지되는 것은 아닙니다.
-현재 migration은 append-only 트리거나 전용 권한 분리를 추가하지 않습니다.
-상태 전이·중복 방지·트랜잭션 동작의 구현과 테스트는 Service 단계에서 진행합니다.
-
-### 대시보드
-
-- ACTIVE만 조회.
-- 소비기한이 지난 식품은 상단 ‘소비기한 경과 — 섭취 여부 확인 필요’에 별도 표시.
-- 경과 식품은 TOP 3에서 제외하고 섭취 대상으로 추천하는 문구를 사용하지 않음.
-- 비경과 TOP 3 제목은 ‘오늘 먼저 먹을 음식’.
-- 소비기한 없음은 경과로 간주하지 않음.
-- 남은 일수 0일 +100, 1일 +90, 2~3일 +70, 4~7일 +40, 그 외/미상 0.
-- HOME_FROZEN 배달 잔반은 냉동 30일 이상 +50, 14일 이상 +30 중 하나만 적용.
-- 그 외 HOME_FROZEN은 냉동 90일 이상 +30. 배달 잔반과 중복 가산 없음.
-- FRIDGE +10. 서로 다른 영역은 합산.
-- 냉동일 NULL에는 냉동 경과 점수 없음. 소비기한 점수 등 다른 적용 가능한 점수는 유지.
-- COMMERCIAL_FROZEN에는 냉동 경과 점수 없음.
-- 동점: 소비기한, 냉동일, 생성 시각, ID 오름차순. 날짜 NULL은 뒤로.
-- 양수 점수의 후보 중 최대 3개만 표시. 후보 부족 시 채우기 위한 무작위 추천 없음.
-- 임박 영역은 오늘부터 7일 이내. 냉동일 미상 별도 알림/점수는 실제 사용 후 결정.
-- 점수 숫자보다 우선 처리 이유 표시.
-
-### 화면과 배포
-
-주요 화면은 `/`, `/inventory`, `/inventory/new`, `/history` 네 개이며,
-수정 화면은 향후 등록 폼을 재사용합니다. 목록 카드에서 주요 행동을 실행하도록 설계합니다.
-PWA 명칭은 FR!ZER로 예약하되 STEP 1에서는 PWA 파일을 생성하지 않습니다.
-인증 방식은 미결정이며 실제 Lightsail 공개 배포 전에 본인만 접근할 수 있는 방식을 확정해야 합니다.
 
 ## PostgreSQL 통합 테스트
 
@@ -369,37 +301,10 @@ Docker가 없으면 실패하며 `disabledWithoutDocker`로 성공처럼 건너�
 
 ## 프로젝트 구조
 
-```text
-frizer/
-├── README.md                          # 문서 진입점
-├── docs/                              # 프로젝트 안내와 단계별 보고서
-├── build.gradle, settings.gradle, gradlew, gradlew.bat
-├── gradle/wrapper/
-├── compose.yml
-├── src/main/java/com/euiseon/friger/
-│   ├── FrizerApplication.java
-│   ├── common/config/, common/type/
-│   ├── inventory/
-│   │   ├── entity/FoodItem.java
-│   │   ├── dao/InventoryDao.java
-│   │   ├── service/InventoryService.java
-│   │   ├── exception/InvalidFoodException.java, FoodNotFoundException.java
-│   │   ├── controller/InventoryController.java
-│   │   └── dto/FoodCreateForm.java
-│   └── history/
-│       ├── entity/FoodHistory.java
-│       └── dao/HistoryDao.java
-├── src/main/resources/
-│   ├── application*.yml, messages.properties
-│   ├── db/migration/ (V1 초기 스키마, V2 출처·용량, V3 출처 메모, V4 유통기한)
-│   ├── mapper/inventory/, mapper/history/
-│   ├── templates/inventory/list.html, new.html, detail.html
-│   └── static/css/app.css, static/js/food-form.js
-└── src/test/
-    ├── java/com/euiseon/friger/smoke/    # STEP 1 검증
-    ├── java/com/euiseon/friger/inventory/ # STEP 2 통합 검증
-    └── resources/mapper/smoke/
-```
-
-STEP 2 결과는 브라우저에서 확인한 뒤 사용자 검토를 거쳐 커밋합니다.
-다음 기능 단계와 원격 push는 별도 요청 시 진행합니다.
+- src/main/java/com/euiseon/friger: 공통 설정, 재고·음식 그룹·이동·수량 서비스 및 이력
+- src/main/resources/db/migration: 순차 스키마 변경
+- src/main/resources/mapper: MyBatis SQL
+- src/main/resources/templates, static: 서버 렌더링 화면·CSS·JS·쪼코 이미지
+- src/test/java, src/test/js: 자동 회귀 테스트
+- docs: 실행 안내·기준 설계·이미지 매핑 자료
+- build/reports: 커밋하지 않는 검증 보고서·임시 화면

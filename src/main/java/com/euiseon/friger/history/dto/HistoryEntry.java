@@ -26,15 +26,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
     }
     public String actionLabel() {
         if (isMerge()) return "이동";
-        return switch (actionType) {
-            case CREATE -> "등록";
-            case UPDATE -> "수정";
-            case CONSUME -> "소비";
-            case DISCARD -> "폐기";
-            case CANCEL -> "처리 취소";
-            case FREEZE -> "냉동";
-            case MOVE -> "이동";
-        };
+        return actionType.label();
     }
     public String homeSummary() {
         if (isMerge()) return "개별 구매 " + mergedItemCount + "건을 이동했어";

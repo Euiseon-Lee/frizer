@@ -24,12 +24,28 @@
       if (event.data && /[^0-9.]/.test(event.data)) {
         event.preventDefault();
         error.textContent = '숫자와 소수점만 입력할 수 있어.';
+        return;
+      }
+      if (event.data && input.selectionStart != null) {
+        const next = input.value.slice(0, input.selectionStart) + event.data
+          + input.value.slice(input.selectionEnd);
+        if (/^\d*\.\d{4,}$/.test(next)) {
+          event.preventDefault();
+          error.textContent = '';
+        }
       }
     });
     input.addEventListener('input', () => {
+      const caret = input.selectionStart;
+      const decimal = input.value.match(/^(\d*)\.(\d{4,})$/);
+      if (decimal) {
+        input.value = decimal[1] + '.' + decimal[2].slice(0, 3);
+        const position = Math.min(caret ?? input.value.length, input.value.length);
+        input.setSelectionRange(position, position);
+      }
       if (!draftValid(input.value)) {
         input.value = previous;
-        error.textContent = '음수나 기준 수량을 넘는 값은 입력할 수 없어. 소수점 셋째 자리까지 입력해줘.';
+        error.textContent = '음수나 기준 수량을 넘는 값은 입력할 수 없어.';
       } else {
         previous = input.value;
         error.textContent = '';

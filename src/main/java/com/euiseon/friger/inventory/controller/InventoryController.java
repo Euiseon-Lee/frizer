@@ -96,6 +96,12 @@ public class InventoryController {
         var preview = quantities.preview(id);
         boolean endedView = ended == null ? preview.item().status() != FoodStatus.ACTIVE : ended;
         model.addAttribute("quantityPreview", preview);
+        model.addAttribute("quantityHistory", quantities.history(id));
+        if (preview.item().status() == FoodStatus.DEPLETED) {
+            var summary = quantities.endedSummaries(masters.masterId(id)).get(id);
+            model.addAttribute("registrationQuantity", summary.registrationQuantity());
+            model.addAttribute("endedAt", summary.endedAt());
+        }
         model.addAttribute("ended", endedView);
         model.addAttribute("savedWarning", warning);
         model.addAttribute("selectedStorage", storage);

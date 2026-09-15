@@ -1,0 +1,159 @@
+{
+  "description": "Committed image replacements; historical source/import manifests remain unchanged.",
+  "images": [
+    {
+      "filename": "walk-ready-head-tilt.png",
+      "commit": "1221bfa452886bd4d2686c71f8b1f055e25be322",
+      "previous_sha256": "41211ea8508aa8e2e4260ebba18f40044c67cd09874214dfec0686bb7644e40e",
+      "project_sha256": "f2281d10d826e59a31b4b42f6b4d0a251b7be3917a2cde9509db6bef4ea8820c",
+      "size": [
+        1081,
+        1455
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "breeze-happy-smile.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "5cfc2781a44cf920b2989571741c6dbe5703449a48d94b4554fcc0227fe4b160",
+      "project_sha256": "2eee91d6325aaf196f15c71c70e562c5fff969330f06fa8e9cd47483f45dbd6b",
+      "size": [
+        1139,
+        1381
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "breeze-sly-smile.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "3579ec54a0c0c81e968496ede2d5d298315c60a52ee31b04ee99e205340d7020",
+      "project_sha256": "9cea87eb111d5e5778cc7f2629ce21910ba58a85cd8a3fefa1d0491a1636c488",
+      "size": [
+        1139,
+        1381
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "chair-sit.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "120f5930f6d88428dca42134855ae7e40f92b656936921561fbc348467f6bdcf",
+      "project_sha256": "787c128e7708f2ee1d53114f294ef0c5ce8c3f6913b1958f04272584fc1ff990",
+      "size": [
+        1109,
+        1419
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "lion-king-puppy.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "fe26ede317534e7acea1ec7e7d617ac39ae2923f0133fc5b3033fb2c611d3340",
+      "project_sha256": "4642c8087e309e43b6145fcf83acc4cfd2b30a1b9789e14fe1479c367930ce7e",
+      "size": [
+        1127,
+        1396
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "pink-coat-look-back.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "61ebedcfa5aa7d96e473519d1469a91acd89dc76f011e7d8d72017e5f69c72eb",
+      "project_sha256": "8544574b092e905c19288ac958277e364b7c2cfbb24172ade0ba9b9e3a37c069",
+      "size": [
+        1303,
+        1207
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "playful-puppy-approach.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "0b57d62f38802f63520df5bbf11d702d5dd5ed2fdd3b59f789b8b6f35110e549",
+      "project_sha256": "e668e879424b8ce8928c46126fcebfda5c339136c76be5c0b4814d9d5b7c2749",
+      "size": [
+        1044,
+        1507
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "puppy-front-paws.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "a3436245a073377e7c7f1342465ae835bec8bb769b053b5a5d9f73149da2e8be",
+      "project_sha256": "8e3773a7c4a200548adf03b05687922dad4f128496248b1a311277b4293e2d30",
+      "size": [
+        1059,
+        1486
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "puppy-look-down.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "94afc548e803a285269eaed713a343cf6bad7227adf931184f4cf97b13711e5c",
+      "project_sha256": "2a9de419eae4dd1b672aee4b9dd9c96acdb1ed3230723552bfd6f9465d162ce2",
+      "size": [
+        1360,
+        1157
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "red-collar-puppy.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "cd3d634f77065f2394f4456f8e4fd8a02d9fb9044555852b26fff2c1b95692e4",
+      "project_sha256": "601ff9bedddca82933ef035fa10f5f62ae3a888dd4c564ab7433cac95137deff",
+      "size": [
+        958,
+        1642
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "smiling-sit.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "42e903f2ad762f3f27196f7031279c9f2392dd7297f1a55fce274af60c2adac5",
+      "project_sha256": "f27c5cec1f21c183eceea63ad3416f5fbd78da7df700fb391a6b7d49b9eba7be",
+      "size": [
+        943,
+        1667
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "striped-socks-puppy.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "e0cc782c5622d5e802c7b2a1df22f49a90f49cf8c15cf8d7076c48c2d6498436",
+      "project_sha256": "20598200401cf37b577787f890134e8099ccc39065d0a7355b1ad736636a5bd0",
+      "size": [
+        1104,
+        1425
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "tongue-out-side-sit.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "28faed27c24120485e581f9e2dd08c231d4d85a0507bf913553040c9ff23c12d",
+      "project_sha256": "48c260133a39386927b50d8e9698f2f744ec0b120132ba3b67929ba4a122bcc6",
+      "size": [
+        1140,
+        1380
+      ],
+      "png_color_type": 6
+    },
+    {
+      "filename": "upside-down-gaze.png",
+      "commit": "285909ae02f009d22cb1f6a79b69d3c644c70954",
+      "previous_sha256": "25b57b335c8455f6cb48d56cfdba01742c21a92eaa20d7bde8de95375de82fdb",
+      "project_sha256": "e39d7f5cef9159f36c051e71c4180b1fbb5a0b8ea2f86ad726f2f06764a1a306",
+      "size": [
+        1088,
+        1445
+      ],
+      "png_color_type": 6
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 # STEP 3 구현 범위 테스트 목록 및 결과
 
 작성일: 2026-09-14. 범위: 현재 구현된 등록·추가 구매·조회·수정·음식 합치기·이력·입력 UI·이미지 선택기.
-상태: 자동 검증 및 격리 DB 브라우저 검증 수행. 마지막 실행 수치와 개별 결과는 아래 자동 검증 및 [실행 목록](STEP3_TEST_CASES.md)을 따른다.
-정책 기준: [STEP 3 보고서](STEP3_REPORT.md). 소비·폐기·개별 구매 항목 선택 이동·부분 분리·취소·삭제·엑셀은 미구현이므로 대상에서 제외한다.
+상태: 최신 실행 결과는 [개발 안내](README.md)를 참조한다. 아래 표는 등록·이동 중심의 회귀 시나리오이며 실행 목록 덤프는 build/test-results/test에서 확인한다.
+정책 기준: [STEP 3 보고서](STEP3_REPORT.md). 소비·폐기·취소 및 개별 이동은 이후 구현했고 FoodQuantityIntegrationTest와 FoodItemMoveIntegrationTest 등의 코드가 실행 가능한 회귀 기준이다. 부분 분리·물리 삭제·엑셀은 미구현이다.
 
 ## 구현 결과
 
@@ -53,7 +53,7 @@ C01의 CONSUMED/DISCARDED는 기존 DB 상태 제약 검증이며 미구현 소�
 ### 기능별 검사 목록
 
 아래 I=InventoryIntegrationTest, M=FoodMergeIntegrationTest, S=Step3ScenarioIntegrationTest, D=DatabaseSmokeTest이다.
-정확한 메서드·매개변수 실행 목록은 [Java 실행 목록](STEP3_TEST_CASES.md)과 테스트 소스에서 확인한다.
+정확한 메서드·매개변수 실행 목록은 [Java 실행 목록](STEP3_TEST_MATRIX.md)과 테스트 소스에서 확인한다.
 
 | ID | 검사할 내용 | 자동 검사 근거 | 결과 |
 | --- | --- | --- | --- |
@@ -135,7 +135,7 @@ JS 검사는 실제 소스 코드를 격리된 Node VM과 DOM 모형에서 실�
 
 최종 마감 재검증: Java 389개(이동 17 + 재고 95 + 시나리오 180 + DB 97), 실패·오류·건너뜀 0. `test bootJar` 성공. 등록 UI 25개 및 이동 미리보기·대상 선택 목록·쪼코 선택기 JavaScript 4종 모두 통과.
 
-후속 검증에는 WARNING 0/1/3/4/100개, 날짜 미입력/과거/오늘/미래, 동일 수량 변경 이력 제외를 포함한다. 최종 날짜 카드·버튼·아이콘 수정까지 포함한 실행이며 브라우저 확인은 각 변경 당시 기록과 구분한다. [최종 상태](SESSION_SUMMARY.md)와 [전체 실행 목록](STEP3_TEST_CASES.md) 참고.
+후속 검증에는 WARNING 0/1/3/4/100개, 날짜 미입력/과거/오늘/미래, 동일 수량 변경 이력 제외를 포함한다. 최종 날짜 카드·버튼·아이콘 수정까지 포함한 실행이며 브라우저 확인은 각 변경 당시 기록과 구분한다. [최종 상태](UI_DESIGN.md)와 [전체 실행 목록](STEP3_TEST_MATRIX.md) 참고.
 등록·폼·수량 JavaScript 25개, 기존 이미지 선택기와 확장된 합치기 JavaScript 검사 모두 통과.
 `git diff --check` 통과. 최초 실패 기록은 위 결함 3건이며 최종 성공과 구분한다.
 
@@ -151,7 +151,7 @@ git diff --check
 ```
 
 Java 결과 원본은 `build/test-results/test/TEST-*.xml`, HTML은 `build/reports/tests/test/index.html`이다.
-이 경로는 이후 일부 테스트만 실행하면 내용이 바뀐다. 이번 최종 실행 목록은 [별도 목록](STEP3_TEST_CASES.md)에 보존했다.
+이 경로는 이후 일부 테스트만 실행하면 내용이 바뀐다. 이번 최종 실행 목록은 [별도 목록](STEP3_TEST_MATRIX.md)에 보존했다.
 
 ## 브라우저 확인
 

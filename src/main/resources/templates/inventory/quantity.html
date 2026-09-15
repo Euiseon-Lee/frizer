@@ -19,12 +19,12 @@
 <p class="quantity-message" id="quantityQuestion" th:if="${available}" th:text="${action == 'CANCEL' ? '이 처리를 취소하고 다시 보관 중으로 바꿀까?' : (action == 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : '입력한 수량을 버린 것으로 기록할까?')}"></p>
 <p class="quantity-message muted" th:if="${available}" th:text="${action == 'CANCEL' ? '원래 처리 기록과 취소 기록은 함께 남아.' : '이후 수량이나 보관 정보가 바뀌기 전에는 처리를 취소할 수 있어.'}"></p>
 <p role="status" th:unless="${available}" th:text="${action == 'CANCEL' ? '이미 취소했거나 이후 수량·보관 정보가 바뀌어 취소할 수 없어.' : (preview.item().quantityAmount() == null ? '먼저 수정 화면에서 현재 수량과 단위를 확인해 입력해줘.' : '이미 보관 종료된 항목이야.')}"></p>
-<a class="button" th:if="${action != 'CANCEL' and preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() == null}" th:href="@{/inventory/{id}/edit(id=${preview.item().foodId()})}">수정</a>
+<a class="button action-update" th:if="${action != 'CANCEL' and preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() == null}" th:href="@{/inventory/{id}/edit(id=${preview.item().foodId()})}">수정</a>
 <form id="quantity-form" th:if="${available}" method="post" data-quantity-form th:action="@{/inventory/{id}/quantity(id=${preview.item().foodId()})}">
 <input type="hidden" name="action" th:value="${action}"><input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="historyId" th:if="${action == 'CANCEL'}" th:value="${preview.event().historyId()}">
 <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
-<div class="form-actions"><button class="button" th:classappend="${action == 'CANCEL' ? '' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button></div>
+<div class="form-actions"><button class="button" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button></div>
 </form>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

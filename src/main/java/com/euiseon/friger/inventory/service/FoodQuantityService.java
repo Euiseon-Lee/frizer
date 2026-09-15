@@ -27,6 +27,19 @@ public class FoodQuantityService {
         var event=quantities.latest(id);
         return new Preview(item,state.versionNo(),event,canCancel(item,state,event));
     }
+    @Transactional(readOnly=true)
+    public List<QuantityChange> history(long id) {
+        return quantities.quantityChanges(id);
+    }
+    @Transactional(readOnly=true)
+    public String registrationQuantity(long id) {
+        return quantities.registrationQuantity(id);
+    }
+    @Transactional(readOnly=true)
+    public Map<Long, FoodQuantityDao.EndedSummary> endedSummaries(long masterId) {
+        return quantities.endedSummaries(masterId).stream().collect(java.util.stream.Collectors.toMap(
+                FoodQuantityDao.EndedSummary::foodId, summary -> summary));
+    }
     private boolean canCancel(FoodItem item,FoodQuantityDao.State state,FoodQuantityDao.Event event) {
         return item.quantityAmount()!=null && event!=null && !event.reversed()
             && state.stockRevision()==event.afterStockRevision()

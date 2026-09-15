@@ -36,7 +36,7 @@
 <input type="hidden" name="sourceVersion" th:value="${preview.source().versionNo()}">
 <input type="hidden" name="targetVersion" th:value="${preview.target().versionNo()}">
 <input type="hidden" name="requestId" th:value="${requestId}">
-<button class="button merge-submit" type="submit">확인 완료, 이동해줘!</button>
+<button class="button merge-submit action-move" type="submit">확인 완료, 이동해줘!</button>
 </form></section></div>
 <a class="merge-text-button merge-back" th:href="@{/foods/{id}(id=${master.masterId()})}">돌아가기</a>
 <noscript><p class="small muted">이동할 내용을 확인하려면 JavaScript를 켜줘.</p></noscript>

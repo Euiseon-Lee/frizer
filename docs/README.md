@@ -17,7 +17,9 @@ STEP 3은 음식 그룹/개별 구매 관리, 신규/추가 등록, 수정, 전�
 - [날짜 정책 초안](DATE_POLICY_DRAFT.md), [일괄 등록 초안](BULK_REGISTRATION_DRAFT.md)
 - [쪼코 이미지 정책](UI_DESIGN.md)
 
-2026-09-16 최종 검증: Java 473개(실패/오류/건너뜀 0), JavaScript 41개(실패/건너뜀 0), bootJar 통과. 사용자가 8080에서 최종 UI를 확인했다. 모든 임의 수량·음식명 조합이나 실제 모바일 기기를 검증한 것은 아니다.
+2026-09-16 이전 커밋 검증: Java 473개(실패/오류/건너뜀 0), JavaScript 41개(실패/건너뜀 0), bootJar 통과. 사용자가 8080에서 당시 UI를 확인했다. 모든 임의 수량·음식명 조합이나 실제 모바일 기기를 검증한 것은 아니다.
+
+같은 날 후속 검증 문구·개인 로그인 변경: 전체 Java 496개(일괄 등록 44개·보안 18개 포함, 실패·오류·건너뜀 0), JavaScript 7개 파일, bootJar 통과. 실제 휴대폰 확인은 아직 수행하지 않았다.
 
 Java/Mapper/V14는 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수량·단위를 저장하며 과거 텍스트를 추정 변환하지 않는다. 취소 태그도 공통 Java 명칭으로 제공하므로 이전 앱은 재시작이 필요하다.
 
@@ -28,10 +30,10 @@ Java/Mapper/V14는 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수�
 ## 운영 준비 현황 — 2026-09-16
 
 - 일괄 등록은 `/inventory/bulk`에서 제공한다. 실제 초기 데이터 목록은 사용자가 나중에 정리한다.
-- 최종 전체 검증은 Java 473개·JavaScript 41개 및 bootJar 통과다. 자동 냉동 보정의 안내 분기와 원본 엑셀 서식 보존 검증을 포함한다.
+- 최종 전체 검증은 Java 496개·JavaScript 7개 파일 및 bootJar 통과다. 자동 냉동 보정·원본 엑셀 서식 보존·로그인·CSRF 검증을 포함한다.
 - 사용자 확인은 기존 로컬 8080 앱만 사용한다. 8082 앱은 종료했으며 다시 실행하지 않는다. Java 변경은 기존 IDE 실행을 재시작해 반영한다. 실제 운영용 실행에서는 `compose.ui-dev.yml`을 제외해 JAR에 포함된 화면을 사용한다.
 - 현재 Compose는 앱·DB 포트를 127.0.0.1에만 연결한다. 같은 PC에서 사용 가능하며 휴대폰·외부에서는 직접 접속할 수 없다.
-- 앱 계정 로그인과 사용자별 데이터 분리는 아직 없다. 외부 공개 전 인증과 HTTPS, 접근 범위를 정해야 한다. 일괄 등록의 세션 확인은 로그인 기능이 아니다.
+- 개인 로그인과 CSRF 보호를 구현했다. 사용자별 데이터 분리는 없고 본인만 사용한다. Render HTTPS 배포를 준비 중이다.
 
 ### 배포 방식 선택
 
@@ -41,7 +43,42 @@ Java/Mapper/V14는 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수�
 | 상시 켜진 개인 서버/NAS | Docker 실행 가능 여부, 저장 공간, 사설 접속 경로, 백업 위치 | 허용한 개인 기기 |
 | 외부 서버 | 서버·도메인, 인증·HTTPS, 백업·복구, 운영 비용 | 정한 사용자에게 외부 접속 |
 
-운영 대상은 아직 미정이다. 빠른 첫 사용은 현재 PC에서 시작할 수 있다. 휴대폰에서도 사용할 환경을 선택한 뒤 접속·인증 구성을 확정한다. 이 작업에서 외부 서버 생성이나 공개 배포는 하지 않았다.
+사용자는 PC를 계속 켤 수 없고 LTE/5G에서도 개인 접속해야 한다. Oracle 가입 실패 후 **Render Free + Neon Free, Singapore**로 확정했다. 무료 앱의 유휴 절전과 첫 접속 대기를 수용하고 시작한다.
+
+### Render + Neon 배포 (2026-09-16)
+
+- Neon 프로젝트: `broad-poetry-32715265`, 기본 브랜치 `production`, Singapore, PostgreSQL 18.6. CLI 로그인·프로젝트 연결·빈 `neon.ts` 적용 완료. `neon deploy`는 Neon 서비스 정책 적용이며 Spring Boot 앱 배포는 Render가 담당한다.
+- Neon MCP는 Codex 사용자 설정에 설치했고 이 프로젝트 하나로 범위를 제한했다. 키와 `.neon` 및 `.env*`는 커밋하지 않는다. npm 의존성은 Neon 관리 도구용이며 앱은 Java/Docker로 실행한다.
+- Spring Security 단일 개인 계정을 기본 활성화한다. 비밀번호가 없거나 12자 미만/UTF-8 72바이트 초과면 서버 기동을 거부한다. `local` 프로필에서도 활성화하며, 기존 격리 테스트만 명시적으로 비활성화한다. 회원가입·사용자별 데이터 분리는 없다.
+- 로그인 경로는 `/login`, 상단 내 프로필 링크 → 내 프로필 → 로그아웃이다. CSRF 보호와 BCrypt 해시, HTTPS 세션 쿠키를 사용한다. 서버 재시작/절전으로 세션이 사라지면 다시 로그인한다. `/health`는 데이터 없이 `ok`만 공개한다.
+
+**설정 순서**
+
+1. 배포할 코드가 GitHub에 반영된 뒤 Render에서 Web Service를 생성한다. 저장소 `Euiseon-Lee/frizer`, Branch `master`, Language `Docker`, Region `Singapore`, Instance Type `Free`, Root Directory 비움, Dockerfile `./Dockerfile`를 사용한다.
+2. Health Check Path는 `/health`, Auto Deploy는 `Off`로 둔다. 같은 설정을 `render.yaml`에도 보존했다. 최초 배포는 직접 확인하고 시작한다.
+3. Neon CLI가 받아 둔 `DATABASE_URL_UNPOOLED`를 사용해 `node scripts/prepare-render-env.mjs`를 실행한다(Node 20.12 이상). 비밀 설정 파일 `.env.render`를 생성한다. 기존 파일은 자동 덮어쓰지 않는다.
+4. Render의 환경변수 일괄 입력(Add from .env)에 `.env.render` 내용을 넣는다. 로그나 채팅에 값을 붙이지 않는다. 공개 GitHub 파일·Docker 이미지에는 포함하지 않는다.
+5. Deploy 후 HTTPS 주소의 `/health` 응답과 로그인 화면을 확인하고 실제 휴대폰 LTE/5G에서 등록·수정·소비·취소·엑셀 업로드를 확인한다. 로그인 아이디는 `FRIZER_LOGIN_USERNAME`, 비밀번호는 `FRIZER_LOGIN_PASSWORD` 값이다. 새 서버는 빈 재고로 시작하며 로컬 재고는 자동 이전하지 않는다.
+
+| 환경변수 | 설정 |
+| --- | --- |
+| SPRING_PROFILES_ACTIVE | prod,render |
+| FRIZER_DB_URL | 직접 연결 JDBC URL, TLS 인증서와 호스트 이름 검증 |
+| FRIZER_DB_USERNAME / FRIZER_DB_PASSWORD | Neon의 DB 역할/비밀번호 |
+| FRIZER_LOGIN_USERNAME | frizer |
+| FRIZER_LOGIN_PASSWORD | 로컬 준비 스크립트 또는 Blueprint가 생성한 임의 비밀번호 |
+| JAVA_TOOL_OPTIONS | render.yaml의 512MB 인스턴스용 메모리 제한 |
+
+앱은 Hikari 3개 이하 연결을 직접 사용한다. Flyway migration과 연결별 시간대 설정 때문에 `-pooler` URL을 사용하지 않는다. 기본 인증서를 신뢰하는 Java TLS 팩토리와 `sslmode=verify-full`을 사용한다. Neon Free의 기본 절전 정책은 유지한다.
+
+**검증 결과 및 남은 확인**
+
+- 전체 Java 테스트 496개, 실패·오류·건너뜀 0, JAR 빌드 통과. JavaScript 7개 파일 실행 통과(기존 41개에 보안 업로드/로그인 만료 2개 추가).
+- 실제 Neon PostgreSQL 18.6의 분리된 임시 브랜치에서 TLS 검증 및 V1~V14 초기화, 배포용 메모리 제한 아래 비웹 JAR 기동 통과. 임시 브랜치는 2시간 만료다. production에 테스트 데이터/스키마를 쓰지 않았다.
+- 현재 Flyway 11.7.2는 PostgreSQL 18에 대해 공식 검증 버전 초과 경고를 출력한다. 실제 위 초기화는 통과했지만 전체 업무 회귀는 로컬 PostgreSQL 17.11에서 실행했다.
+- Render 실제 배포·512MB 웹 프로세스 동작·모바일 화면·운영 DB 백업/복구 확인은 아직 미완료다.
+
+[Render 무료 제한](https://render.com/docs/free): 15분 미사용 후 절전, 첫 접속 재기동 약 1분. 무료 Render DB는 30일 만료이므로 만들지 않는다. 앱 재기동과 무관하게 데이터는 Neon에 보관한다. [Neon 무료 한도](https://neon.com/pricing)와 Render 사용량을 콘솔에서 확인하며 유료 플랜으로 자동 전환하지 않는다.
 
 ### 백업과 복구
 
@@ -104,7 +141,7 @@ JPA, Lombok, H2, SPA 프레임워크는 사용하지 않습니다.
 ### Docker로 앱과 DB 함께 실행
 
 Docker Desktop의 Linux containers 엔진만으로 실행할 수 있습니다. 이 경로는 호스트 JDK가 필요 없습니다.
-최초 실행 시 `.env.example`을 `.env`로 복사하고 `FRIZER_DB_PASSWORD`를 입력합니다.
+최초 실행 시 `.env.example`을 `.env`로 복사하고 `FRIZER_DB_PASSWORD`와 `FRIZER_LOGIN_PASSWORD`(12자 이상)를 입력합니다.
 기존 `.env`와 DB 볼륨은 유지합니다.
 
 ```powershell
@@ -181,6 +218,8 @@ Gradle에서 JDK를 찾지 못하면 Git에서 제외된 `gradle.properties`에
 개인 JDK 절대 경로와 DB 비밀번호는 공유 실행 구성에 넣지 않습니다.
 
 ## 로컬 실행
+
+로컬에서도 개인 로그인을 기본으로 활성화한다. Git에서 제외된 `.env`의 `FRIZER_LOGIN_USERNAME`과 `FRIZER_LOGIN_PASSWORD`(12자 이상)를 설정한 뒤 기존 8080 앱을 재시작한다. 로그인 전에는 `/login`으로 이동하며, 로그인 후 기존 로컬 재고를 확인할 수 있다. Render용 `.env.render`와 로컬 로그인 비밀번호는 별도로 관리한다.
 
 ### IntelliJ 실행
 
@@ -339,3 +378,5 @@ Docker가 없으면 실패하며 `disabledWithoutDocker`로 성공처럼 건너�
 - src/test/java, src/test/js: 자동 회귀 테스트
 - docs: 실행 안내·기준 설계·이미지 매핑 자료
 - build/reports: 커밋하지 않는 검증 보고서·임시 화면
+
+2026-09-16 로그인·통합 오류 화면 후속 점검: 전체 Java 496개(보안 18개), 실패·오류·건너뜀 0, bootJar 통과. 이후 히스토리 첫 기록의 상단 구분선만 CSS로 추가했다. 320px 로그인 오류 알림의 색상·가로 넘침·닫기 동작을 확인했다. 390px에서 긴 403 문구는 3줄로 자동 줄바꿈된다. 실제 휴대폰 LTE/5G, Render 실행·HTTPS 세션, 운영 백업 복구는 미검증이다. 세션은 메모리에 저장되어 앱 재시작 시 로그인이 풀리며, 회원가입·다중 계정·사용자별 재고 분리·로그인 시도 제한은 구현하지 않았다.

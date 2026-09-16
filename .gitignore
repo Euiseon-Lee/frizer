@@ -28,3 +28,8 @@ Thumbs.db
 /docs/**/*.png
 /docs/**/*.jpg
 /docs/**/*.jpeg
+.neon
+node_modules/
+# Local Neon agent tooling (not application deployment inputs)
+.agents/skills/
+skills-lock.json

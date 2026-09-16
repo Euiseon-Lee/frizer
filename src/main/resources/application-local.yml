@@ -1,3 +1,7 @@
+frizer:
+  security:
+    enabled: true
+
 spring:
   config:
     import: optional:file:./.env[.properties]

@@ -12,6 +12,7 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.ss.util.NumberToTextConverter;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
+import static com.euiseon.friger.inventory.bulk.BulkValidation.Type.*;
 
 @Component
 public class BulkWorkbook {
@@ -23,8 +24,13 @@ public class BulkWorkbook {
     // Normalize both layouts to the same internal field order used by validation and previews.
     private static final int[] NEW_MAP = {0,1,2,6,-1,-1,3,4,5,-1,11,10,9,12,7,8,13};
     private static final int[] ADD_MAP = {-1,3,4,8,-1,0,5,6,7,-1,13,12,11,14,9,10,15};
+    private static final List<String> FIELDS = List.of("foodName", "quantityAmount", "quantityUnit", "storageType", "group", "masterId", "capacityText", "sourceType", "sourceMemo", "category", "purchasedAt", "expiredAt", "sellByAt", "openedAt", "frozenAt", "freezeType", "memo");
     public record Entry(int row, List<String> cells, FoodCreateForm form, String group, Long masterId,
-                        Long version, List<String> errors, List<String> notices, String sheet) {}
+                        Long version, List<BulkValidation.Issue> issues, String sheet) {
+        public Entry { issues = List.copyOf(issues); }
+        public List<String> errors() { return BulkValidation.errors(issues); }
+        public List<String> notices() { return issues.stream().filter(i -> i.type() == AUTOMATIC).map(BulkValidation.Issue::message).toList(); }
+    }
 
     public List<Entry> read(byte[] bytes) {
         if (bytes.length == 0 || bytes.length > MAX_BYTES) throw new IllegalArgumentException("2MB 이하의 .xlsx 파일을 선택해줘.");
@@ -51,15 +57,15 @@ public class BulkWorkbook {
                     if(blank) continue;
                     if(entries.size()>=MAX_ROWS) throw new IllegalArgumentException("신규 등록과 추가 등록 두 시트 합계 최대 500개 항목을 등록할 수 있어.");
                     var values=new ArrayList<String>();
-                    var errors=new ArrayList<String>();
+                    var errors=new BulkValidation();
                     for(int c=0;c<map.length;c++) {
                         var cell=map[c]<0?null:row.getCell(map[c]);
                         values.add(text(cell));
                         if(cell!=null && (cell.getCellType()==CellType.FORMULA || cell.getCellType()==CellType.ERROR || cell.getCellType()==CellType.BOOLEAN))
-                            errors.add(HEADERS.get(c)+": 수식, 오류, 참/거짓 대신 값을 입력해줘.");
-                        if(values.get(c).length()>1000) errors.add(HEADERS.get(c)+": 입력 내용이 너무 길어.");
+                            errors.add(INVALID,FIELDS.get(c),HEADERS.get(c)+": 수식, 오류, 참/거짓 대신 값을 입력해줘.");
+                        if(values.get(c).length()>1000) errors.add(INVALID,FIELDS.get(c),HEADERS.get(c)+": 입력 내용이 너무 길어.");
                     }
-                    for(var cell:row) if(cell.getColumnIndex()>=headers.size() && !text(cell).isBlank()) errors.add("양식에 없는 열에 값이 있어. 양식에 표시된 열만 입력해줘.");
+                    for(var cell:row) if(cell.getColumnIndex()>=headers.size() && !text(cell).isBlank()) errors.add(INVALID,"columns","양식에 없는 열에 값이 있어. 양식에 표시된 열만 입력해줘.");
                     BigDecimal quantity=null;
                     Long master=null;
                     if (!values.get(1).isBlank()) try {
@@ -67,34 +73,34 @@ public class BulkWorkbook {
                         if(!q.matches("[0-9]{1,9}(\\.[0-9]{1,2})?")) throw new IllegalArgumentException();
                         quantity=new BigDecimal(q);
                         if (quantity.signum() <= 0) throw new IllegalArgumentException();
-                    } catch(IllegalArgumentException e) {quantity=null;errors.add("수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.");}
+                    } catch(IllegalArgumentException e) {quantity=null;errors.add(INVALID,"quantityAmount","수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.");}
                     if(adding) {
                         try {
                             var selected=java.util.regex.Pattern.compile("(?s)^.+ \\[#([0-9]+)\\]$").matcher(values.get(5));
                             if(!selected.matches()) throw new IllegalArgumentException();
                             master=Long.valueOf(selected.group(1));
                             if(master<=0) throw new IllegalArgumentException();
-                        } catch(IllegalArgumentException e) {errors.add("기존 음식명 선택 드롭다운에서 음식을 선택해줘.");}
+                        } catch(IllegalArgumentException e) {errors.add(INVALID,"masterId","기존 음식명 선택 드롭다운에서 음식을 선택해줘.");}
                         var number=row.getCell(1);
                         if(number!=null && number.getCellType()==CellType.FORMULA) {
-                            if(!lookupFormula(i+1,2).equals(number.getCellFormula())) errors.add("자동 번호 수식이 변경됐어. 새 양식에 내용을 옮겨줘.");
-                        } else if(number!=null && !text(number).isBlank() && (master==null || !master.toString().equals(text(number)))) errors.add("자동 번호가 선택한 음식과 달라. 기존 음식을 다시 선택해줘.");
+                            if(!lookupFormula(i+1,2).equals(number.getCellFormula())) errors.add(INVALID,"automaticId","자동 번호 수식이 변경됐어. 새 양식에 내용을 옮겨줘.");
+                        } else if(master!=null && number!=null && !text(number).isBlank() && !master.toString().equals(text(number))) errors.add(CONDITION,"automaticId","자동 번호가 선택한 음식과 달라. 기존 음식을 다시 선택해줘.");
                         var category=row.getCell(2);
                         if(category!=null && category.getCellType()==CellType.FORMULA) {
-                            if(!lookupFormula(i+1,3).equals(category.getCellFormula())) errors.add("자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야해.");
+                            if(!lookupFormula(i+1,3).equals(category.getCellFormula())) errors.add(INVALID,"category","자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야해.");
                         } else if(category!=null) {
-                            if(category.getCellType()==CellType.ERROR || category.getCellType()==CellType.BOOLEAN) errors.add("분류: 자동 입력 양식을 사용해줘.");
+                            if(category.getCellType()==CellType.ERROR || category.getCellType()==CellType.BOOLEAN) errors.add(INVALID,"category","분류: 자동 입력 양식을 사용해줘.");
                             values.set(9,text(category));
                         }
                     }
-                    StorageType storage = choice(values.get(3), Map.of("실온", StorageType.ROOM, "냉장실", StorageType.FRIDGE, "냉동실", StorageType.FREEZER), "보관 위치", errors);
-                    FoodSourceType source = choice(values.get(7), Map.of("장보기", FoodSourceType.PURCHASE, "배달 잔반", FoodSourceType.DELIVERY_LEFTOVER, "직접 조리", FoodSourceType.COOKED, "부모님", FoodSourceType.PARENTS, "부모님의 은혜", FoodSourceType.PARENTS, "기타", FoodSourceType.ETC), "출처", errors);
-                    FreezeType freeze = choice(values.get(15), Map.of("직접 냉동", FreezeType.HOME_FROZEN, "시판 냉동식품", FreezeType.COMMERCIAL_FROZEN), "냉동 구분", errors);
+                    StorageType storage = choice(values.get(3), Map.of("실온", StorageType.ROOM, "냉장실", StorageType.FRIDGE, "냉동실", StorageType.FREEZER), "storageType", errors);
+                    FoodSourceType source = choice(values.get(7), Map.of("장보기", FoodSourceType.PURCHASE, "배달 잔반", FoodSourceType.DELIVERY_LEFTOVER, "직접 조리", FoodSourceType.COOKED, "부모님", FoodSourceType.PARENTS, "부모님의 은혜", FoodSourceType.PARENTS, "기타", FoodSourceType.ETC), "sourceType", errors);
+                    FreezeType freeze = choice(values.get(15), Map.of("직접 냉동", FreezeType.HOME_FROZEN, "시판 냉동식품", FreezeType.COMMERCIAL_FROZEN), "freezeType", errors);
                     var dates = new LocalDate[5];
-                    for (int d = 0; d < 5; d++) dates[d] = date(map[d+10] < 0 ? null : row.getCell(map[d+10]), values.get(d+10), HEADERS.get(d+10), errors);
+                    for (int d = 0; d < 5; d++) dates[d] = date(map[d+10] < 0 ? null : row.getCell(map[d+10]), values.get(d+10), FIELDS.get(d+10), errors);
                     var form = new FoodCreateForm(values.get(0), storage, optional(values.get(9)), quantity, dates[1], dates[0], dates[3], dates[4], source, freeze, false,
                             optional(values.get(16)), optional(values.get(6)), optional(values.get(8)), dates[2], values.get(2));
-                    entries.add(new Entry(i+1, values, form, "", master, null, errors, new ArrayList<>(), sheet.getSheetName()));
+                    entries.add(new Entry(i+1, values, form, "", master, null, errors.issues(), sheet.getSheetName()));
             }
             }
             if(entries.isEmpty()) throw new IllegalArgumentException("엑셀 파일 내 등록할 음식이 없어.");
@@ -114,13 +120,13 @@ public class BulkWorkbook {
         };
     }
     private static String optional(String s) { return s.isBlank() ? null : s; }
-    private static <T> T choice(String s, Map<String,T> values, String label, List<String> errors) {
+    private static <T> T choice(String s, Map<String,T> values, String field, BulkValidation errors) {
         if (s.isEmpty()) return null;
         T v = values.get(s);
-        if (v == null) errors.add(label + ": 양식의 선택 목록을 사용해줘.");
+        if (v == null) errors.add(INVALID, field, BulkValidation.label(field) + ": 양식의 선택 목록을 사용해줘.");
         return v;
     }
-    private static LocalDate date(Cell cell, String s, String label, List<String> errors) {
+    private static LocalDate date(Cell cell, String s, String field, BulkValidation errors) {
         if (s.isBlank()) return null;
         try {
             LocalDate date;
@@ -131,7 +137,7 @@ public class BulkWorkbook {
             }
             if (date.getYear() < 1900 || date.getYear() > 9999) throw new IllegalArgumentException();
             return date;
-        } catch (RuntimeException e) { errors.add(label + ": yyyy-mm-dd 형식의 날짜를 입력해줘."); return null; }
+        } catch (RuntimeException e) { errors.add(INVALID, field, BulkValidation.label(field) + ": yyyy-mm-dd 형식의 날짜를 입력해줘."); return null; }
     }
 
     public static String choiceLabel(long id, String name, String category) {

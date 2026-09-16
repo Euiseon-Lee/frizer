@@ -9,6 +9,8 @@ services:
       FRIZER_DB_URL: jdbc:postgresql://postgres:5432/frizer
       FRIZER_DB_USERNAME: frizer
       FRIZER_DB_PASSWORD: ${FRIZER_DB_PASSWORD:?Set FRIZER_DB_PASSWORD in .env or your environment}
+      FRIZER_LOGIN_USERNAME: ${FRIZER_LOGIN_USERNAME:-frizer}
+      FRIZER_LOGIN_PASSWORD: ${FRIZER_LOGIN_PASSWORD:-}
       TZ: Asia/Seoul
     ports:
       - "127.0.0.1:${FRIZER_APP_PORT:-8080}:8080"

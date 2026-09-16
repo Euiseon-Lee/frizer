@@ -50,9 +50,15 @@
         upload.setAttribute('aria-busy', 'true');
         notify('미리보기를 준비하고 있어.');
         try {
+            const csrf = upload.querySelector('input[name="_csrf"]');
             const response = await fetch(upload.action, {
-                method: 'POST', body: new FormData(upload), credentials: 'same-origin', signal: pending.signal
+                method: 'POST', body: new FormData(upload), credentials: 'same-origin', signal: pending.signal,
+                headers: csrf ? {'X-CSRF-TOKEN': csrf.value} : {}
             });
+            if (response.redirected && new URL(response.url).pathname.endsWith('/login')) {
+                window.location.assign(response.url);
+                return;
+            }
             if (!response.ok) throw new Error('preview');
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             if (request !== revision) return;

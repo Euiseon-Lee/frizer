@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: frizer
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod,render
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m -Xss512k
+      - key: FRIZER_DB_URL
+        sync: false
+      - key: FRIZER_DB_USERNAME
+        sync: false
+      - key: FRIZER_DB_PASSWORD
+        sync: false
+      - key: FRIZER_LOGIN_USERNAME
+        value: frizer
+      - key: FRIZER_LOGIN_PASSWORD
+        generateValue: true

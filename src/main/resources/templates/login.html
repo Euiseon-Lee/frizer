@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>로그인 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/notices.js}" defer></script></head>
+<body class="login-page">
+<header th:replace="~{fragments/shell :: header(showProfile=false)}"></header>
+<main class="page">
+<section th:replace="~{fragments/shell :: accessHeading('WELCOME 🌟', '음식 재고 관리', '뭐가 있는지 궁금하지?', false)}"></section>
+<div class="tab-sheet">
+<section aria-label="계정 입력">
+<div class="notice notice-error" role="status" th:if="${param.error != null}"><div class="purchase-notice-content"><span>아이디와 비밀번호를 확인해줘.</span></div></div>
+<div class="notice purchase-notice" role="status" th:if="${param.logout != null}"><div class="purchase-notice-content"><span>로그아웃 완료!</span></div></div>
+<form method="post" th:action="@{/login}">
+<div class="field"><label for="username">아이디</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="아이디를 입력해줘" required></div>
+<div class="field"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" placeholder="비밀번호를 입력해줘" required></div>
+<div class="form-actions"><button class="button login-button" type="submit">로그인</button></div>
+</form></section></div></main>
+</body></html>

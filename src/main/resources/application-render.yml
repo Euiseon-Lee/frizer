@@ -1,0 +1,26 @@
+server:
+  port: ${PORT:8080}
+  address: 0.0.0.0
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: 7d
+      cookie:
+        secure: true
+        http-only: true
+        same-site: lax
+
+frizer:
+  security:
+    enabled: true
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 0
+      idle-timeout: 60000
+      connection-timeout: 30000
+  servlet:
+    multipart:
+      file-size-threshold: 0

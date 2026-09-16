@@ -2,24 +2,35 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
-function screen() {
+function screen({secure=false}={}) {
  const make=()=>({listeners:{},textContent:'',hidden:false,disabled:false,addEventListener(n,f){this.listeners[n]=f},setAttribute(){},removeAttribute(){}});
  const input=make();input.files=[];input.setCustomValidity=v=>input.validity=v;
  const upload=make();upload.action='/inventory/bulk/preview';upload.reportValidity=()=>!input.validity;
  const submit=make(),token={value:'old'},message=make(),results=make(),complete=make(),help=make();
- let preview;
+ let preview,redirect;
+ const csrf={value:'masked-csrf-token'};
  const nodes={bulkFile:input,bulkUploadMessage:message,bulkResults:results,bulkComplete:complete,bulkCompletionHelp:help};
- upload.querySelector=s=>s.includes('button')?submit:token;
+ upload.querySelector=s=>s.includes('_csrf')?(secure?csrf:null):s.includes('button')?submit:token;
  results.replaceChildren=(...children)=>{results.children=children;nodes.bulkCommitForm=page.valid?{}:null;nodes.bulkRepeat=page.duplicate?{checked:false}:null;preview=children.length?{scrollIntoView(v){preview.scrolled=v},focus(v){preview.focused=v}}:null;};
  const pending=[];
  const page={childNodes:['new-preview'],token:'new',error:'',valid:true,duplicate:false};
  class Parser{parseFromString(){return {getElementById:id=>id==='bulkResults'?page:id==='bulkUploadMessage'?{textContent:page.error}:null,querySelector:()=>({value:page.token})};}}
  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/bulk-registration.js','utf8'),{
   document:{getElementById:id=>id==='bulkPreview'?preview:nodes[id],querySelector:()=>upload},
-  fetch:(url,options)=>new Promise((resolve,reject)=>pending.push({url,options,resolve,reject})),FormData:class{},AbortController,DOMParser:Parser
+  fetch:(url,options)=>new Promise((resolve,reject)=>pending.push({url,options,resolve,reject})),FormData:class{},AbortController,DOMParser:Parser,
+  URL,window:{location:{assign(url){redirect=url}}}
  });
- return {input,upload,submit,token,message,results,complete,help,pending,page,nodes,get preview(){return preview},change(){return input.listeners.change()},send(){let prevented=false;const done=upload.listeners.submit({preventDefault(){prevented=true}});assert.ok(prevented);return done;},ok(i=0){pending[i].resolve({ok:true,text:async()=>'<html>'})}};
+ return {input,upload,submit,token,message,results,complete,help,pending,page,nodes,get redirect(){return redirect},get preview(){return preview},change(){return input.listeners.change()},send(){let prevented=false;const done=upload.listeners.submit({preventDefault(){prevented=true}});assert.ok(prevented);return done;},ok(i=0){pending[i].resolve({ok:true,text:async()=>'<html>'})}};
 }
+test('secure multipart upload carries rendered CSRF token in header',async()=>{
+ const s=screen({secure:true});s.input.files=[{}];const done=s.change();
+ assert.equal(s.pending[0].options.headers['X-CSRF-TOKEN'],'masked-csrf-token');s.ok();await done;
+});
+test('expired login navigates to login instead of treating it as a preview',async()=>{
+ const s=screen({secure:true});s.input.files=[{}];const done=s.change();
+ s.pending[0].resolve({ok:true,redirected:true,url:'https://frizer.example/login'});await done;
+ assert.equal(s.redirect,'https://frizer.example/login');assert.equal(s.complete.disabled,true);
+});
 test('file selection automatically previews and invalidates old commit',async()=>{
  const s=screen();s.input.files=[{}];const done=s.change();
  assert.equal(s.pending.length,1);assert.equal(s.message.textContent,'미리보기를 준비하고 있어.');assert.equal(s.complete.disabled,true);assert.equal(s.help.hidden,true);

@@ -12,6 +12,8 @@ import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import static com.euiseon.friger.inventory.bulk.BulkValidation.Type.*;
+import static com.euiseon.friger.inventory.bulk.BulkValidation.label;
 
 @Service
 public class BulkRegistrationService {
@@ -35,18 +37,17 @@ public class BulkRegistrationService {
         var rows = new ArrayList<BulkWorkbook.Entry>();
         for(var row:parsed) {
             var form=row.form();
-            var errors=new ArrayList<>(row.errors());
-            var notices=new ArrayList<String>();
+            var errors=new BulkValidation(row.issues());
             Long version=null;
             if(row.masterId()!=null) {
                 var master=masters.find(row.masterId());
-                if(master==null) errors.add("기존 음식 번호: 해당 음식을 찾을 수 없어.");
+                if(master==null) errors.add(CONDITION,"masterId","기존 음식 번호: 해당 음식을 찾을 수 없어. 최신 양식을 받아 다시 선택해줘.");
                 else {
                     version=master.versionNo();
                     if (!row.cells().get(5).matches("[0-9]+") && !row.cells().get(5).equals(BulkWorkbook.choiceLabel(master.masterId(),master.foodName(),master.category())))
-                        errors.add("기존 음식 선택: 음식 정보가 바뀌었어. 최신 양식을 받아 다시 선택해줘.");
-                    if(!form.foodName().isBlank() && !form.foodName().equals(master.foodName())) errors.add("음식명: 기존 음식 번호의 이름과 달라.");
-                    if(form.category()!=null && !Objects.equals(form.category(), master.category())) errors.add("분류: 기존 음식의 분류와 달라.");
+                        errors.add(CONDITION,"masterId","기존 음식 선택: 음식 정보가 바뀌었어. 최신 양식을 받아 다시 선택해줘.");
+                    if(!form.foodName().isBlank() && !form.foodName().equals(master.foodName())) errors.add(CONDITION,"foodName","음식명: 기존 음식 번호의 이름과 달라.");
+                    if(form.category()!=null && !Objects.equals(form.category(), master.category())) errors.add(CONDITION,"category","분류: 기존 음식의 분류와 달라. 최신 양식을 받아 다시 선택해줘.");
                     form=form.withIdentity(master.foodName(),master.category());
                 }
             }
@@ -56,29 +57,30 @@ public class BulkRegistrationService {
             if(row.cells().get(1).isBlank()) missing.add("quantityAmount");
             if(form.quantityUnit().isBlank()) missing.add("quantityUnit");
             if(row.cells().get(3).isBlank() && form.sourceType()!=FoodSourceType.DELIVERY_LEFTOVER) missing.add("storageType");
-            for(var validation:inventory.validationErrors(form).entrySet()) {
+            for(var field:missing) errors.add(MISSING,field,"");
+            for(var validation:inventory.validationErrors(form).entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
                 String field=validation.getKey();
                 // Quantity and nonblank storage choices are already checked by the workbook parser.
                 if(missing.contains(field) || field.equals("quantityAmount") || field.equals("storageType")
                         || (adding && field.equals("foodName"))) continue;
-                errors.add(label(field)+": "+previewMessage(validation.getValue()));
+                if(field.equals("frozenAt") && errors.invalid("storageType")) continue;
+                errors.add(INVALID,field,label(field)+": "+previewMessage(validation.getValue()));
             }
             StorageType storage=form.storageType();
-            if(storage==null && form.sourceType()==FoodSourceType.DELIVERY_LEFTOVER) { storage=StorageType.FREEZER; notices.add("출처가 ‘배달 잔반’이라 보관 위치가 자동으로 '냉동실'로 설정되었어."); }
+            if(storage==null && !errors.invalid("storageType") && form.sourceType()==FoodSourceType.DELIVERY_LEFTOVER) { storage=StorageType.FREEZER; errors.add(AUTOMATIC,"storageType","출처가 ‘배달 잔반’이라 보관 위치가 자동으로 '냉동실'로 설정되었어."); }
             FreezeType freeze=FreezeType.NONE;
             LocalDate frozen=null;
             if(storage==StorageType.FREEZER) {
                 freeze=form.freezeType(); frozen=form.frozenAt();
-                if(freeze==null) {
-                    freeze=FreezeType.HOME_FROZEN; notices.add("냉동 구분이 없으면 자동으로 ‘직접 냉동’으로 설정돼.");
-                } else if(form.sourceType()==FoodSourceType.DELIVERY_LEFTOVER) {
-                    freeze=FreezeType.HOME_FROZEN; notices.add("출처가 ‘배달 잔반’이면 무조건 ‘직접 냉동’으로 설정돼.");
+                if(freeze==null && !errors.invalid("freezeType")) {
+                    freeze=FreezeType.HOME_FROZEN; errors.add(AUTOMATIC,"freezeType","냉동 구분이 없으면 자동으로 ‘직접 냉동’으로 설정돼.");
+                } else if(freeze!=null && form.sourceType()==FoodSourceType.DELIVERY_LEFTOVER) {
+                    freeze=FreezeType.HOME_FROZEN; errors.add(AUTOMATIC,"freezeType","출처가 ‘배달 잔반’이면 무조건 ‘직접 냉동’으로 설정돼.");
                 }
-            } else if(form.frozenAt()!=null || form.freezeType()!=null) errors.add("냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.");
-            if(form.sourceMemo()!=null && form.sourceType()!=FoodSourceType.ETC) errors.add("출처 메모: 출처가 기타일 때만 입력해줘.");
-            if(!missing.isEmpty()) errors.add("누락된 필수 정보: "+String.join(", ",missing.stream().map(BulkRegistrationService::label).toList()));
+            } else if(storage!=null && (form.frozenAt()!=null || form.freezeType()!=null)) errors.add(CONDITION,"freezeInfo","냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.");
+            if(form.sourceMemo()!=null && !errors.invalid("sourceType") && form.sourceType()!=FoodSourceType.ETC) errors.add(CONDITION,"sourceMemo","출처 메모: 출처가 기타일 때만 입력해줘.");
             form=new FoodCreateForm(form.foodName(), storage,form.category(),form.quantityAmount()==null?null:form.quantityAmount().stripTrailingZeros(),form.expiredAt(),form.purchasedAt(),form.openedAt(),frozen,form.sourceType(),freeze,false,form.memo(),form.capacityText(),form.sourceMemo(),form.sellByAt(),form.quantityUnit());
-            rows.add(new BulkWorkbook.Entry(row.row(),row.cells(),form,row.group(),row.masterId(),version,errors,notices,row.sheet()));
+            rows.add(new BulkWorkbook.Entry(row.row(),row.cells(),form,row.group(),row.masterId(),version,errors.issues(),row.sheet()));
         }
         // Versions and spreadsheet row positions are excluded: an unchanged file remains a duplicate after stock edits.
         String fingerprint=hash(write(rows.stream().map(r->Arrays.asList(r.masterId()==null?r.form():r.form().withIdentity("",null),r.group(),r.masterId())).toList()));
@@ -133,9 +135,6 @@ public class BulkRegistrationService {
         return count;
     }
     private String write(Object object) { try { return json.writeValueAsString(object); } catch(Exception e) { throw new IllegalStateException("일괄 등록 요청을 저장하지 못했습니다.",e); } }
-    private Preview read(String payload) { try { return json.readValue(payload,Preview.class); } catch(Exception e) { throw new IllegalStateException("일괄 등록 요청을 읽지 못했습니다.",e); } }
+    private Preview read(String payload) { try { return json.readValue(payload,Preview.class); } catch(Exception e) { throw new IllegalArgumentException("미리보기 형식이 바뀌었어. 파일을 다시 올려 확인해줘.",e); } }
     private static String hash(String text) { try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))); } catch(Exception e) { throw new IllegalStateException(e); } }
-    private static String label(String field) {
-        return switch(field) { case "foodName"->"음식명"; case "quantityAmount"->"수량"; case "quantityUnit"->"단위"; case "storageType"->"보관 위치"; case "category"->"분류"; case "capacityText"->"용량"; case "memo"->"메모"; case "sourceMemo"->"출처 메모"; case "purchasedAt"->"구매일"; case "openedAt"->"개봉일"; case "frozenAt"->"냉동일"; default->field; };
-    }
 }

@@ -1,3 +1,16 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
-<body><header th:replace="~{fragments/shell :: header}"></header><main class="page"><section class="empty-state"><img class="choco choco-portrait" width="120" height="130" alt="" data-choco-region="error-image" data-choco-role="error" th:attr="data-choco-base=@{/assets/choco/}" hidden><h1 th:text="${status == 404 ? '찾을 수 없는 페이지야' : '지금은 불러오지 못했어'}"></h1><p class="muted" th:text="${status == 404 ? '음식 목록에서 다시 찾아볼까?' : '잠시 후 다시 시도해줘.'}"></p><a class="button" th:href="@{/inventory}">음식 목록으로</a></section></main><nav th:replace="~{fragments/shell :: nav('')}"></nav></body></html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>다시 확인해줘 · FR!ZER</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script>
+</head><body>
+<header th:replace="~{fragments/shell :: header(showProfile=${signedIn})}"></header>
+<main class="page">
+<section th:replace="~{fragments/shell :: accessHeading('에엥;;;;', '이게 뭐지?', '🚨오류 발생🚨', true)}"></section>
+<div class="tab-sheet" th:with="rejected=${requestRejected == true or status == 403},notFound=${requestRejected != true and status == 404}">
+<p class="access-error-message access-error-message-centered"><span th:text="${rejected ? '요청을 확인할 수 없어서 처리에 실패했어.' : (notFound ? '찾을 수 없는 페이지라 열 수 없어.' : '호출에 완벽히 실패해버렸달까.')}"></span><br><span th:text="${rejected ? '아무리 쪼코라도 다시 시도하는 것밖엔 방법이 없달까😢' : (notFound ? '음식 목록이나 구경하러 갈까?;;' : '잠시 후 다시 시도해야해.')}"></span></p>
+<div class="form-actions"><a class="button" th:href="${notFound} ? @{/inventory} : @{/}" th:text="${notFound ? '음식 목록으로 가자' : '홈으로 돌아가자'}"></a></div>
+</div></main>
+<th:block th:if="${signedIn}"><nav th:replace="~{fragments/shell :: nav('')}"></nav></th:block>
+</body></html>

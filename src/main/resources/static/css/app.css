@@ -161,6 +161,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .history-rows .history-row:hover,.history-rows .history-row:focus-within{background:#f7f7fb}
 .history-rows .history-row time{display:block;text-align:right;margin-top:8px;font-variant-numeric:tabular-nums}
 .history-rows .history-row{position:relative;padding-inline:8px;cursor:pointer}
+.history-page .history-rows>.history-row:first-child{border-top:1px solid var(--line)}
 .history-rows .history-row>div>a::after{content:"";position:absolute;inset:0}
 .history-rows .history-row:has(a:focus-visible){outline:2px solid var(--primary);outline-offset:2px}
 .history-limit{text-align:right;padding-right:16px;font-size:11px}
@@ -191,7 +192,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 
 .form-page{--danger:var(--warning-text)}.form-page .storage-choices input.invalid:focus-visible+span{outline-color:var(--danger)}
 
-.add-banner>div>span{display:flex;width:fit-content;gap:0;margin-left:auto;margin-right:4px;background:var(--history-create-bg);color:var(--history-create-fg);border:1px solid currentColor;padding:9px 11px;transition:filter .15s ease}.add-banner:hover>div>span,.add-banner:focus-visible>div>span{filter:brightness(var(--button-hover-brightness))}
+.add-banner>div>span{display:flex;width:fit-content;gap:0;margin-left:auto;margin-right:8px;background:var(--history-create-bg);color:var(--history-create-fg);border:1px solid currentColor;padding:9px 11px;transition:filter .15s ease}.add-banner:hover>div>span,.add-banner:focus-visible>div>span{filter:brightness(var(--button-hover-brightness))}
 
 .form-page .field-error{margin-left:8px}
 
@@ -401,6 +402,7 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 :is(button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.quantity-history-cancel):not(:disabled):not([aria-disabled="true"]):is(:hover,:active){filter:brightness(var(--button-hover-brightness))}
 :is(button,.button):is(:disabled,[aria-disabled="true"]){filter:none;transition:none}
 .purchase-notice{background:var(--subtle-hover-bg)}
+.notice.notice-error{background:var(--warning-expired-bg);border:1px solid var(--warning-text)}
 .purchase-notice .purchase-undo{line-height:1.6;margin:0}
 .purchase-notice-content>span{display:block;margin:0}
 
@@ -457,3 +459,10 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 :is(.bulk-repeat-label,.warning-filter,.today-checkbox) input[type=checkbox]::before{content:"";width:4px;height:7px;border:solid var(--warning-text);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg);opacity:0}
 :is(.bulk-repeat-label,.warning-filter,.today-checkbox) input[type=checkbox]:checked::before{opacity:1}
 :is(.bulk-repeat-label,.warning-filter,.today-checkbox) input[type=checkbox]:focus-visible{outline:2px solid var(--warning-text);outline-offset:2px}
+
+/* Shared button shape, with the active home navigation text color. */
+.login-heading h1{white-space:nowrap;font-size:clamp(20px,6.2vw,28px)}
+.button.login-button{border-color:var(--primary);background:var(--primary);color:var(--white)}
+.button.login-button:not(:disabled):is(:hover,:active){background:var(--primary);border-color:var(--primary);color:var(--white);filter:brightness(var(--button-hover-brightness))}
+.access-error-message{font-size:14px;line-height:1.7;margin:0 0 20px;padding:20px 16px;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:20px}
+.access-error-message-centered{text-align:center}

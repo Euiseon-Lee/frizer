@@ -116,6 +116,53 @@ class BulkRegistrationIntegrationTest {
         var preview=bulk.preview(file(values),owner);
         assertThat(preview.rows().getFirst().errors()).containsExactly("보관 위치: 양식의 선택 목록을 사용해줘.");
     }
+    @Test void invalidChoicesDoNotProduceDependentErrorsOrAutomaticNotices() throws Exception {
+        var storage=row("잔반","1","","");storage[3]="오타";storage[7]="배달 잔반";storage[15]="직접 냉동";
+        var source=row("두부","1","","");source[7]="오타";source[8]="가게";
+        var freeze=row("냉동 두부","1","","");freeze[3]="냉동실";freeze[15]="오타";
+        var preview=bulk.preview(file(storage,source,freeze),owner);
+        assertThat(preview.rows().get(0).errors()).containsExactly("보관 위치: 양식의 선택 목록을 사용해줘.");
+        assertThat(preview.rows().get(1).errors()).containsExactly("출처: 양식의 선택 목록을 사용해줘.");
+        assertThat(preview.rows().get(2).errors()).containsExactly("냉동 구분: 양식의 선택 목록을 사용해줘.");
+        assertThat(preview.rows()).allSatisfy(r -> assertThat(r.notices()).isEmpty());
+        assertThat(preview.valid()).isFalse();
+        assertThat(count("food_bulk_preview")).isZero();
+    }
+    @Test void missingStorageDoesNotClaimThatFoodIsOutsideFreezer() throws Exception {
+        var values=row("두부","1","","");values[3]="";values[15]="직접 냉동";
+        var preview=bulk.preview(file(values),owner);
+        assertThat(preview.rows().getFirst().errors()).containsExactly("누락된 필수 정보: 보관 위치");
+        assertThat(preview.rows().getFirst().issues()).anySatisfy(i -> {
+            assertThat(i.type()).isEqualTo(BulkValidation.Type.MISSING);
+            assertThat(i.field()).isEqualTo("storageType");
+        });
+    }
+    @Test void formulaQuantityHasOneActionableErrorAndStillBlocksRegistration() throws Exception {
+        try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(row("두부","1","",""))));var out=new ByteArrayOutputStream()) {
+            book.getSheet("신규 등록").getRow(4).getCell(1).setCellFormula("1+1");
+            book.write(out);
+            var preview=bulk.preview(out.toByteArray(),owner);
+            assertThat(preview.rows().getFirst().errors()).containsExactly("수량: 수식, 오류, 참/거짓 대신 값을 입력해줘.");
+            assertThat(preview.valid()).isFalse();
+            assertThat(count("food_bulk_preview")).isZero();
+        }
+    }
+    @Test void independentConditionErrorsRemainExplanationsAndMissingFieldsComeLast() throws Exception {
+        var values=row("","1","","");values[15]="직접 냉동";values[8]="가게";
+        var preview=bulk.preview(file(values),owner);
+        assertThat(preview.rows().getFirst().errors()).containsExactly(
+                "냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.",
+                "출처 메모: 출처가 기타일 때만 입력해줘.", "누락된 필수 정보: 음식명");
+        assertThat(preview.rows().getFirst().issues()).filteredOn(i -> i.type()==BulkValidation.Type.CONDITION).hasSize(2);
+    }
+    @Test void previewFromPreviousFormatRequestsUploadAgainWithoutWritingStock() throws Exception {
+        var preview=bulk.preview(file(row("두부","1","","")),owner);
+        jdbc.update("UPDATE food_bulk_preview SET payload=replace(payload, '\"issues\":', '\"oldIssues\":') WHERE request_id=?",preview.requestId());
+        assertThatThrownBy(() -> bulk.commit(preview.requestId(),owner,false)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("미리보기 형식이 바뀌었어. 파일을 다시 올려 확인해줘.");
+        assertThat(count("food_item")).isZero();
+        assertThat(count("food_bulk_receipt")).isZero();
+    }
     @Test void oneInvalidRowBlocksWholeFileAndHasNoUsableToken() throws Exception {
         var p=bulk.preview(file(row("두부","1","",""),row("두부","-1","","")),owner);
         assertThat(p.valid()).isFalse();assertThat(p.rows().get(1).errors()).isNotEmpty();

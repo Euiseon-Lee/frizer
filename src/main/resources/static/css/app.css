@@ -9,7 +9,7 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 h1,h2,h3,p{word-break:keep-all;overflow-wrap:anywhere}
 /* V4: shared ink, light surfaces, readable supporting text. */
-h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacing:0}.small,.help{font-size:12px}.heading .muted,.daily-card p,.empty-state p{font-size:14px}.storage-card h3,.storage-card p,.storage-icon,.card-arrow{color:var(--ink)}.storage-card p b{font-weight:650}.hero-count,.text-link,.detail-link{color:var(--ink)}.profile-link img{object-position:center bottom}.storage-card .choco{bottom:6px;padding:3px}.storage-card .choco-portrait{bottom:0;padding-bottom:0;object-position:right bottom}.daily-card{overflow:hidden}.daily-card .choco-portrait{align-self:flex-end;margin-bottom:-14px;object-position:center bottom}.daily-card .choco-left-edge{align-self:center;margin-left:-14px;object-position:left center}.empty-state:has(>.choco-portrait){padding-bottom:0}.empty-state>.choco-portrait{order:5;margin:20px 0 0;object-position:center bottom}.button>span:first-child{font-size:14px}.storage-choices input:checked+span{color:var(--ink)}.hero-dog{padding:4px;width:43%;height:180px}.notice{background:#e3f6ec;color:var(--ink)}
+h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacing:0}.small,.help{font-size:12px}.heading .muted,.daily-card p,.empty-state p{font-size:14px}.storage-card h3,.storage-card p,.storage-icon,.card-arrow{color:var(--ink)}.storage-card p b{font-weight:650}.hero-count,.text-link,.detail-link{color:var(--ink)}.profile-link img{object-position:center bottom}.storage-card .choco{bottom:6px;padding:3px}.storage-card .choco-portrait{bottom:0;padding-bottom:0;object-position:right bottom}.daily-card{overflow:hidden}.daily-card .choco-portrait{align-self:flex-end;margin-bottom:-14px;object-position:center bottom}.daily-card .choco-left-edge{align-self:center;margin-left:-14px;object-position:left center}.empty-state>.choco-portrait{order:5;margin:20px 0 0;object-position:center bottom}.button>span:first-child{font-size:14px}.storage-choices input:checked+span{color:var(--ink)}.hero-dog{padding:4px;width:43%;height:180px}.notice{background:#e3f6ec;color:var(--ink)}
 @media(max-width:360px){.hero-dog{width:41%;height:154px}.daily-card .choco-portrait{margin-bottom:-12px}.daily-card .choco-left-edge{margin-left:-12px}}.back-button{gap:8px;padding:10px 14px;margin-bottom:16px;border:1px solid #dcd4f2;border-radius:12px;background:#fff;color:var(--ink);font-size:13px;font-weight:600}.back-button svg{width:18px;height:18px;color:#7057c8}
 /* V5 Final: existing primary stays unchanged. Reference tokens, adapt to app. */
 :root {
@@ -152,7 +152,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .empty-state img[data-choco="empty"]{width:160px;height:150px;max-width:100%;object-fit:contain;object-position:center;margin:0 0 20px;border-radius:0;clip-path:none}
 .empty-state>img[data-choco-region="list-empty"].choco-portrait{margin:16px 0 0}
 .empty-state>img[data-choco-region="history-empty"].choco-portrait{margin:20px 0 0}
-.empty-state:has(>img[data-choco-region="list-empty"].choco-portrait){padding-bottom:28px}
+
 
 .field :is(input,select,textarea).invalid:focus{outline-color:var(--danger)}
 

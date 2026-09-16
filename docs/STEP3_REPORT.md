@@ -421,3 +421,7 @@ operation_id는 이력 연결 키이지 그것만으로 중복 제출 방지를 
 - 사용자는 PC를 계속 켤 수 없으며 LTE/5G에서도 접속해야 한다. 무료 서버로 시작하고 Oracle Cloud 신규 가입·카드 인증이 가능하다고 확인했다.
 - Oracle 가입 실패 후 Render Free + Neon Free(Singapore)로 확정했다. Neon production 연결과 요청한 빈 neon.ts 배포를 완료했다. Render용 단일 개인 로그인·CSRF·메모리/연결 제한을 구현했다. 실제 Render 배포·모바일 접속 검증은 미완료다.
 - 검증 문구 다음 순서는 서버 확보·배포·백업·실기기 확인이다. 수량 분리·삭제·통계는 최초 휴대폰 사용 이후로 미룬다.
+
+### 운영 반영 확인 — 2026-09-17
+
+f08d701 Render Live, Neon V15 성공, choconuna/testuser USER 계정 생성과 두 계정의 HTTPS 로그인·주요 화면 조회·로그아웃을 확인했다. 실데이터 등록·교차 계정 변경과 실기기 접속은 별도 검증 대상이다. 반복 운영 절차는 [운영 안내](OPERATIONS.md)를 따른다. 후속 여백·운영 도구 변경과 다른 PC 준비 절차는 OPERATIONS.md를 따른다.

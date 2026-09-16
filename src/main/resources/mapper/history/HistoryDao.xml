@@ -3,11 +3,11 @@
 <mapper namespace="com.euiseon.friger.history.dao.HistoryDao">
     <select id="findRecent" resultType="com.euiseon.friger.history.dto.HistoryEntry">
         WITH RECURSIVE redirects(source_id,target_id) AS (
-            SELECT source_id,target_id FROM food_merge_receipt
+            SELECT source_id,target_id FROM food_merge_receipt WHERE user_id=#{_userId,jdbcType=BIGINT}
             UNION ALL
-            SELECT source_id,target_id FROM food_item_move_receipt WHERE source_removed
+            SELECT source_id,target_id FROM food_item_move_receipt WHERE user_id=#{_userId,jdbcType=BIGINT} AND source_removed
         ), destinations(request_id, current_id) AS (
-            SELECT request_id, target_id FROM food_merge_receipt
+            SELECT request_id, target_id FROM food_merge_receipt WHERE user_id=#{_userId,jdbcType=BIGINT}
             UNION
             SELECT d.request_id, r.target_id FROM destinations d
             JOIN redirects r ON r.source_id=d.current_id
@@ -17,7 +17,7 @@
                 m.master_id AS current_master_id, m.food_name AS current_food_name,
                 NULL::varchar AS merged_from_name, NULL::varchar AS merged_into_name,
                 NULL::integer AS merged_item_count, 0 AS event_order, h.history_id::text AS event_key
-            FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id
+            FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
             UNION ALL
             SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at, NULL::text,
@@ -26,14 +26,14 @@
             LEFT JOIN (
                 SELECT d.request_id, m.master_id, m.food_name FROM destinations d
                 JOIN food_master m ON m.master_id=d.current_id
-            ) m ON m.request_id=r.request_id
+            ) m ON m.request_id=r.request_id WHERE r.user_id=#{_userId,jdbcType=BIGINT}
             UNION ALL
             SELECT NULL::bigint, r.food_id, r.source_name, 'MOVE'::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
                 '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
                 m.master_id, m.food_name, NULL::varchar, NULL::varchar, NULL::integer, 2, r.request_id::text
             FROM food_item_move_receipt r
-            JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id
+            JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
         )
         SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
             quantity_text, created_at, changes_text, current_master_id, current_food_name,
@@ -42,17 +42,17 @@
         ORDER BY created_at DESC, event_order DESC, history_id DESC NULLS LAST, event_key DESC LIMIT #{limit}
     </select>
     <insert id="insert">
-        INSERT INTO food_history (food_id, action_type, previous_storage_type,
+        INSERT INTO food_history(user_id,food_id, action_type, previous_storage_type,
             new_storage_type, quantity_text, memo, created_at, changes_text, recorded_food_name)
-        VALUES (#{foodId}, #{actionType}, #{previousStorageType,jdbcType=VARCHAR},
+        VALUES (#{_userId,jdbcType=BIGINT},#{foodId}, #{actionType}, #{previousStorageType,jdbcType=VARCHAR},
             #{newStorageType}, #{quantityText,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{createdAt}, #{changesText,jdbcType=VARCHAR},
-            (SELECT m.food_name FROM food_item i JOIN food_master m ON m.master_id=i.master_id WHERE i.food_id=#{foodId}))
+            (SELECT m.food_name FROM food_item i JOIN food_master m ON m.master_id=i.master_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.food_id=#{foodId}))
     </insert>
     <insert id="insertUpdate">
-        INSERT INTO food_history(food_id,action_type,previous_storage_type,new_storage_type,
+        INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,
             quantity_text,memo,created_at,changes_text,recorded_food_name,
             before_quantity_amount,after_quantity_amount,before_quantity_unit,quantity_unit)
-        VALUES(#{history.foodId},#{history.actionType},#{history.previousStorageType,jdbcType=VARCHAR},
+        VALUES (#{_userId,jdbcType=BIGINT},#{history.foodId},#{history.actionType},#{history.previousStorageType,jdbcType=VARCHAR},
             #{history.newStorageType},#{history.quantityText,jdbcType=VARCHAR},#{history.memo,jdbcType=VARCHAR},
             #{history.createdAt},#{history.changesText,jdbcType=VARCHAR},#{after.foodName},
             #{before.quantityAmount,jdbcType=NUMERIC},#{after.quantityAmount,jdbcType=NUMERIC},

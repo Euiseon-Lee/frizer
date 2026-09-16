@@ -35,6 +35,7 @@ class SecurityIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired BulkWorkbook workbook;
     @Autowired JdbcTemplate jdbc;
+    @Autowired com.euiseon.friger.account.AccountService accounts;
 
     @ParameterizedTest @ValueSource(strings={"/", "/inventory", "/inventory/new", "/history", "/inventory/bulk", "/inventory/bulk/template", "/account", "/foods/1", "/inventory/1/move/choices?q=test"})
     void anonymousCannotReadPrivatePages(String path) throws Exception {
@@ -72,29 +73,29 @@ class SecurityIntegrationTest {
     }
     @Test void writesNeedCsrfEvenWhenLoggedIn() throws Exception {
         int before = jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class);
-        mvc.perform(post("/inventory").with(user("owner"))).andExpect(status().isForbidden());
-        mvc.perform(post("/inventory").with(user("owner")).with(csrf().useInvalidToken())).andExpect(status().isForbidden());
+        mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
+        mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner"))).with(csrf().useInvalidToken())).andExpect(status().isForbidden());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(before);
         mvc.perform(post("/login").param("username", "owner").param("password", "test-only-strong-password")).andExpect(status().isForbidden());
     }
     @Test void renderedFormTokenAllowsRegistrationAndInvalidPostDoesNot() throws Exception {
-        var page = mvc.perform(get("/inventory/new").with(user("owner"))).andExpect(status().isOk()).andReturn();
+        var page = mvc.perform(get("/inventory/new").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isOk()).andReturn();
         var html = page.getResponse().getContentAsString();
         var token = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(html);
         assertThat(token.find()).isTrue();
         // Invalid business input still reaches MVC when the real rendered CSRF token is present.
         mvc.perform(post("/inventory").session((MockHttpSession) page.getRequest().getSession(false))
-                .with(user("owner")).param("_csrf", token.group(1)).param("foodName", ""))
+                .with(user(accounts.loadUserByUsername("owner"))).param("_csrf", token.group(1)).param("foodName", ""))
                 .andExpect(status().isOk()).andExpect(view().name("inventory/new"));
     }
     @Test void multipartPreviewAcceptsHeaderTokenAndRejectsMissingToken() throws Exception {
-        var page = mvc.perform(get("/inventory/bulk").with(user("owner"))).andReturn();
+        var page = mvc.perform(get("/inventory/bulk").with(user(accounts.loadUserByUsername("owner")))).andReturn();
         var session = (MockHttpSession) page.getRequest().getSession(false);
         var formToken = session.getAttribute("bulkOwner").toString();
         var file = new MockMultipartFile("file", "foods.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", workbook.template());
-        mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user("owner")).param("formToken", formToken))
+        mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user(accounts.loadUserByUsername("owner"))).param("formToken", formToken))
                 .andExpect(status().isForbidden());
-        mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user("owner")).with(csrf().asHeader()).param("formToken", formToken))
+        mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user(accounts.loadUserByUsername("owner"))).with(csrf().asHeader()).param("formToken", formToken))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("등록할 음식이 없어")));
     }
 }

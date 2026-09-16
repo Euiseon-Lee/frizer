@@ -182,10 +182,10 @@ class FoodMergeIntegrationTest {
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
         var after=jdbc.queryForList("SELECT i.*,m.food_name,m.category FROM master_upgrade.food_item i JOIN master_upgrade.food_master m ON m.master_id=i.master_id ORDER BY food_id");
-        after.forEach(row->{row.remove("master_id");assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});assertThat(after).isEqualTo(before);
+        after.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);row.remove("master_id");assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});assertThat(after).isEqualTo(before);
         var afterHistory=jdbc.queryForList("SELECT * FROM master_upgrade.food_history ORDER BY history_id");
         afterHistory.forEach(row->assertThat(row.remove("recorded_food_name")).isEqualTo("옛 이름"));
-        afterHistory.forEach(row->{
+        afterHistory.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);
             var added=new java.util.HashSet<>(row.keySet());added.removeAll(history.getFirst().keySet());
             added.forEach(key->assertThat(row.remove(key)).isNull());
         });
@@ -219,7 +219,7 @@ class FoodMergeIntegrationTest {
     }
     @Test void previousMergeReceiptsBecomeVisibleWithoutBackfill() throws Exception {
         long target=create("두부","모","FRIDGE");
-        jdbc.update("INSERT INTO food_merge_receipt(request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES(?,99999,?,0,0,'옛 음식','당시 두부',7)",UUID.randomUUID(),target);
+        jdbc.update("INSERT INTO food_merge_receipt(user_id,request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES(1,?,99999,?,0,0,'옛 음식','당시 두부',7)",UUID.randomUUID(),target);
         var rows=histories.findRecent(100);var merge=rows.stream().filter(e->e.isMerge()).findFirst().orElseThrow();
         assertThat(merge.displayFoodName()).isEqualTo("옛 음식 → 당시 두부");
         assertThat(merge.mergedItemCount()).isEqualTo(7);assertThat(merge.currentFoodName()).isEqualTo("두부");

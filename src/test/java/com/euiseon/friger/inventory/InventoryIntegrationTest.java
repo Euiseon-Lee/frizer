@@ -446,7 +446,7 @@ class InventoryIntegrationTest {
         long id = service.findActive().getFirst().foodId();
         mvc.perform(get("/inventory/" + id)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("2&lt;b&gt;팩&lt;/b&gt;")));
-        long legacyId = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(food_name) VALUES('기존 음식') RETURNING master_id) INSERT INTO food_item(master_id,storage_type,quantity_text) VALUES ((SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
+        long legacyId = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES(1,'기존 음식') RETURNING master_id) INSERT INTO food_item(user_id,master_id,storage_type,quantity_text) VALUES(1,(SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
         FoodItem legacy = service.findById(legacyId);
         assertThat(legacy.quantityAmount()).isNull();
         assertThat(legacy.quantityUnit()).isNull();
@@ -660,7 +660,7 @@ class InventoryIntegrationTest {
 
     @Test
     void legacyQuantityRequiresExplicitConfirmationAndUpdatesWithoutGuessing() throws Exception {
-        long id = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(food_name) VALUES('기존 음식') RETURNING master_id) INSERT INTO food_item(master_id,storage_type,quantity_text) VALUES ((SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
+        long id = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES(1,'기존 음식') RETURNING master_id) INSERT INTO food_item(user_id,master_id,storage_type,quantity_text) VALUES(1,(SELECT master_id FROM m),'FRIDGE','반 봉지') RETURNING food_id", Long.class);
         FoodItem before = service.findById(id);
         mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("기존 수량: 반 봉지")));
@@ -676,7 +676,7 @@ class InventoryIntegrationTest {
 
     @Test
     void unchangedQuantityDoesNotProduceAQuantityChange() throws Exception {
-        long id = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(food_name) VALUES('기존 음식') RETURNING master_id) INSERT INTO food_item(master_id,storage_type,quantity_text) VALUES ((SELECT master_id FROM m),'FRIDGE','1') RETURNING food_id", Long.class);
+        long id = jdbc.queryForObject("WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES(1,'기존 음식') RETURNING master_id) INSERT INTO food_item(user_id,master_id,storage_type,quantity_text) VALUES(1,(SELECT master_id FROM m),'FRIDGE','1') RETURNING food_id", Long.class);
         FoodItem before = service.findById(id);
         mvc.perform(editRequest(before)).andExpect(status().is3xxRedirection());
         String changes = jdbc.queryForObject("SELECT changes_text FROM food_history WHERE food_id=?", String.class, id);

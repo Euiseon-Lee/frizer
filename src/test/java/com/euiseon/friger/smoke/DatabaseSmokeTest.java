@@ -77,7 +77,7 @@ class DatabaseSmokeTest {
         assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 17.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("14");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("15");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -188,7 +188,7 @@ class DatabaseSmokeTest {
     void rejectsUnknownSourceType() {
         // A deliberately malformed fixture bypasses Java's enum restriction.
         assertThatThrownBy(() -> jdbc.update("""
-                WITH m AS (INSERT INTO food_master(food_name) VALUES('Food') RETURNING master_id) INSERT INTO food_item (master_id, storage_type, source_type)
+                WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES(1,'Food') RETURNING master_id) INSERT INTO food_item (master_id, storage_type, source_type)
                 VALUES ((SELECT master_id FROM m), 'FRIDGE', 'INVALID')
                 """)).isInstanceOf(DataIntegrityViolationException.class);
     }

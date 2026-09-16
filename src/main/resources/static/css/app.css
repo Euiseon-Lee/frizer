@@ -151,6 +151,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .recent-history-row:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .empty-state img[data-choco="empty"]{width:160px;height:150px;max-width:100%;object-fit:contain;object-position:center;margin:0 0 20px;border-radius:0;clip-path:none}
 .empty-state>img[data-choco-region="list-empty"].choco-portrait{margin:16px 0 0}
+.empty-state>img[data-choco-region="history-empty"].choco-portrait{margin:20px 0 0}
 .empty-state:has(>img[data-choco-region="list-empty"].choco-portrait){padding-bottom:28px}
 
 .field :is(input,select,textarea).invalid:focus{outline-color:var(--danger)}

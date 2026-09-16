@@ -27,9 +27,10 @@ public class BulkRegistrationService {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final Clock clock;
+    private final com.euiseon.friger.account.CurrentUser currentUser;
     public BulkRegistrationService(BulkWorkbook workbook, InventoryService inventory, FoodMasterDao masters,
-                                   JdbcTemplate jdbc, ObjectMapper json, Clock clock) {
-        this.workbook=workbook; this.inventory=inventory; this.masters=masters; this.jdbc=jdbc; this.json=json; this.clock=clock;
+                                   JdbcTemplate jdbc, ObjectMapper json, Clock clock, com.euiseon.friger.account.CurrentUser currentUser) {
+        this.workbook=workbook; this.inventory=inventory; this.masters=masters; this.jdbc=jdbc; this.json=json; this.clock=clock; this.currentUser=currentUser;
     }
     @Transactional
     public Preview preview(byte[] bytes, UUID owner) {
@@ -84,12 +85,12 @@ public class BulkRegistrationService {
         }
         // Versions and spreadsheet row positions are excluded: an unchanged file remains a duplicate after stock edits.
         String fingerprint=hash(write(rows.stream().map(r->Arrays.asList(r.masterId()==null?r.form():r.form().withIdentity("",null),r.group(),r.masterId())).toList()));
-        boolean duplicate=jdbc.queryForObject("SELECT count(*) FROM food_bulk_receipt WHERE fingerprint=?",Integer.class,fingerprint)>0;
+        boolean duplicate=jdbc.queryForObject("SELECT count(*) FROM food_bulk_receipt WHERE user_id=? AND fingerprint=?",Integer.class,currentUser.id(),fingerprint)>0;
         var preview=new Preview(UUID.randomUUID(),rows,duplicate);
         if(preview.valid()) {
-            jdbc.update("DELETE FROM food_bulk_preview WHERE expires_at<? AND result_count IS NULL",OffsetDateTime.now(clock));
-            jdbc.update("INSERT INTO food_bulk_preview(request_id,owner_id,payload,fingerprint,expires_at) VALUES(?,?,?,?,?)",
-                preview.requestId(),owner,write(preview),fingerprint,OffsetDateTime.now(clock).plusMinutes(30));
+            jdbc.update("DELETE FROM food_bulk_preview WHERE user_id=? AND expires_at<? AND result_count IS NULL",currentUser.id(),OffsetDateTime.now(clock));
+            jdbc.update("INSERT INTO food_bulk_preview(user_id,request_id,owner_id,payload,fingerprint,expires_at) VALUES(?,?,?,?,?,?)",
+                currentUser.id(),preview.requestId(),owner,write(preview),fingerprint,OffsetDateTime.now(clock).plusMinutes(30));
         }
         return preview;
     }
@@ -102,15 +103,15 @@ public class BulkRegistrationService {
     }
     @Transactional
     public int commit(UUID requestId, UUID owner, boolean repeat) {
-        var found=jdbc.query("SELECT payload,fingerprint,expires_at,result_count FROM food_bulk_preview WHERE request_id=? AND owner_id=? FOR UPDATE",
-            (rs,n)->new Stored(rs.getString(1),rs.getString(2),rs.getObject(3,OffsetDateTime.class),rs.getObject(4,Integer.class)),requestId,owner);
+        var found=jdbc.query("SELECT payload,fingerprint,expires_at,result_count FROM food_bulk_preview WHERE user_id=? AND request_id=? AND owner_id=? FOR UPDATE",
+            (rs,n)->new Stored(rs.getString(1),rs.getString(2),rs.getObject(3,OffsetDateTime.class),rs.getObject(4,Integer.class)),currentUser.id(),requestId,owner);
         if(found.isEmpty()) throw new IllegalArgumentException("미리보기를 다시 열어줘. 이 화면에서 확인한 요청만 등록할 수 있어.");
         var stored=found.getFirst();
         if(stored.resultCount()!=null) return stored.resultCount();
         if(!stored.expiresAt().isAfter(OffsetDateTime.now(clock))) throw new IllegalArgumentException("미리보기 시간이 지났어. 파일을 다시 올려줘.");
         var preview=read(stored.payload());
         if(preview.rows().stream().anyMatch(r->!r.group().isBlank() || r.sheet()==null)) throw new IllegalArgumentException("양식이 변경됐어. 새 양식으로 미리보기를 다시 확인해줘.");
-        int claimed=jdbc.update("INSERT INTO food_bulk_receipt(fingerprint,request_id) VALUES(?,?) ON CONFLICT DO NOTHING",stored.fingerprint(),requestId);
+        int claimed=jdbc.update("INSERT INTO food_bulk_receipt(user_id,fingerprint,request_id) VALUES(?,?,?) ON CONFLICT DO NOTHING",currentUser.id(),stored.fingerprint(),requestId);
         if(claimed==0 && !(preview.duplicate() && repeat)) throw new IllegalArgumentException("같은 내용이 이미 등록됐어. 실제로 다시 들어온 재고라면 파일을 다시 올리고 중복 등록 안내를 확인해줘.");
         var versions=new TreeMap<Long,Long>();
         for(var row:preview.rows()) if(row.masterId()!=null) versions.put(row.masterId(),row.version());
@@ -131,7 +132,7 @@ public class BulkRegistrationService {
             }
         }
         int count=preview.rows().size();
-        jdbc.update("UPDATE food_bulk_preview SET result_count=? WHERE request_id=?",count,requestId);
+        jdbc.update("UPDATE food_bulk_preview SET result_count=? WHERE user_id=? AND request_id=?",count,currentUser.id(),requestId);
         return count;
     }
     private String write(Object object) { try { return json.writeValueAsString(object); } catch(Exception e) { throw new IllegalStateException("일괄 등록 요청을 저장하지 못했습니다.",e); } }

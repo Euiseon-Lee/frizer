@@ -57,6 +57,8 @@ public class FoodQuantityService {
             throw invalid("수량은 0보다 크게, 소수점 둘째 자리까지 입력해줘.");
         String payload=id+":"+action+":"+version+":"+historyId
             +(selectedQuantity==null ? "" : ":"+selectedQuantity.stripTrailingZeros().toPlainString());
+        // Check ownership before claiming a receipt (including foreign IDs with a known token).
+        if(inventory.findById(id)==null) throw new FoodNotFoundException(id);
         if(quantities.claim(token,payload,id)==0) {
             var receipt=quantities.receipt(token);
             if(receipt==null || !receipt.requestPayload().equals(payload) || receipt.historyId()==null)

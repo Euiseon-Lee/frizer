@@ -6,20 +6,20 @@
     </select>
 
     <select id="insertFood" resultType="long" affectData="true" flushCache="true">
-        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type, freeze_type, frozen_at, status,quantity_amount,quantity_unit)
-        VALUES ((SELECT master_id FROM m), #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status},CASE WHEN #{status}='DEPLETED' THEN 0 ELSE 1 END,'개')
+        WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES (1,#{name}) RETURNING master_id) INSERT INTO food_item(user_id,master_id, storage_type, freeze_type, frozen_at, status,quantity_amount,quantity_unit)
+        VALUES (1,(SELECT master_id FROM m), #{storage}, #{freeze}, #{frozenAt,jdbcType=DATE}, #{status},CASE WHEN #{status}='DEPLETED' THEN 0 ELSE 1 END,'개')
         RETURNING food_id
     </select>
 
     <select id="insertDefaults" resultType="long" affectData="true" flushCache="true">
-        WITH m AS (INSERT INTO food_master(food_name) VALUES(#{name}) RETURNING master_id) INSERT INTO food_item (master_id, storage_type)
-        VALUES ((SELECT master_id FROM m), 'FRIDGE')
+        WITH m AS (INSERT INTO food_master(user_id,food_name) VALUES (1,#{name}) RETURNING master_id) INSERT INTO food_item(user_id,master_id, storage_type)
+        VALUES (1,(SELECT master_id FROM m), 'FRIDGE')
         RETURNING food_id
     </select>
 
     <select id="insertMappedFood" resultType="long" affectData="true" flushCache="true">
-        WITH m AS (INSERT INTO food_master(food_name,category) VALUES(#{foodName},#{category}) RETURNING master_id)
-        INSERT INTO food_item (
+        WITH m AS (INSERT INTO food_master(user_id,food_name,category) VALUES (1,#{foodName},#{category}) RETURNING master_id)
+        INSERT INTO food_item(user_id,
             master_id
           , storage_type
           , quantity_text
@@ -36,7 +36,7 @@
           , capacity_text
           , source_memo
           , sell_by_at
-        ) VALUES (
+        ) VALUES (1,
             (SELECT master_id FROM m)
           , #{storageType}
           , #{quantityText}
@@ -83,14 +83,14 @@
     </select>
 
     <select id="insertHistory" resultType="long" affectData="true" flushCache="true">
-        INSERT INTO food_history (
+        INSERT INTO food_history(user_id,
             food_id
           , action_type
           , previous_storage_type
           , new_storage_type
           , quantity_text
           , memo
-        ) VALUES (
+        ) VALUES (1,
             #{foodId}
           , #{action}
           , #{previous,jdbcType=VARCHAR}

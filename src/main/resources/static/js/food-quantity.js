@@ -8,10 +8,10 @@
     const error = document.getElementById('quantityInputError');
     let previous = input.value;
     const verb = input.dataset.action === 'CONSUME' ? '먹은' : '버린';
-    const draftValid = value => /^\d{0,9}(?:\.\d{0,3})?$/.test(value)
+    const draftValid = value => /^\d{0,9}(?:\.\d{0,2})?$/.test(value)
       && (value === '' || value === '.' || Number(value) <= maximum);
     function validate() {
-      const valid = /^\d{1,9}(?:\.\d{1,3})?$/.test(input.value)
+      const valid = /^\d{1,9}(?:\.\d{1,2})?$/.test(input.value)
         && Number(input.value) > 0 && Number(input.value) <= maximum;
       input.setCustomValidity(valid ? '' : '0보다 크고 기준 수량 이하인 숫자를 입력해줘.');
       question.textContent = input.dataset.action === 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : valid
@@ -29,7 +29,7 @@
       if (event.data && input.selectionStart != null) {
         const next = input.value.slice(0, input.selectionStart) + event.data
           + input.value.slice(input.selectionEnd);
-        if (/^\d*\.\d{4,}$/.test(next)) {
+        if (/^\d*\.\d{3,}$/.test(next)) {
           event.preventDefault();
           error.textContent = '';
         }
@@ -37,9 +37,9 @@
     });
     input.addEventListener('input', () => {
       const caret = input.selectionStart;
-      const decimal = input.value.match(/^(\d*)\.(\d{4,})$/);
+      const decimal = input.value.match(/^(\d*)\.(\d{3,})$/);
       if (decimal) {
-        input.value = decimal[1] + '.' + decimal[2].slice(0, 3);
+        input.value = decimal[1] + '.' + decimal[2].slice(0, 2);
         const position = Math.min(caret ?? input.value.length, input.value.length);
         input.setSelectionRange(position, position);
       }

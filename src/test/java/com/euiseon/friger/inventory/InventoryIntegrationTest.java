@@ -574,6 +574,31 @@ class InventoryIntegrationTest {
     }
 
     @Test
+    void editKeepsListFiltersThroughValidationAndSuccess() throws Exception {
+        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        FoodItem before = service.findById(id);
+        long masterId = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
+        mvc.perform(get("/inventory/" + id).param("storage", "FRIDGE").param("warning", "true"))
+                .andExpect(content().string(containsString("/edit?storage=FRIDGE&amp;warning=true")));
+        mvc.perform(get("/inventory/" + id + "/edit").param("storage", "FRIDGE").param("warning", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("selectedStorage", StorageType.FRIDGE))
+                .andExpect(model().attribute("savedWarning", true))
+                .andExpect(content().string(containsString("name=\"storage\" value=\"FRIDGE\"")))
+                .andExpect(content().string(containsString("/inventory/" + id + "?storage=FRIDGE&amp;warning=true")));
+        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+                .param("storage", "FRIDGE").param("warning", "true").param("ended", "true"))
+                .andExpect(status().isOk()).andExpect(model().hasErrors())
+                .andExpect(model().attribute("selectedStorage", StorageType.FRIDGE))
+                .andExpect(model().attribute("savedWarning", true)).andExpect(model().attribute("ended", true));
+        mvc.perform(editRequest(before).param("storage", "FRIDGE").param("warning", "true"))
+                .andExpect(redirectedUrl("/foods/" + masterId + "?storage=FRIDGE&warning=true"));
+        mvc.perform(editRequest(service.findById(id)).param("storage", "FREEZER").param("ended", "true"))
+                .andExpect(redirectedUrl("/foods/" + masterId + "?storage=FREEZER&ended=true"));
+        assertThat(service.findById(id).storageType()).isEqualTo(StorageType.FRIDGE);
+    }
+
+    @Test
     void updatePersistsChangesAndFullEscapedHistory() throws Exception {
         long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
         FoodItem before = service.findById(id);
@@ -586,7 +611,7 @@ class InventoryIntegrationTest {
                 .param("capacityText", "500g").param("category", "반찬").param("memo", "<b>" + "긴 메모".repeat(100) + "</b>")
                 .param("purchasedAt", "2026-09-10").param("openedAt", "2026-09-11")
                 .param("sellByAt", "2026-09-20").param("expiredAt", "2026-09-21");
-        mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/inventory/" + id));
+        mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/foods/" + jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id)));
         FoodItem after = service.findById(id);
         assertThat(after.createdAt()).isEqualTo(before.createdAt());
         assertThat(after.updatedAt()).isAfter(before.updatedAt());

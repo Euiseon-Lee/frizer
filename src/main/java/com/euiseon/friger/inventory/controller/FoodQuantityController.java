@@ -38,8 +38,8 @@ public class FoodQuantityController {
         try {
             BigDecimal selected=null;
             if(action!=FoodQuantityService.Action.CANCEL || quantityAmount!=null) {
-                if(quantityAmount==null || !quantityAmount.matches("[0-9]{1,9}(\\.[0-9]{1,3})?"))
-                    throw new InvalidFoodException(java.util.Map.of("","처리할 수량을 숫자로 입력해줘. 소수점 셋째 자리까지 사용할 수 있어."));
+                if(quantityAmount==null || !quantityAmount.matches("[0-9]{1,9}(\\.[0-9]{1,2})?"))
+                    throw new InvalidFoodException(java.util.Map.of("","처리할 수량을 숫자로 입력해줘. 소수점 둘째 자리까지 사용할 수 있어."));
                 selected=new BigDecimal(quantityAmount);
             }
             quantities.apply(id,action,version,historyId,requestId,selected);

@@ -53,8 +53,8 @@ public class FoodQuantityService {
     public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity) {
         if(action==null || token==null) throw invalid("처리 내용을 다시 확인해줘.");
         if(selectedQuantity!=null && (action==Action.CANCEL || selectedQuantity.signum()<=0
-                || selectedQuantity.stripTrailingZeros().scale()>3 || selectedQuantity.compareTo(new BigDecimal("999999999.999"))>0))
-            throw invalid("수량은 0보다 크게, 소수점 셋째 자리까지 입력해줘.");
+                || selectedQuantity.stripTrailingZeros().scale()>2 || selectedQuantity.compareTo(new BigDecimal("999999999.99"))>0))
+            throw invalid("수량은 0보다 크게, 소수점 둘째 자리까지 입력해줘.");
         String payload=id+":"+action+":"+version+":"+historyId
             +(selectedQuantity==null ? "" : ":"+selectedQuantity.stripTrailingZeros().toPlainString());
         if(quantities.claim(token,payload,id)==0) {

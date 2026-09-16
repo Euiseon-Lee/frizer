@@ -39,7 +39,8 @@ public class InventoryController {
     }
 
     @ModelAttribute
-    void choices(Model model) {
+    void choices(Model model, jakarta.servlet.http.HttpSession session) {
+        com.euiseon.friger.inventory.bulk.BulkRegistrationController.owner(session);
         model.addAttribute("storageLabels", labels(new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER}, "실온", "냉장실", "냉동실"));
         model.addAttribute("sourceLabels", labels(FoodSourceType.values(), "장보기", "배달 잔반", "직접 조리", "부모님의 은혜", "기타"));
         model.addAttribute("today", LocalDate.now(clock));
@@ -75,7 +76,7 @@ public class InventoryController {
     }
 
     @GetMapping("/inventory/new")
-    String newFood(@RequestParam(required = false) Long masterId, Model model) {
+    String newFood(@RequestParam(required = false) Long masterId, @RequestParam(defaultValue = "new") String registrationMode, Model model) {
         var form = FoodCreateForm.empty();
         Long version = null;
         if (masterId != null) {
@@ -85,7 +86,7 @@ public class InventoryController {
         }
         model.addAttribute("foodForm", form);
         model.addAttribute("registrationRequestId", java.util.UUID.randomUUID());
-        registrationContext(masterId == null ? "new" : "existing", masterId, version, model);
+        registrationContext(masterId != null || "existing".equals(registrationMode) ? "existing" : "new", masterId, version, model);
         return "inventory/new";
     }
 
@@ -112,11 +113,14 @@ public class InventoryController {
     }
 
     @GetMapping("/inventory/{id}/edit")
-    String editFood(@PathVariable long id, Model model, RedirectAttributes redirect) {
+    String editFood(@PathVariable long id, @RequestParam(required = false) StorageType storage,
+            @RequestParam(defaultValue = "false") boolean warning, @RequestParam(defaultValue = "false") boolean ended,
+            Model model, RedirectAttributes redirect) {
+        editFilters(storage, warning, ended, model);
         var food = service.findById(id);
         if (food.status() != FoodStatus.ACTIVE) {
             redirect.addFlashAttribute("successMessage", "보관 중인 음식만 수정할 수 있어.");
-            return "redirect:/inventory/" + id;
+            return editReturnUrl("/inventory/" + id, storage, warning, ended);
         }
         model.addAttribute("foodForm", FoodCreateForm.from(food));
         editContext(id, food.updatedAt(), model);
@@ -126,7 +130,10 @@ public class InventoryController {
     @PostMapping("/inventory/{id}/edit")
     String updateFood(@PathVariable long id, @Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
+            @RequestParam(required = false) StorageType storage,
+            @RequestParam(defaultValue = "false") boolean warning, @RequestParam(defaultValue = "false") boolean ended,
             Model model, RedirectAttributes redirect) {
+        editFilters(storage, warning, ended, model);
         editContext(id, expectedUpdatedAt, model);
         collectValidationErrors(form, errors);
         if (errors.hasErrors()) return "inventory/new";
@@ -140,7 +147,20 @@ public class InventoryController {
             });
             return "inventory/new";
         }
-        return "redirect:/inventory/" + id;
+        return editReturnUrl("/foods/" + masters.masterId(id), storage, warning, ended);
+    }
+
+    private void editFilters(StorageType storage, boolean warning, boolean ended, Model model) {
+        model.addAttribute("selectedStorage", storage);
+        model.addAttribute("savedWarning", warning);
+        model.addAttribute("ended", ended);
+    }
+    private String editReturnUrl(String path, StorageType storage, boolean warning, boolean ended) {
+        var uri = org.springframework.web.util.UriComponentsBuilder.fromPath(path);
+        if (storage != null) uri.queryParam("storage", storage);
+        if (warning) uri.queryParam("warning", true);
+        if (ended) uri.queryParam("ended", true);
+        return "redirect:" + uri.build().toUriString();
     }
 
     private void collectValidationErrors(FoodCreateForm form, BindingResult errors) {

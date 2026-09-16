@@ -24,10 +24,10 @@ test('numeric input rejects negatives, text, exponents, excess precision and amo
   for(const value of ['-1','3','1e0','한글','1,5']){input.value=value;handlers.input();assert.equal(input.value,'2.5');}
   let blocked=false;handlers.beforeinput({data:'-',preventDefault:()=>blocked=true});assert.equal(blocked,true);
   input.value='0';handlers.input();assert.notEqual(input.validationMessage,'');
-  input.value='0.125';handlers.input();assert.equal(input.validationMessage,'');assert.equal(question.textContent,'이 구매 항목을 이렇게 기록할까?');
-  input.selectionStart=5;input.selectionEnd=5;
+  input.value='0.12';handlers.input();assert.equal(input.validationMessage,'');assert.equal(question.textContent,'이 구매 항목을 이렇게 기록할까?');
+  input.selectionStart=4;input.selectionEnd=4;
   let precisionBlocked=false;handlers.beforeinput({data:'4',preventDefault:()=>precisionBlocked=true});assert.equal(precisionBlocked,true);assert.equal(error.textContent,'');
-  input.value='1.23456';handlers.input();assert.equal(input.value,'1.234');assert.equal(error.textContent,'');
-  input.value='3';handlers.input();assert.equal(input.value,'1.234');assert.equal(error.textContent,'음수나 기준 수량을 넘는 값은 입력할 수 없어.');
+  input.value='1.23456';handlers.input();assert.equal(input.value,'1.23');assert.equal(error.textContent,'');
+  input.value='3';handlers.input();assert.equal(input.value,'1.23');assert.equal(error.textContent,'음수나 기준 수량을 넘는 값은 입력할 수 없어.');
   input.value='';handlers.input();handlers.blur();assert.notEqual(error.textContent,'');
 });

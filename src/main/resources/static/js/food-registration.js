@@ -26,7 +26,7 @@
         results.hidden = !!selected || !searchedQuery || count === 0;
         searchStatus.hidden = !!selected || !searchedQuery;
         searchStatus.textContent = searchedQuery
-            ? (count ? `검색 결과 ${count}건` : '일치하는 음식이 없어. 다른 이름으로 검색하거나 새로운 음식으로 등록해줘.')
+            ? (count ? `검색 결과 ${count}건` : '일치하는 음식이 없어. 다른 이름으로 검색하거나 신규 등록해줘.')
             : '';
     }
     function searchFoods() {
@@ -35,6 +35,9 @@
         if (!searchedQuery) search.focus();
     }
     function render() {
+        const bulk = mode() === 'bulk';
+        document.getElementById('singleRegistrationFields').hidden = bulk;
+        document.getElementById('bulkRegistrationPanel').hidden = !bulk;
         const existing = mode() === 'existing';
         document.getElementById('existingFoodPicker').hidden = !existing;
         document.getElementById('foodNameField').hidden = existing;
@@ -91,7 +94,7 @@
     });
     if (selected && !unit.value && selected.dataset.unit) unit.value = selected.dataset.unit;
     picker.closest('form').addEventListener('submit', event => {
-        if (submitting || (mode() === 'existing' && !selected)) {
+        if (mode() === 'bulk' || submitting || (mode() === 'existing' && !selected)) {
             event.preventDefault();
             return;
         }

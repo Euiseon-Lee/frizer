@@ -198,7 +198,7 @@ class FoodQuantityIntegrationTest {
         assertThatThrownBy(()->quantities.apply(id,CONSUME,version,null,token,new java.math.BigDecimal("2"))).isInstanceOf(InvalidFoodException.class);
     }
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"-1","0","2.501","0.0001","1000000000"})
+    @org.junit.jupiter.params.provider.ValueSource(strings={"-1","0","2.501","0.001","0.0001","1000000000"})
     void invalidSelectedAmountsNeverWrite(String value) throws Exception {
         long id=create(),version=quantities.preview(id).version();
         assertThatThrownBy(()->quantities.apply(id,CONSUME,version,null,UUID.randomUUID(),new java.math.BigDecimal(value))).isInstanceOf(InvalidFoodException.class);
@@ -206,7 +206,7 @@ class FoodQuantityIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
     }
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"-1","0","3","1e0","한글","1,5","0.0001",""})
+    @org.junit.jupiter.params.provider.ValueSource(strings={"-1","0","3","1e0","한글","1,5","0.001","0.0001",""})
     void forgedFormValuesAreRejectedByServer(String value) throws Exception {
         long id=create(),version=quantities.preview(id).version();
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME").param("version",Long.toString(version))
@@ -220,37 +220,38 @@ class FoodQuantityIntegrationTest {
             .andExpect(content().string(containsString("기준 수량"))).andExpect(content().string(containsString("먹은 수량")))
             .andExpect(content().string(containsString("응, 좋아!"))).andExpect(content().string(containsString("quantity-consume")));
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME").param("version",Long.toString(version))
-            .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.125"))
+            .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.12"))
             .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
-        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.375");
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.38");
     }
 
     @Test void purchaseHistoryShowsQuantityChangesAndCancellationsNewestFirst() throws Exception {
         long id=create(),other=create();
+        long registration=quantities.history(id).getFirst().historyId();
         quantities.apply(other,CONSUME,quantities.preview(other).version(),null,UUID.randomUUID());
         long first=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
         long last=quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("1"));
-        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(last,first);
-        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("1모","2모");
+        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(last,first,registration);
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("1모","2모","2.5모");
         mvc.perform(get("/inventory/"+id))
             .andExpect(status().isOk())
             .andExpect(htmlCount("<details[^>]* open",0))
-            .andExpect(htmlCount("<strong class=\"quantity-history-amount\"",2))
+            .andExpect(htmlCount("<strong class=\"quantity-history-amount\"",3))
             .andExpect(content().string(containsString("class=\"quantity-history-amount\">-1모</strong>")))
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
             .andExpect(content().string(containsString("aria-label=\"폐기 -1모 처리 취소\"")));
         long reversal=cancel(id,last);
-        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(reversal,last,first);
+        assertThat(quantities.history(id)).extracting(QuantityChange::historyId).containsExactly(reversal,last,first,registration);
         assertThat(quantities.preview(id).cancellable()).isFalse();
         assertThatThrownBy(()->cancel(id,first)).isInstanceOf(InvalidFoodException.class);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE history_id=?",Integer.class,last)).isEqualTo(1);
         jdbc.update("UPDATE food_item SET quantity_amount=5,quantity_text='5모' WHERE food_id=?",id);
-        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("2모","1모","2모");
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("2모","1모","2모","2.5모");
         assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
     }
     @Test void purchaseHistoryCancellationIsAbsentWithoutHistoryAndOnlyOnLatestEligibleRow() throws Exception {
         long id=create();
-        String purchaseHelp="새로 구매했다면 ‘기존 음식에 추가’를 이용해줘.";
+        String purchaseHelp="잔량이 수정되니, 새로 구매했다면 ‘추가 등록’을 이용해줘.";
         var edit=mvc.perform(get("/inventory/"+id+"/edit")).andExpect(status().isOk())
             .andExpect(content().string(containsString(purchaseHelp))).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         mvc.perform(get("/inventory/new")).andExpect(status().isOk())
@@ -261,7 +262,7 @@ class FoodQuantityIntegrationTest {
         }
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",0))
-            .andExpect(htmlCount("class=\"consumption-history-list\"",0));
+            .andExpect(htmlCount("class=\"consumption-history-list\"",1));
         quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
         var partial=mvc.perform(get("/inventory/"+id).param("warning","true").param("storage","FRIDGE"))
             .andExpect(status().isOk())
@@ -291,13 +292,13 @@ class FoodQuantityIntegrationTest {
         long id=create(),event=finish(id);
         mvc.perform(get("/foods/"+masters.masterId(id)).param("ended","true")).andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.not(containsString("다른 음식으로 이동"))))
-            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("기존 음식에 추가"))))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("추가 등록"))))
             .andExpect(content().string(containsString("전체 목록으로")));
         cancel(id,event);
         mvc.perform(get("/foods/"+masters.masterId(id))).andExpect(status().isOk())
-            .andExpect(content().string(containsString("기존 음식에 추가")))
+            .andExpect(content().string(containsString("추가 등록")))
             .andExpect(content().string(containsString("다른 음식으로 이동")));
-        assertThat(quantities.history(id)).hasSize(2);
+        assertThat(quantities.history(id)).hasSize(3);
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
             .andExpect(htmlCount("class=\"consumption-history-list\"",1))
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",0))
@@ -359,15 +360,15 @@ class FoodQuantityIntegrationTest {
         mvc.perform(post("/inventory/"+id+"/edit").param("foodName","두부").param("storageType","FRIDGE")
             .param("quantityAmount",amount).param("quantityUnit",unit).param("sourceType","PURCHASE").param("memo",memo)
             .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString()))
-            .andExpect(redirectedUrl("/inventory/"+id));
+            .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
     }
     @Test void quantityCorrectionsUseStoredDeltasAndDoNotBecomePurchases() throws Exception {
         long id=create();
         quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
         correct(id,"5","모","원래 메모");
         quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("1"));
-        assertThat(quantities.history(id)).extracting(QuantityChange::changeQuantity).containsExactly("-1모","+3모","-0.5모");
-        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("4모","5모","2모");
+        assertThat(quantities.history(id)).extracting(QuantityChange::changeQuantity).containsExactly("-1모","+3모","-0.5모","+2.5모");
+        assertThat(quantities.history(id)).extracting(QuantityChange::remainingQuantity).containsExactly("4모","5모","2모","2.5모");
         assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE food_id=? AND action_type='CREATE'",Integer.class,id)).isEqualTo(1);
         var page=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
@@ -388,7 +389,7 @@ class FoodQuantityIntegrationTest {
             }
         }
         correct(id,"4","모","메모만 바꿔");
-        assertThat(quantities.history(id)).hasSize(3);
+        assertThat(quantities.history(id)).hasSize(4);
         assertThat(quantities.preview(id).cancellable()).isTrue();
         correct(id,"3.5","모","메모만 바꿔");
         assertThat(quantities.history(id).getFirst().changeQuantity()).isEqualTo("-0.5모");
@@ -402,7 +403,24 @@ class FoodQuantityIntegrationTest {
         assertThat(change.remainingQuantity()).isEqualTo("2.5봉지");
         assertThat(quantities.registrationQuantity(id)).isEqualTo("2.5모");
         correct(id,"2.5","봉지","원래 메모");
-        assertThat(quantities.history(id)).hasSize(1);
+        assertThat(quantities.history(id)).hasSize(2);
+    }
+    @Test void registrationAppearsWithoutCancelAndPreservesHistoricalQuantity() throws Exception {
+        long id=create();
+        var registration=quantities.history(id).getFirst();
+        assertThat(registration.actionLabel()).isEqualTo("등록");
+        assertThat(registration.changeQuantity()).isEqualTo("+2.5모");
+        assertThat(registration.remainingQuantity()).isEqualTo("2.5모");
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+            .andExpect(content().string(containsString("data-event=\"CREATE\">등록</span>")))
+            .andExpect(content().string(containsString("class=\"quantity-history-amount\">+2.5모</strong>")))
+            .andExpect(htmlCount("class=\"quantity-history-cancel\"",0));
+        jdbc.update("UPDATE food_history SET after_quantity_amount=NULL,quantity_unit=NULL,quantity_text='두 묶음' WHERE history_id=?",registration.historyId());
+        correct(id,"4","모","현재 수량 정정");
+        var original=quantities.history(id).getLast();
+        assertThat(original.actionLabel()).isEqualTo("등록");
+        assertThat(original.changeQuantity()).isEqualTo("두 묶음");
+        assertThat(original.remainingQuantity()).isEqualTo("두 묶음");
     }
     private static org.springframework.test.web.servlet.ResultMatcher htmlCount(String pattern,long count) {
         return result -> assertThat(java.util.regex.Pattern.compile(pattern).matcher(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8)).results().count()).isEqualTo(count);

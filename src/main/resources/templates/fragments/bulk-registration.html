@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><body><section class="bulk-registration" th:fragment="content">
+<section class="form-section">
+<div class="section-label"><span>01</span><h2>양식에 음식을 적어 업로드해줘</h2></div>
+
+<div class="form-actions bulk-template-actions"><a class="button action-create bulk-template-download" th:href="@{/inventory/bulk/template}">엑셀 양식 받기</a></div>
+
+<form data-bulk-upload method="post" enctype="multipart/form-data" th:action="@{/inventory/bulk/preview}">
+<input type="hidden" name="formToken" th:value="${session.bulkOwner}">
+<div class="field bulk-upload-field"><label for="bulkFile">첨부 파일 <span class="required">필수</span></label><p class="help bulk-help" id="bulkFileHelp">.xlsx 파일 1개(최대 2MB)를 업로드할 수 있어.</p><input type="file" id="bulkFile" name="file" accept=".xlsx" required aria-describedby="bulkFileHelp"></div>
+<p id="bulkUploadMessage" class="field-error bulk-upload-error" role="status" th:hidden="${error == null}" th:text="${error}"></p>
+</form>
+</section>
+<div id="bulkResults" aria-live="polite">
+<section id="bulkPreview" class="form-section" tabindex="-1" th:if="${preview != null}">
+<div class="section-label"><span>02</span><h2>등록할 음식을 확인해줘</h2></div>
+<div class="bulk-preview-summary">
+<p class="help">상세 정보를 펼치면 확인할 수 있어. 30분 동안 유효해.</p>
+<p class="field-error" role="alert" th:unless="${preview.valid()}">오류가 있어. 표시된 행을 수정한 뒤 파일을 다시 올려줘.</p>
+</div>
+<ol class="bulk-preview">
+<li th:each="row : ${preview.rows()}">
+<div class="bulk-row-heading"><span class="muted" th:text="${row.sheet() + ' · ' + row.row() + '행'}"></span><strong th:text="${#strings.isEmpty(row.form().foodName()) ? '음식명 미입력' : row.form().foodName()}"></strong></div>
+<ul class="field-error bulk-row-errors" th:if="${!row.errors().isEmpty()}"><li th:each="error : ${row.errors()}" th:text="${error}"></li></ul>
+<details><summary>상세 정보</summary><dl class="bulk-details">
+<div><dt class="bulk-required">수량</dt><dd th:text="${(row.form().quantityAmount() == null ? row.cells().get(1) : row.form().quantityAmount().toPlainString()) + row.form().quantityUnit()}"></dd></div>
+<div><dt class="bulk-required">보관 위치</dt><dd th:text="${row.form().storageType() == null ? '미입력' : (row.form().storageType().name() == 'ROOM' ? '실온' : (row.form().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실'))}"></dd></div>
+<div><dt>용량</dt><dd th:text="${row.form().capacityText() ?: '미입력'}"></dd></div>
+<div><dt>분류</dt><dd th:text="${row.form().category() ?: '미입력'}"></dd></div>
+<div><dt>출처</dt><dd th:text="${#strings.isEmpty(row.cells().get(7)) ? '미입력' : row.cells().get(7)}"></dd></div>
+<div><dt>출처 메모</dt><dd th:text="${row.form().sourceMemo() ?: '미입력'}"></dd></div>
+<div><dt>구매일</dt><dd th:text="${row.form().purchasedAt() ?: '미입력'}"></dd></div>
+<div><dt>소비기한</dt><dd th:text="${row.form().expiredAt() ?: '미입력'}"></dd></div>
+<div><dt>유통기한</dt><dd th:text="${row.form().sellByAt() ?: '미입력'}"></dd></div>
+<div><dt>개봉일</dt><dd th:text="${row.form().openedAt() ?: '미입력'}"></dd></div>
+<div><dt>냉동일</dt><dd th:text="${row.form().frozenAt() ?: '미입력'}"></dd></div>
+<div><dt>냉동 구분</dt><dd th:text="${row.form().freezeType() == null or row.form().freezeType().name() == 'NONE' ? '해당 없음' : (row.form().freezeType().name() == 'HOME_FROZEN' ? '직접 냉동' : '시판 냉동식품')}"></dd></div>
+<div class="bulk-detail-wide"><dt>메모</dt><dd th:text="${row.form().memo() ?: '미입력'}"></dd></div>
+</dl></details>
+<p class="help bulk-adjustment-notice" th:each="notice : ${row.notices()}" th:text="${notice}"></p>
+
+</li>
+</ol>
+
+</section>
+<p id="bulkCompletionHelp" class="help bulk-help" role="status" th:if="${preview != null and preview.valid() and !preview.duplicate()}">확인한 내용을 저장하려면 등록 완료를 눌러줘.</p>
+<form id="bulkCommitForm" method="post" th:if="${preview != null and preview.valid()}" th:action="@{/inventory/bulk/commit}">
+<input type="hidden" name="requestId" th:value="${preview.requestId()}">
+<div class="bulk-duplicate" th:if="${preview.duplicate()}"><p class="field-error">같은 내용이 이미 등록된 적 있어서 확인이 필요해.</p><label class="bulk-repeat-label"><input id="bulkRepeat" type="checkbox" name="repeat" value="true" required><span>새로 구매한 거라서 새 항목으로 추가하는 게 맞아!</span></label></div>
+<div class="form-actions"><a class="cancel-link" th:href="@{/inventory}">목록으로</a><button id="bulkComplete" class="button action-create" type="submit" th:disabled="${preview.duplicate()}">등록 완료</button></div>
+</form>
+<div class="form-actions" th:if="${preview == null or !preview.valid()}"><a class="cancel-link" th:href="@{/inventory}">목록으로</a><button id="bulkComplete" class="button action-create" type="button" disabled>등록 완료</button></div>
+
+</div>
+</section></body></html>

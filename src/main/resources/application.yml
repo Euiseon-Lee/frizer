@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   application:
     name: frizer
   profiles:
@@ -26,3 +30,8 @@ mybatis:
     map-underscore-to-camel-case: true
     arg-name-based-constructor-auto-mapping: true
     default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+
+server:
+  servlet:
+    session:
+      tracking-modes: cookie

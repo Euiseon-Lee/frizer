@@ -18,7 +18,7 @@ public interface FoodQuantityDao {
     State state(long id);
     @Select("SELECT h.history_id,h.action_type,h.processed_quantity_amount,h.quantity_unit,h.after_stock_revision,h.created_at,EXISTS(SELECT 1 FROM food_history c WHERE c.reversal_of_history_id=h.history_id) AS reversed FROM food_history h WHERE h.food_id=#{id} AND h.action_type IN ('CONSUME','DISCARD') AND h.operation_id IS NOT NULL ORDER BY h.history_id DESC LIMIT 1")
     Event latest(long id);
-    @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.created_at FROM food_history h WHERE h.food_id=#{id} AND ((h.action_type IN ('CONSUME','DISCARD','CANCEL') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
+    @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.quantity_text,h.created_at FROM food_history h WHERE h.food_id=#{id} AND (h.action_type='CREATE' OR (h.action_type IN ('CONSUME','DISCARD','CANCEL') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
     java.util.List<QuantityChange> quantityChanges(long id);
     @Select("SELECT quantity_text FROM food_history WHERE food_id=#{id} AND action_type='CREATE' ORDER BY history_id LIMIT 1")
     String registrationQuantity(long id);

@@ -14,11 +14,11 @@ function registration({mode='new',selected='',version='',unit='',candidates=true
   const ids=Object.fromEntries(['registrationPicker','masterId','masterVersion','foodName','category','quantityUnit','foodSearch',
     'selectedFoodSummary','foodCandidates','foodSearchStatus','existingFoodPicker','foodNameField','sharedCategoryHelp',
     'selectedFoodName','selectedFoodCategory','registrationSubmit','quantityAmount','changeSelectedFood','searchFoods',
-    'registrationCancel'].map(id=>[id,element()]));
+    'registrationCancel','singleRegistrationFields','bulkRegistrationPanel'].map(id=>[id,element()]));
   ids.foodName.value='새 두부';ids.category.value='새 분류';ids.masterId.value=selected;ids.masterVersion.value=version;
   ids.quantityUnit.value=unit;ids.registrationPicker.dataset.listUrl='/inventory';
   let current=mode;
-  const radios=[element('new'),element('existing')];
+  const radios=[element('new'),element('existing'),element('bulk')];
   const choices=candidates?['두부','두부','MILK'].map((name,i)=>{
     const b=element();b.dataset={masterId:String(i+1),name,category:i===1?'':'반찬',version:'7',unit:i===1?'':'모',detailUrl:`/foods/${i+1}`};
     b.querySelector=()=>({textContent:`분류 ${i} · #${i+1}`});return b;
@@ -136,3 +136,11 @@ for(const [typed,afterInput,afterBlur] of [['1.239','1.23','1.23'],['.5','.5','0
     input.emit('blur');assert.equal(input.value,afterBlur);
   });
 }
+
+test('registration: bulk panel is exclusive and preserves the single-item draft',()=>{
+  const e=registration();e.ids.foodName.value='내 두부';e.ids.foodName.emit('input');
+  e.mode('bulk');assert.equal(e.ids.singleRegistrationFields.hidden,true);assert.equal(e.ids.bulkRegistrationPanel.hidden,false);assert.equal(e.ids.existingFoodPicker.hidden,true);
+  let prevented=false;e.form.emit('submit',{preventDefault(){prevented=true}});assert.equal(prevented,true);
+  e.mode('new');assert.equal(e.ids.singleRegistrationFields.hidden,false);assert.equal(e.ids.bulkRegistrationPanel.hidden,true);assert.equal(e.ids.foodName.value,'내 두부');
+  e.mode('existing');assert.equal(e.ids.existingFoodPicker.hidden,false);assert.equal(e.ids.bulkRegistrationPanel.hidden,true);
+});

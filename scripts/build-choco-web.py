@@ -9,8 +9,8 @@ from PIL import Image
 
 VERSION = "v1"
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "src/main/resources/static/assets/choco"
-OUTPUT = SOURCE / "web" / VERSION
+SOURCE = ROOT / "src-assets/choco"
+OUTPUT = ROOT / "src/main/resources/static/assets/choco/web" / VERSION
 MAX_EDGE = 660  # Largest 220 CSS-pixel slot at 3x device pixel ratio.
 
 

@@ -24,7 +24,7 @@ assert.equal(new Set(addition.images.map(r=>r.zip_filename)).size,20);
 const sourceRows=fs.readFileSync('src/test/resources/choco/image-mapping.csv','utf8').trim().split(/\r?\n/).slice(1);
 assert.equal(sourceRows.length,20);
 for(const line of sourceRows){const [original,zip]=line.split(',');assert.ok(addition.images.some(r=>r.original_filename===original&&r.zip_filename===zip));}
-const digest=name=>crypto.createHash('sha256').update(fs.readFileSync('src/main/resources/static/assets/choco/'+name)).digest('hex');
+const digest=name=>crypto.createHash('sha256').update(fs.readFileSync('src-assets/choco/'+name)).digest('hex');
 const current=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260914.json','utf8'));
 const replacements=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260915-replacements.json','utf8')).images;
 assert.equal(replacements.length,14);
@@ -38,7 +38,7 @@ for(const row of replacements){
  assert.equal(row.previous_sha256,importedHashes[row.filename],row.filename+' replacement provenance');
  assert.notEqual(row.previous_sha256,row.project_sha256,'replacement must change bytes');
  assert.equal(digest(row.filename),row.project_sha256,row.filename+' committed replacement');
- const bytes=fs.readFileSync('src/main/resources/static/assets/choco/'+row.filename);
+ const bytes=fs.readFileSync('src-assets/choco/'+row.filename);
  assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10]);
  assert.equal(row.png_color_type,6,'replacement must retain RGBA');
  assert.equal(bytes[25],row.png_color_type);
@@ -60,11 +60,11 @@ for(const [name,row] of Object.entries(current.retouches)){
 }
 const approvedHash=(name,hash)=>replacedHash(name,current.retouches[name]?.project_sha256||hash);
 for(const [name,hash] of Object.entries(addition.existing_asset_sha256))assert.equal(digest(name),approvedHash(name,hash),'unapproved change '+name);
-for(const row of addition.images){assert.ok(['ADDED','REUSED'].includes(row.status));assert.ok(assets[row.project_filename.replace(/\.png$/,'')]);assert.equal(digest(row.project_filename),approvedHash(row.project_filename,row.project_sha256));if(row.status==='ADDED')assert.equal(row.project_sha256,row.source_sha256);else{assert.ok(row.comparison_mse<0.00001);assert.ok(!fs.existsSync('src/main/resources/static/assets/choco/'+row.zip_filename));}}
+for(const row of addition.images){assert.ok(['ADDED','REUSED'].includes(row.status));assert.ok(assets[row.project_filename.replace(/\.png$/,'')]);assert.equal(digest(row.project_filename),approvedHash(row.project_filename,row.project_sha256));if(row.status==='ADDED')assert.equal(row.project_sha256,row.source_sha256);else{assert.ok(row.comparison_mse<0.00001);assert.ok(!fs.existsSync('src-assets/choco/'+row.zip_filename));}}
 const newKeys=['upside-down-gaze','leash-hold','chin-scratch-closeup','breeze-sly-smile','breeze-happy-smile','lying-blank-gaze','relaxed-smile-portrait','side-smile-stand'];
 assert.deepEqual(current.images.map(r=>r.key),newKeys);
 for(const row of current.images){
- const bytes=fs.readFileSync('src/main/resources/static/assets/choco/'+row.filename);
+ const bytes=fs.readFileSync('src-assets/choco/'+row.filename);
  assert.equal(digest(row.filename),replacedHash(row.filename,row.project_sha256));
  assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10]);
  assert.equal(bytes[25],6,'RGBA PNG');
@@ -84,10 +84,10 @@ const liveRoles=new Set([...templates.matchAll(/data-choco-role="([a-z-]+)"/g)].
 for(const role of ['home-hero','empty','rest','add-header','edit-header']){assert.ok(templates.includes("'"+role+"'")||templates.includes('"'+role+'"'));liveRoles.add(role);}
 for(const a of Object.values(assets)){
  assert.match(a.key,/^[a-z0-9]+(?:-[a-z0-9]+)*$/,'asset filename convention');
- assert.ok(fs.existsSync('src/main/resources/static/assets/choco/'+a.key+'.png'));
+ assert.ok(fs.existsSync('src-assets/choco/'+a.key+'.png'));
  assert.ok([...liveRoles].some(role=>core.isEligible(a.key,role)),a.key+' has no live use');
 }
-assert.deepEqual(fs.readdirSync('src/main/resources/static/assets/choco').filter(f=>f.endsWith('.png')).sort(),Object.keys(assets).map(k=>k+'.png').sort(),'unregistered or missing PNG');
+assert.deepEqual(fs.readdirSync('src-assets/choco').filter(f=>f.endsWith('.png')).sort(),Object.keys(assets).map(k=>k+'.png').sort(),'unregistered or missing PNG');
 for(const [role,p] of Object.entries(policies))if(p.header){
  assert.equal(core.candidatesFor(role).length,62);
  assert.equal(core.isEligible('puppy-tilt',role),false);

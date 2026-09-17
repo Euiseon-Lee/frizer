@@ -2,7 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
 <section th:fragment="accessHeading(eyebrow, title, description, errorImage)" class="heading character-heading tab-heading" th:classappend="${!errorImage and title == '음식 재고 관리'} ? 'login-heading' : null">
     <div><p class="eyebrow" th:text="${eyebrow}"></p><h1 th:text="${title}"></h1><p class="muted" th:if="${description != null}" th:text="${description}"></p></div>
-    <img th:unless="${errorImage}" class="choco" th:src="@{/assets/choco/happy-run-front.png}" width="120" height="150" alt="쪼코">
+    <img th:unless="${errorImage}" class="choco choco-loading" th:src="@{/assets/choco/web/v1/happy-run-front.webp}" data-choco-static decoding="async" width="120" height="150" alt="쪼코">
     <img th:if="${errorImage}" class="choco" width="120" height="150" alt="쪼코" data-choco-region="error-image" data-choco-role="error" th:attr="data-choco-base=@{/assets/choco/}" hidden>
 </section>
 <th:block th:fragment="historyChange(value)"><span th:each="part : ${value.split('(?<=→)|(?=→)', -1)}" th:class="${part == '→' ? 'history-change-arrow' : null}" th:text="${part}"></span></th:block>

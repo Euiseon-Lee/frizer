@@ -45,6 +45,14 @@ class SecurityIntegrationTest {
         mvc.perform(get("/health")).andExpect(status().isOk()).andExpect(content().string("ok"));
         mvc.perform(get("/login")).andExpect(status().isOk()).andExpect(content().string(containsString("name=\"_csrf\"")));
     }
+    @Test void versionedImagesArePublicAndCacheableButLoginIsNot() throws Exception {
+        mvc.perform(get("/assets/choco/web/v1/happy-run-front.webp"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/webp"))
+                .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"));
+        mvc.perform(get("/login"))
+                .andExpect(header().string("Cache-Control", containsString("no-store")));
+    }
     @Test void rejectedRequestsUseSharedErrorViewWithForbiddenStatus() throws Exception {
         mvc.perform(get("/access-denied"))
                 .andExpect(status().isForbidden()).andExpect(view().name("error"))

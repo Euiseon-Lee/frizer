@@ -136,6 +136,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .overview-card .date-foods a{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.6fr);align-items:center;gap:12px;min-width:0;height:44px;padding:0;border-radius:8px;transition:background-color .15s ease}
 .overview-card .date-foods .overview-food-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--attention-ink);font-size:15px;font-weight:600;line-height:1.5}
 .overview-card .date-foods .attention-reasons{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--attention-muted);text-align:right;font-size:13px;line-height:1.6;white-space:nowrap}
+.section-heading>.overview-date{padding-right:8px}
 .overview-card .attention-reasons>span{white-space:nowrap}
 .overview-card .attention-reasons>span+span::before{content:" / ";color:var(--attention-muted)}
 .overview-card .overview-overdue{color:var(--attention-coral)}
@@ -208,7 +209,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .add-banner .choco-wide{width:132px;height:74px;max-width:38%;object-position:center}
 .storage-card .choco-wide{width:112px;height:58px;max-width:60%;object-position:right bottom}
 .profile-link img{object-fit:contain;object-position:center}
-.choco-load-failed{visibility:hidden}
+.choco-load-failed,.choco-loading{visibility:hidden}
 
 /* Page copy and character occupy separate columns, independent of the chosen photo. */
 .home-hero,.tab-heading{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);column-gap:12px;align-items:end}
@@ -224,10 +225,8 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .storage-card>p b{display:block;line-height:1}
 .storage-card>.choco{grid-column:1/-1;grid-row:2;position:static;z-index:auto;justify-self:stretch;align-self:stretch;width:100%;max-width:100%;height:100%;min-width:0;padding:0;object-fit:contain;object-position:center bottom}
 @media(max-width:360px){.storage-card>h3{font-size:15px}.storage-card>p b{font-size:19px}}
-/* Recent history link feedback without changing its layout. */
-.recent-history .section-heading>.text-link{border-radius:6px;text-underline-offset:4px;transition:color .15s ease}
-.recent-history .section-heading>.text-link:hover,.recent-history .section-heading>.text-link:focus-visible{color:#6048b5;text-decoration:underline}
-.recent-history .section-heading>.text-link:focus-visible{outline:2px solid #7057c8;outline-offset:3px}
+/* Reuse the list-return button appearance with the compact home link sizing. */
+.recent-history .section-heading>.text-link{font-size:12px;min-height:44px;padding:0 8px;color:var(--muted)}
 @media(prefers-reduced-motion:reduce){.recent-history .section-heading>.text-link{transition:none}}
 /* Food identity groups retain separate stock information and dates. */
 .food-card.food-group-card{display:block}

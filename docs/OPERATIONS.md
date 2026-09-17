@@ -30,6 +30,8 @@ Render Free는 요청이 없는 동안 절전 상태가 될 수 있어 첫 접�
 
 2026-09-17 운영 배포에서 Render Live와 V15 성공을 확인했다. 두 계정의 HTTPS 로그인, 홈·재고·히스토리·등록 화면 조회, 로그아웃을 확인했다. 운영 음식 등록·교차 계정 수정의 실데이터 검증, 실제 휴대폰 LTE/5G 접속, 백업 복구 실습은 별도로 남아 있다. 사용자 격리는 배포 전 자동 통합 테스트에 포함했다.
 
+2026-09-17 사용자 확인: `06785a8` 운영 반영 완료. 휴대폰은 사용자가 실사용 중 확인하며 별도 당일 작업으로 잡지 않는다. 이후 이미지 로딩 개선 작업은 로컬 변경이며 별도 커밋·배포가 필요하다.
+
 ## 3. 변경한 코드를 운영에 배포하기
 
 ### 3-1. 프로젝트와 변경 파일 확인
@@ -96,6 +98,16 @@ git rev-parse HEAD
 `BUILD SUCCESSFUL`만 보이면 아직 배포 완료가 아니다. Render `Live`와 실제 앱 동작까지 확인한다.
 
 ## 4. 코드 변경 없이 재시작하기
+
+### GitHub Actions 주기 호출
+
+`.github/workflows/render-keepalive.yml`은 5분 간격으로 공개 `/health`를 호출한다. 로그인·DB 조회·소스 checkout·빌드는 수행하지 않는다. 파일을 GitHub 기본 브랜치에 반영하고 Actions가 허용되어 있어야 예약 실행이 시작된다. Render 앱 재배포는 필요 없다. 최초 확인은 GitHub Actions → Render keep-alive → Run workflow로 실행하고 성공 여부를 확인한다. 중지하려면 해당 workflow를 Disable workflow로 비활성화한다.
+
+GitHub 예약 실행은 지연·누락될 수 있어 상시 가동을 보장하지 않는다. 공개 저장소는 60일간 저장소 활동이 없으면 예약 실행이 비활성화될 수 있다. 공개 저장소의 표준 러너는 무료지만 비공개 저장소는 계정의 Actions 사용량을 소비한다. 5분 간격은 하루 288회이며, 비공개 저장소라면 활성화 전에 사용량·예산을 확인한다. Render 무료 실행 시간은 workspace당 월 750시간을 공유한다. 이 호출은 Neon DB를 깨워 두는 기능은 아니다.
+
+기준: [Render 무료 인스턴스](https://render.com/docs/free), [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule), [Actions 사용량](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+
+### 수동 재시작
 
 Render 서비스의 `Manual Deploy` → `Restart service`를 선택하고 Live와 `/health`를 확인한다. 현재 배포된 커밋을 다시 실행하는 기능이므로 새 코드 반영에는 3절의 배포 절차를 사용한다. 재시작하면 사용자가 다시 로그인해야 할 수 있다.
 

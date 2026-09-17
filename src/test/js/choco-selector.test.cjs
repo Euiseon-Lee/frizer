@@ -210,7 +210,7 @@ for(const blocked of [undefined,new Proxy({}, {get(){throw Error('disabled')}})]
 assert.ok(expected.PROFILE.includes(createSelector(storage()).createPage().sync([{id:'profile',role:'profile',fixed:'sniff'}]).get('profile')));
 // Production DOM adapter: stable rerenders, recreated nodes, BFCache and bounded error retries.
 const domStore=storage(),events={};let observer;
-function img(id,role,fixed){let src='';return {dataset:{chocoRegion:id,chocoRole:role,chocoBase:'/assets/choco/',...(fixed?{chocoFixed:fixed}:{})},hidden:!fixed,parentElement:{getClientRects:()=>[{}],closest:()=>null},classList:{contains(){return false},toggle(){},remove(){}},get src(){return src},set src(v){src=v},removeAttribute:k=>{if(k==='src')src=''}};}
+function img(id,role,fixed){let src='';return {dataset:{chocoRegion:id,chocoRole:role,chocoBase:'/assets/choco/',...(fixed?{chocoFixed:fixed}:{})},hidden:!fixed,parentElement:{getClientRects:()=>[{}],closest:()=>null},classList:{contains(){return false},toggle(){},add(){},remove(){}},get src(){return src},set src(v){src=v},removeAttribute:k=>{if(k==='src')src=''}};}
 let images=[img('profile','profile','happy-closeup'),img('list-header','list-header')];const tasks=[];
 const sandbox={URL,Map,Set,Math,console,location:{href:'http://localhost/inventory',pathname:'/inventory',search:''},sessionStorage:domStore,document:{body:{},querySelectorAll:()=>images},queueMicrotask:fn=>tasks.push(fn),MutationObserver:class{constructor(fn){observer=fn}observe(){}},addEventListener:(name,fn)=>events[name]=fn};
 sandbox.window=sandbox;vm.createContext(sandbox);const flush=()=>{while(tasks.length)tasks.shift()()};
@@ -234,6 +234,7 @@ for(const key of ['handsome-profile-lounge','threshold-lounge','puppy-proud-sit'
  fileSandbox.window=fileSandbox;vm.createContext(fileSandbox);
  vm.runInContext(fs.readFileSync('src/main/resources/static/js/choco-selector.js','utf8'),fileSandbox);
  vm.runInContext(adapter,fileSandbox);
- assert.equal(target.src,'http://localhost/assets/choco/'+encodeURIComponent(key+'.png'));
+ assert.equal(target.src,'http://localhost/assets/choco/web/v1/'+encodeURIComponent(key+'.webp'));
+ assert.ok(fs.existsSync('src/main/resources/static/assets/choco/web/v1/'+key+'.webp'));
 }
 console.log('PASS: 77 live assets; 41 added PNGs; approved retouch hashes and 14 committed replacements; 62-image headers; independent shuffle bags; 360 home allocations; old-session migration; normalized filenames and asset URLs; DOM stability and BFCache');

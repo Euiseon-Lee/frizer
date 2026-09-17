@@ -220,11 +220,11 @@ class FoodMergeIntegrationTest {
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(before);
         var entries=histories.findRecent(100);
         // 3 CREATE entries plus one MOVE entry per item: the stored one and the ended one both count.
-        assertThat(entries).hasSize(5).noneMatch(e->e.isMerge());
-        var movedIds=entries.stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.MOVE)
-                .map(e->e.foodId()).toList();
+        assertThat(entries).hasSize(5);
+        var movedIds=entries.stream().filter(e->e.isMerge()).map(e->e.foodId()).toList();
         assertThat(movedIds).containsExactlyInAnyOrder(item,endedItem);
-        entries.stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.MOVE).forEach(entry->{
+        entries.stream().filter(e->e.isMerge()).forEach(entry->{
+            assertThat(entry.actionType()).isNull();
             assertThat(entry.actionLabel()).isEqualTo("병합");
             assertThat(entry.displayFoodName()).isEqualTo("치킨");
             assertThat(entry.currentMasterId()).isEqualTo(target);
@@ -240,7 +240,8 @@ class FoodMergeIntegrationTest {
         long target=create("두부","모","FRIDGE");
         jdbc.update("INSERT INTO food_merge_receipt(user_id,request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES(1,?,99999,?,0,0,'옛 음식','당시 두부',7)",UUID.randomUUID(),target);
         var rows=histories.findRecent(100);var merge=rows.stream().filter(e->e.isMerge()).findFirst().orElseThrow();
-        assertThat(merge.displayFoodName()).isEqualTo("옛 음식 → 당시 두부");
+        assertThat(merge.displayFoodName()).isEqualTo("옛 음식");
+        assertThat(merge.changesText()).isEqualTo("음식명: 옛 음식 (#99999) → 당시 두부 (#"+target+")");
         assertThat(merge.actionLabel()).isEqualTo("병합");
         assertThat(merge.mergedItemCount()).isEqualTo(7);assertThat(merge.currentFoodName()).isEqualTo("두부");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(1);
@@ -250,9 +251,9 @@ class FoodMergeIntegrationTest {
         jdbc.update("INSERT INTO food_merge_receipt(user_id,request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES(1,?,99999,?,0,0,'옛 음식','A',1)",UUID.randomUUID(),a);
         wholeMove(a,b,UUID.randomUUID());wholeMove(b,c,UUID.randomUUID());
         var rows=histories.findRecent(100);
-        var legacy=rows.stream().filter(e->e.isMerge()).findFirst().orElseThrow();
+        var legacy=rows.stream().filter(e->e.isMerge() && e.foodId()==null).findFirst().orElseThrow();
         assertThat(legacy.currentMasterId()).isEqualTo(c);
-        assertThat(rows.stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.MOVE).toList())
+        assertThat(rows.stream().filter(e->e.isMerge() && e.foodId()!=null).toList())
                 .hasSize(3).allSatisfy(e->assertThat(e.currentMasterId()).isEqualTo(c));
         mvc.perform(get("/history")).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("href=\"/foods/"+b+"\""))))
@@ -270,7 +271,8 @@ class FoodMergeIntegrationTest {
         jdbc.update("UPDATE food_history SET created_at='2026-09-14T00:00:00Z'");
         jdbc.update("UPDATE food_item_move_receipt SET created_at='2026-09-14T00:00:00Z'");
         var first=histories.findRecent(2);assertThat(first).hasSize(2);
-        assertThat(first.getFirst().actionType()).isEqualTo(com.euiseon.friger.common.type.FoodActionType.MOVE);
+        assertThat(first.getFirst().isMerge()).isTrue();
+        assertThat(first.getFirst().actionType()).isNull();
         assertThat(histories.findRecent(2)).isEqualTo(first);
         assertThat(histories.findRecent(0)).isEmpty();
     }

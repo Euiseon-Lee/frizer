@@ -2,6 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/move-select.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -43,11 +44,14 @@
 </a></div></div>
 <div class="form-actions purchase-primary-actions" th:unless="${ended}">
 <button id="moveSelected" class="button button-secondary action-move" type="submit" disabled title="병합 대상을 먼저 선택해줘">다른 음식으로 병합</button>
+<button id="deleteSelected" class="button button-secondary action-delete" type="submit" disabled title="삭제할 항목을 먼저 선택해줘" th:attr="formaction=@{/foods/{id}/delete(id=${master.masterId()})}">잘못 등록했어</button></div>
+<div class="form-actions" th:unless="${ended}">
 <a class="button action-create" th:href="@{/inventory/new(masterId=${master.masterId()})}">추가 등록</a></div>
 <div class="form-actions" th:if="${ended}">
-<button id="moveSelected" class="button button-secondary action-move" type="submit" disabled title="병합 대상을 먼저 선택해줘">다른 음식으로 병합</button></div>
+<button id="moveSelected" class="button button-secondary action-move" type="submit" disabled title="병합 대상을 먼저 선택해줘">다른 음식으로 병합</button>
+<button id="deleteSelected" class="button button-secondary action-delete" type="submit" disabled title="삭제할 항목을 먼저 선택해줘" th:attr="formaction=@{/foods/{id}/delete(id=${master.masterId()})}">잘못 등록했어</button></div>
 </form>
-<div class="form-actions purchase-primary-actions" th:if="${!ended and items.isEmpty() and !warningOnly}">
+<div class="form-actions" th:if="${!ended and items.isEmpty() and !warningOnly}">
 <a class="button action-create" th:href="@{/inventory/new(masterId=${master.masterId()})}">추가 등록</a></div>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory(storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">전체 목록으로</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

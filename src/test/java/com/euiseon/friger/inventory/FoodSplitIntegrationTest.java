@@ -124,7 +124,7 @@ class FoodSplitIntegrationTest {
         mvc.perform(get("/inventory/"+id+"/split").param("storage","FRIDGE"))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("나눌 수량")))
-            .andExpect(content().string(containsString("되돌릴 수 없어")));
+            .andExpect(content().string(containsString("취소할 수 없어")));
         long version=version(id);
         mvc.perform(post("/inventory/"+id+"/split")
             .param("version",String.valueOf(version)).param("requestId",UUID.randomUUID().toString())

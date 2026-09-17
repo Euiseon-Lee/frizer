@@ -16,29 +16,32 @@
                 h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text,
                 m.master_id AS current_master_id, m.food_name AS current_food_name,
                 NULL::varchar AS merged_from_name, NULL::varchar AS merged_into_name,
-                NULL::integer AS merged_item_count, 0 AS event_order, h.history_id::text AS event_key
+                NULL::integer AS merged_item_count,
+                EXISTS(SELECT 1 FROM food_item_move_receipt mr WHERE mr.user_id=#{_userId,jdbcType=BIGINT} AND mr.food_id=h.food_id) AS item_moved,
+                0 AS event_order, h.history_id::text AS event_key
             FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
             WHERE h.action_type &lt;&gt; 'SPLIT_IN'
             UNION ALL
             SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
-                NULL::varchar, NULL::varchar, NULL::varchar, r.created_at, NULL::text,
-                m.master_id, m.food_name, r.source_name, r.target_name, r.item_count, 1, r.request_id::text
+                NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
+                '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
+                m.master_id, m.food_name, r.source_name, r.target_name, r.item_count, FALSE, 1, r.request_id::text
             FROM food_merge_receipt r
             LEFT JOIN (
                 SELECT d.request_id, m.master_id, m.food_name FROM destinations d
                 JOIN food_master m ON m.master_id=d.current_id
             ) m ON m.request_id=r.request_id WHERE r.user_id=#{_userId,jdbcType=BIGINT}
             UNION ALL
-            SELECT NULL::bigint, r.food_id, r.source_name, 'MOVE'::varchar,
+            SELECT NULL::bigint, r.food_id, r.source_name, NULL::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
                 '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
-                m.master_id, m.food_name, NULL::varchar, NULL::varchar, NULL::integer, 2, r.request_id::text
+                m.master_id, m.food_name, r.source_name, r.target_name, NULL::integer, TRUE, 2, r.request_id::text
             FROM food_item_move_receipt r
             JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
         )
         SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
             quantity_text, created_at, changes_text, current_master_id, current_food_name,
-            merged_from_name, merged_into_name, merged_item_count
+            merged_from_name, merged_into_name, merged_item_count, item_moved
         FROM events
         ORDER BY created_at DESC, event_order DESC, history_id DESC NULLS LAST, event_key DESC LIMIT #{limit}
     </select>

@@ -7,20 +7,22 @@ import com.euiseon.friger.common.type.StorageType;
 public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
         String quantityText, OffsetDateTime createdAt, String changesText,
-        Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName, Integer mergedItemCount) {
+        Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName,
+        Integer mergedItemCount, Boolean itemMoved) {
     public boolean isMerge() { return mergedFromName != null; }
     public String currentLocationNote() {
         if (currentFoodName == null) return isMerge() ? "현재 음식은 전체 목록에서 확인해줘." : null;
         if (isMerge()) return "이동 이력이 있어 클릭 시 ‘" + currentFoodName + "’로 이동해.";
-        return currentFoodName.equals(displayFoodName()) ? null
-                : "현재 ‘" + currentFoodName + "’의 개별 구매 항목으로 이동해.";
+        if (currentFoodName.equals(displayFoodName())) return null;
+        return Boolean.TRUE.equals(itemMoved)
+                ? "병합 처리가 완료돼서 이제는 ‘" + currentFoodName + "’로 이동할 거야."
+                : "이름이 바뀌어서 이제는 ‘" + currentFoodName + "’로 이동할 거야.";
     }
     public String actionLabel() {
         if (isMerge()) return "병합";
         return actionType.label();
     }
     public String homeSummary() {
-        if (isMerge()) return "개별 구매 " + mergedItemCount + "건을 이동했어";
         if (actionType == FoodActionType.CREATE || changesText == null || changesText.isBlank()) return actionLabel() + "했어";
         if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 정보 " + detailFields().size() + "건";
         return changesText.replaceAll("\\R+", " · ");
@@ -41,7 +43,6 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
     }
 
     public String displayFoodName() {
-        if (isMerge()) return mergedFromName + " → " + mergedIntoName;
         return registrationValues().getOrDefault("음식명", foodName);
     }
 
@@ -51,10 +52,6 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
 
     public java.util.List<DetailField> detailFields() {
         var result = new java.util.ArrayList<DetailField>();
-        if (isMerge()) {
-            result.add(new DetailField("개별 항목", mergedItemCount + "건"));
-            return result;
-        }
         if (actionType == FoodActionType.CREATE) {
             var snapshot = registrationValues();
             if (!snapshot.isEmpty()) {

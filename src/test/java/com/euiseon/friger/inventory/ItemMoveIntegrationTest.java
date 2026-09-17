@@ -73,7 +73,7 @@ class ItemMoveIntegrationTest {
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(originalHistory);
         assertThat(masters.masterId(b)).isEqualTo(source);
         assertThat(masters.masterId(a)).isEqualTo(masters.masterId(target));
-        assertThat(history.findRecent(10).stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.MOVE).findFirst().orElseThrow().foodId()).isEqualTo(a);
+        assertThat(history.findRecent(10).stream().filter(e->e.isMerge()).findFirst().orElseThrow().foodId()).isEqualTo(a);
     }
     @Test void multiSelectionMovesTogetherWithOneRequest() throws Exception {
         long a=create("듀부"),b=create("듀부"),c=create("듀부"),target=create("두부"),source=masters.masterId(a);
@@ -152,8 +152,8 @@ class ItemMoveIntegrationTest {
         execute(existing(List.of(a),c));
         execute(existing(List.of(b),c));
         var events=history.findRecent(20);
-        assertThat(events).noneMatch(e->e.isMerge());
-        var moved=events.stream().filter(e->e.actionType()==com.euiseon.friger.common.type.FoodActionType.MOVE).toList();
+        var moved=events.stream().filter(e->e.isMerge()).toList();
+        assertThat(moved).allSatisfy(e->{assertThat(e.actionType()).isNull();assertThat(e.foodId()).isNotNull();});
         assertThat(moved).hasSize(3).allSatisfy(e->assertThat(e.currentMasterId()).isEqualTo(masters.masterId(c)));
         assertThat(events.stream().filter(e->Objects.equals(e.foodId(),a)).toList()).allSatisfy(e->assertThat(e.currentMasterId()).isEqualTo(masters.masterId(c)));
         assertThat(moves.preview(masters.masterId(a),List.of(a),ItemMoveService.Mode.NEW,null,"A",null).historyCount()).isEqualTo(3);

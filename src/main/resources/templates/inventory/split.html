@@ -2,6 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FR!ZER | 수량 분리</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-split.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -37,9 +38,8 @@
 </fieldset>
 </div>
 </section>
-<p class="quantity-message">입력한 수량만큼 분리해서 같은 음식 아래 새 구매 항목으로 만들까?</p>
-<p class="quantity-message muted">여기서 선택한 조건만 변경돼.</p>
-<p class="quantity-message merge-caution">이 작업은 되돌릴 수 없어.</p>
+<p class="quantity-message">입력한 수량만큼 분리해서 별도의 구매 항목으로 만들까?</p>
+<p class="quantity-message merge-caution">이 작업은 취소할 수 없어.</p>
 <input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
 <button class="button merge-submit action-split" type="submit">응, 나누자</button>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 내 프로필</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
-<body><header th:replace="~{fragments/shell :: header}"></header><main class="page"><section th:replace="~{fragments/shell :: accessHeading('홈 프로텍터, 쪼코', '내 프로필', '아직 구현되지 않았어🤫', false)}"></section><div class="tab-sheet"><section>
+<body><header th:replace="~{fragments/shell :: header}"></header><main class="page"><section th:replace="~{fragments/shell :: accessHeading('안녕? 나는 멋쟁이 왕쪼코야.', '내 프로필', '아직 구현되지 않았어🤫', false)}"></section><div class="tab-sheet"><section>
 
 <form th:if="${accessEnabled}" method="post" th:action="@{/logout}"><div class="form-actions"><button class="button" type="submit">로그아웃</button></div></form>
 </section></div></main><nav th:replace="~{fragments/shell :: nav('')}"></nav></body></html>

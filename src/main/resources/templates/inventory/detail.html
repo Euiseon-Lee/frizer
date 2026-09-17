@@ -4,6 +4,7 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FR!ZER | 개별 구매 항목</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+<script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
@@ -22,17 +23,18 @@
             <div th:unless="${food.status().name() == 'DEPLETED'}"><dt>수량</dt><dd th:text="${food.quantityAmount() != null and food.quantityUnit() != null ? food.quantityAmount().stripTrailingZeros().toPlainString() + food.quantityUnit().strip() : (food.quantityText() ?: '-')}"></dd></div>
             <div th:if="${food.status().name() == 'DEPLETED' and endedAt != null}"><dt>보관 종료 일시</dt><dd><time th:datetime="${endedAt}" th:text="${#temporals.format(endedAt.atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></dd></div>
             <div><dt>용량</dt><dd th:text="${food.capacityText() ?: '-'}"></dd></div>
-            <div th:classappend="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())} ? 'detail-wide-field' : ''"><dt>출처</dt><dd><span th:text="${food.sourceType() == null ? '-' : sourceLabels[food.sourceType()]}"></span><span th:if="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}" th:text="${' (' + food.sourceMemo() + ')'}"></span></dd></div>
+            <div th:with="hasSourceMemo=${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}" th:classappend="${!hasSourceMemo} ? 'detail-wide-field' : ''"><dt>출처</dt><dd th:text="${food.sourceType() == null ? '-' : sourceLabels[food.sourceType()]}"></dd></div>
+            <div th:if="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}"><dt>출처 메모</dt><dd th:text="${food.sourceMemo()}"></dd></div>
             <div><dt>분류</dt><dd th:text="${food.category() ?: '-'}"></dd></div>
             <div><dt>보관 위치</dt><dd th:text="${storageLabels[food.storageType()]}"></dd></div>
+            <div th:if="${food.storageType().name() == 'FREEZER' and food.status().name() == 'ACTIVE'}"><dt>냉동 유형</dt><dd th:text="${food.freezeType().name() == 'COMMERCIAL_FROZEN' ? '시판 냉동식품' : '직접 냉동'}"></dd></div>
+            <div th:if="${food.storageType().name() == 'FREEZER' and food.status().name() == 'ACTIVE'}"><dt>냉동 보관 시작일</dt><dd><span th:text="${food.frozenAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.frozenAt()}, ${today})}"></span></dd></div>
         </dl>
         <dl class="detail-grid detail-group" th:if="${food.status().name() == 'ACTIVE'}">
             <div th:classappend="${food.status().name() == 'ACTIVE' and food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.sellByOverdue(today)}">!</span></dt><dd><span th:text="${food.sellByAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.sellByAt()}, ${today})}"></span></dd></div>
             <div th:classappend="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)}">!</span></dt><dd th:classappend="${food.expiredAt() != null} ? 'date-emphasis' : ''"><span th:text="${food.expiredAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.expiredAt()}, ${today})}"></span></dd></div>
             <div><dt>구매일</dt><dd><span th:text="${food.purchasedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.purchasedAt()}, ${today})}"></span></dd></div>
             <div th:classappend="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)}">!</span></dt><dd><span th:text="${food.openedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
-            <div th:if="${food.storageType().name() == 'FREEZER'}"><dt>냉동 유형</dt><dd th:text="${food.freezeType().name() == 'COMMERCIAL_FROZEN' ? '시판 냉동식품' : '직접 냉동'}"></dd></div>
-            <div th:if="${food.storageType().name() == 'FREEZER'}"><dt>냉동 보관 시작일</dt><dd><span th:text="${food.frozenAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.frozenAt()}, ${today})}"></span></dd></div>
         </dl>
         <dl class="detail-grid detail-memo-group">
             <div class="detail-memo-field"><dt>메모</dt><dd class="detail-memo" th:text="${food.memo() ?: '-'}"></dd></div>

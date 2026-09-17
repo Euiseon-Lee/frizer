@@ -21,9 +21,9 @@
     <article class="history-row" th:each="entry : ${entries}">
         <span class="action-badge history-badge" th:attr="data-event=${entry.actionType() != null ? entry.actionType() : 'MERGE'}" th:text="${entry.actionLabel()}"></span>
         <div><a th:if="${entry.foodId() != null}" th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
-            <a th:if="${entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:aria-label="${entry.displayFoodName()}"><span th:text="${entry.mergedFromName()}"></span><span class="history-change-arrow"> → </span><span th:text="${entry.mergedIntoName()}"></span></a>
-            <p class="small muted history-current-location" th:if="${entry.currentLocationNote() != null}" th:text="${entry.actionType() != null and entry.actionType().name() == 'MOVE' ? '변경한 음식의 개별 구매 항목으로 이동이 될 거야.' : (entry.isMerge() and entry.currentMasterId() != null ? '변경한 음식의 개별 구매 목록으로 이동할 거야.' : entry.currentLocationNote())}"></p>
-            <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd th:if="${entry.actionType() != null and entry.actionType().name() == 'UPDATE'}"><th:block th:replace="~{fragments/shell :: historyChange(${field.value()})}"></th:block></dd><dd th:unless="${entry.actionType() != null and entry.actionType().name() == 'UPDATE'}" th:text="${field.value()}"></dd></div></dl>
+            <a th:if="${entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:text="${entry.displayFoodName()}"></a>
+            <p class="small muted history-current-location" th:if="${entry.currentLocationNote() != null}" th:text="${entry.isMerge() ? (entry.foodId() != null ? '변경한 음식의 개별 구매 항목으로 이동이 될 거야.' : (entry.currentMasterId() != null ? '변경한 음식의 개별 구매 목록으로 이동할 거야.' : entry.currentLocationNote())) : entry.currentLocationNote()}"></p>
+            <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd><th:block th:replace="~{fragments/shell :: historyChange(${field.value()})}"></th:block></dd></div></dl>
             <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time>
         </div>
     </article>

@@ -36,6 +36,9 @@
             text.classList.toggle('is-clamped', clipped);
             trigger.disabled = !clipped;
             trigger.setAttribute('aria-label', clipped ? `전체 음식명 확인: ${fullName}` : fullName);
+            // The page head hides the title until the size is settled, so it
+            // appears once at its final size instead of shrinking on screen.
+            heading.style.visibility = 'visible';
             if (!clipped) close();
         }
         trigger.addEventListener('click', () => {

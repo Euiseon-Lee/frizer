@@ -29,7 +29,7 @@
 <p id="moveStatus" class="small muted" role="status" aria-live="polite"></p><button id="moveRetry" type="button" class="merge-text-button" hidden>다시 시도</button>
 <section id="itemMovePreview" class="merge-preview" hidden aria-busy="false"><h2>이렇게 병합할 거야</h2>
 <dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd data-result="moveCount"></dd></div><div><dt>음식 이력 총 건수</dt><dd data-result="historyCount"></dd></div><div th:unless="${whole}"><dt>[참고] 기존 음식에 남는 항목 건수</dt><dd data-result="remainingCount"></dd></div></dl>
-<div class="merge-help"><p>수량·단위·날짜·개봉 상태·보관 위치·메모 정보는 그대로 유지돼.</p></div><p class="merge-caution">이 작업은 되돌릴 수 없어.</p>
+<div class="merge-help"><p>수량·단위·날짜·개봉 상태·보관 위치·메모 정보는 그대로 유지돼.</p></div><p class="merge-caution">이 작업은 취소할 수 없어.</p>
 <form id="itemMoveSubmit" method="post" th:action="@{/foods/{id}/move(id=${master.masterId()})}">
 <input type="hidden" name="sourceId" th:value="${master.masterId()}"><input type="hidden" name="sourceVersion" th:value="${master.versionNo()}">
 <input type="hidden" name="whole" th:value="${whole}"><input type="hidden" name="ended" th:value="${ended}"><input type="hidden" name="requestId" th:value="${requestId}">

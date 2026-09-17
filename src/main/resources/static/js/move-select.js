@@ -2,8 +2,12 @@
     'use strict';
     const form=document.getElementById('moveSelectForm');
     if(!form) return;
-    const button=document.getElementById('moveSelected');
-    const sync=()=>{button.disabled=!form.querySelector('input[name=items]:checked');};
+    const buttons=['moveSelected','deleteSelected']
+        .map(id=>document.getElementById(id)).filter(Boolean);
+    const sync=()=>{
+        const none=!form.querySelector('input[name=items]:checked');
+        buttons.forEach(button=>{button.disabled=none;});
+    };
     form.addEventListener('change',event=>{if(event.target.name==='items') sync();});
     window.addEventListener('pageshow',sync);
     sync();

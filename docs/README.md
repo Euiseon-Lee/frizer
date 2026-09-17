@@ -7,9 +7,9 @@
 
 ## 현재 상태와 기준 문서
 
-### 사용자 계정 전환 — 로컬 구현, 운영 반영 전
+### 사용자 계정 전환 — 운영 반영 완료
 
-사용 목표는 **현재 Render + Neon 운영 DB에서 본인 계정으로 실제 재고를 적재하고, 테스트 계정 데이터는 분리하는 것**이다. 별도 로컬 DB로 사용처를 옮기지 않는다. `e6d5eaf` 운영 배포와 휴대폰 로그인 성공은 사용자 확인 사항이다. `d300d8a`(홈 상단 별 제거)를 보존한 원본 프로젝트 `C:\dev\frizer`에서 직접 후속 작업 중이며, 이번 사용자 테이블/V15 변경은 아직 커밋·푸시·운영 적용하지 않았다. 아래의 기존 ‘배포 준비 중/휴대폰 미확인’ 기록은 당시 기록이다.
+다음 문단은 배포 전 당시 기록이다. 사용 목표는 **현재 Render + Neon 운영 DB에서 본인 계정으로 실제 재고를 적재하고, 테스트 계정 데이터는 분리하는 것**이다. 별도 로컬 DB로 사용처를 옮기지 않는다. `e6d5eaf` 운영 배포와 휴대폰 로그인 성공은 사용자 확인 사항이다. `d300d8a`(홈 상단 별 제거)를 보존한 원본 프로젝트 `C:\dev\frizer`에서 직접 후속 작업 중이며, 이번 사용자 테이블/V15 변경은 아직 커밋·푸시·운영 적용하지 않았다. 아래의 기존 ‘배포 준비 중/휴대폰 미확인’ 기록은 당시 기록이다.
 
 - `app_user.user_id`는 불변 소유권 식별자다. `login_id`는 변경 가능한 로그인명이며 비밀번호는 BCrypt 해시로 저장한다.
 - 등급은 `ADMIN`/`USER`를 저장한다. **이번 본인 계정과 테스트 계정은 USER**다. 관리자 전체 사용자 음식 접근은 후속 설계 범위이며 현재 관리자 화면·우회 접근·공개 회원가입은 없다.
@@ -22,6 +22,8 @@
 **운영 반영 완료 — 2026-09-17**
 
 f08d701을 Render에 배포했고 Live 및 Neon V15 적용을 확인했다. 본인 계정 choconuna와 테스트 계정 testuser는 모두 USER로 활성화했다. 두 계정의 HTTPS 로그인, 홈·재고·히스토리·등록 화면 조회와 로그아웃을 확인했다. 실제 운영 음식 등록·교차 계정 수정, 휴대폰 LTE/5G 접속, 백업 복구는 아직 검증하지 않았다. 후속 변경에는 하단 이미지 카드 여백 보완과 운영 도구 수정이 포함된다. 최신 배포 여부는 Render Live 커밋 ID로 확인한다.
+
+같은 날 추가 배포(사용자 확인): 여백·운영 도구 보완(`06785a8`), 이미지 최적화·keep-alive(`6b95748`), 파비콘·탭 제목, 코드 정리 V16, 수량 분리 V17, 다건 병합 V18을 포함한 최신 커밋 `e17e44f`까지 운영 배포를 완료했다. 현재 운영 DB는 Flyway V18이다. 단계 구분과 남은 1차 운영 작업(오등록 물리 삭제·백업 복구 실습·실데이터 검증)은 [STEP 4 보고서](STEP4_REPORT.md)를 따른다.
 
 반복해서 따라 할 절차는 [클라우드 실행·배포 및 운영 안내](OPERATIONS.md)를 따른다. 비밀 파일과 임시 산출물은 커밋하지 않는다. 데이터가 쌓인 이후 DB 변경에는 백업·복구 검증을 적용한다.
 
@@ -36,15 +38,17 @@ V15 전환과 본인 계정 초기화가 끝난 대상에서 실행한다. 명�
 
 운영 전 검증은 Testcontainers의 독립 PostgreSQL에서 실행한다. 기존 8080 앱·공유 로컬 DB·Neon production은 이 검증의 대상이 아니다.
 
-STEP 3은 음식 그룹/개별 구매 관리, 신규/추가 등록, 수정, 전체/개별 이동, 부분 소비·폐기·제한적 취소, 종료 목록과 수량 변경 이력을 구현했다. 엑셀 일괄 등록은 양식 다운로드·미리보기·전체 반영·중복 방지까지 구현했다. 통계·부분 분리·물리 삭제 등은 후속 범위다.
+STEP 3(재고 관리 기능)은 2026-09-17 완료했다: 음식 그룹/개별 구매 관리, 신규/추가 등록, 수정, 다건 선택 이동·병합, 수량 분리, 부분 소비·폐기·제한적 취소, 종료 목록과 수량 변경 이력, 엑셀 일괄 등록(양식 다운로드·미리보기·전체 반영·중복 방지). 오등록 물리 삭제는 [STEP 4](STEP4_REPORT.md)로 이관해 1차 운영 마무리에 포함하고, 통계 등 2차 개발은 [STEP 5 계획](STEP5_PLAN.md)을 따른다.
 
-- [앱의 용어·기본 구조·사용 흐름과 구현 상태](STEP3_REPORT.md)
+- [앱의 용어·기본 구조·사용 흐름과 구현 상태](APP_CONCEPTS.md)
 - [수량·소비·폐기·취소](ITEM_QUANTITY_DESIGN.md)
 - [개별 구매 이동](ITEM_MOVE_DESIGN.md)
 - [공통 UI 규격](UI_DESIGN.md)
-- [회귀 검증 범위](STEP3_TEST_MATRIX.md)
-- [날짜 정책 초안](DATE_POLICY_DRAFT.md), [일괄 등록 초안](BULK_REGISTRATION_DRAFT.md)
+- [회귀 검증 범위](TEST_MATRIX.md)
+- [날짜 정책 초안](DATE_POLICY_DRAFT.md), [일괄 등록 규격](BULK_REGISTRATION.md)
 - [쪼코 이미지 정책](UI_DESIGN.md)
+- [STEP 4 — 계정·운영 배포와 1차 운영 마무리](STEP4_REPORT.md)
+- [STEP 5 — 2차 개발 범위](STEP5_PLAN.md)
 
 2026-09-16 이전 커밋 검증: Java 473개(실패/오류/건너뜀 0), JavaScript 41개(실패/건너뜀 0), bootJar 통과. 사용자가 8080에서 당시 UI를 확인했다. 모든 임의 수량·음식명 조합이나 실제 모바일 기기를 검증한 것은 아니다.
 
@@ -52,77 +56,22 @@ STEP 3은 음식 그룹/개별 구매 관리, 신규/추가 등록, 수정, 전�
 
 Java/Mapper/V14는 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수량·단위를 저장하며 과거 텍스트를 추정 변환하지 않는다. 취소 태그도 공통 Java 명칭으로 제공하므로 이전 앱은 재시작이 필요하다.
 
-문서는 작업별로 새로 만들지 않고 위 기준 문서를 갱신한다. 임시 화면·스크린샷·테스트 실행 덤프는 Git 제외된 build/reports에 둔다. 이미지 해시 JSON·매핑 CSV는 src/test/resources/choco에 테스트 입력으로 보존한다.
+문서는 작업별로 새로 만들지 않고 위 기준 문서를 갱신한다. STEP 문서는 진행 중 단계의 작업 문서로만 유지한다. 단계가 완료되면 유지할 내용을 기준 문서로 흡수하고 STEP 문서는 제거하며, 과거 기록은 git 이력으로 보존한다(STEP 1·2 보고서와 완료된 STEP 3 보고서를 이 원칙으로 제거했다). 임시 화면·스크린샷·테스트 실행 덤프는 Git 제외된 build/reports에 둔다. 이미지 해시 JSON·매핑 CSV는 src/test/resources/choco에 테스트 입력으로 보존한다.
 
-수정 완료 후에는 원래 목록 필터를 유지해 소속 음식의 개별 구매 목록으로 돌아간다. 수정 수량은 현재 잔량 정정이며 최초 등록 수량을 바꾸지 않는다. 통계와 종료 항목 이동은 운영 이후로 미루며, 초기 대량 데이터 입력을 위한 일괄 등록은 음식 등록 화면에서 사용할 수 있다.
+수정 완료 후에는 원래 목록 필터를 유지해 소속 음식의 개별 구매 목록으로 돌아간다. 수정 수량은 현재 잔량 정정이며 최초 등록 수량을 바꾸지 않는다. 통계는 2차 개발([STEP 5](STEP5_PLAN.md))이며, 초기 대량 데이터 입력을 위한 일괄 등록은 음식 등록 화면에서 사용할 수 있다.
 
-## 이전 배포 준비 기록 — 2026-09-16
+## 백업과 복구
 
-이 절의 검증 수·미완료 표시는 당시 기록이다. 현재 상태와 이번 배포 절차는 문서 상단을 따른다.
-
-- 일괄 등록은 `/inventory/bulk`에서 제공한다. 실제 초기 데이터 목록은 사용자가 나중에 정리한다.
-- 최종 전체 검증은 Java 496개·JavaScript 7개 파일 및 bootJar 통과다. 자동 냉동 보정·원본 엑셀 서식 보존·로그인·CSRF 검증을 포함한다.
-- 사용자 확인은 기존 로컬 8080 앱만 사용한다. 8082 앱은 종료했으며 다시 실행하지 않는다. Java 변경은 기존 IDE 실행을 재시작해 반영한다. 실제 운영용 실행에서는 `compose.ui-dev.yml`을 제외해 JAR에 포함된 화면을 사용한다.
-- 현재 Compose는 앱·DB 포트를 127.0.0.1에만 연결한다. 같은 PC에서 사용 가능하며 휴대폰·외부에서는 직접 접속할 수 없다.
-- 개인 로그인과 CSRF 보호를 구현했다. 사용자별 데이터 분리는 없고 본인만 사용한다. Render HTTPS 배포를 준비 중이다.
-
-### 배포 방식 선택
-
-| 방식 | 준비할 내용 | 사용 범위 |
-| --- | --- | --- |
-| 현재 PC에서 먼저 사용 | Docker 실행 유지, 정기 백업, 운영 시 ui-dev 제외 | 해당 PC |
-| 상시 켜진 개인 서버/NAS | Docker 실행 가능 여부, 저장 공간, 사설 접속 경로, 백업 위치 | 허용한 개인 기기 |
-| 외부 서버 | 서버·도메인, 인증·HTTPS, 백업·복구, 운영 비용 | 정한 사용자에게 외부 접속 |
-
-사용자는 PC를 계속 켤 수 없고 LTE/5G에서도 개인 접속해야 한다. Oracle 가입 실패 후 **Render Free + Neon Free, Singapore**로 확정했다. 무료 앱의 유휴 절전과 첫 접속 대기를 수용하고 시작한다.
-
-### Render + Neon 배포 (2026-09-16)
-
-- Neon 프로젝트: `broad-poetry-32715265`, 기본 브랜치 `production`, Singapore, PostgreSQL 18.6. CLI 로그인·프로젝트 연결·빈 `neon.ts` 적용 완료. `neon deploy`는 Neon 서비스 정책 적용이며 Spring Boot 앱 배포는 Render가 담당한다.
-- Neon MCP는 Codex 사용자 설정에 설치했고 이 프로젝트 하나로 범위를 제한했다. 키와 `.neon` 및 `.env*`는 커밋하지 않는다. npm 의존성은 Neon 관리 도구용이며 앱은 Java/Docker로 실행한다.
-- 현재 코드의 인증은 DB 사용자 계정이며 최초 계정 초기화에 로그인 환경변수를 사용한다. 비밀번호 정책은 10자 이상·UTF-8 72바이트 이하이고, 사용자 안내에는 기술 용어 없이 조건별 오류를 표시한다. 공개 회원가입은 없고 운영자 명령으로 계정을 추가한다. V15 코드의 운영 배포는 위 현재 상태를 따른다.
-- 로그인 경로는 `/login`, 상단 내 프로필 링크 → 내 프로필 → 로그아웃이다. CSRF 보호와 BCrypt 해시, HTTPS 세션 쿠키를 사용한다. 서버 재시작/절전으로 세션이 사라지면 다시 로그인한다. `/health`는 데이터 없이 `ok`만 공개한다.
-
-**설정 순서**
-
-1. 배포할 코드가 GitHub에 반영된 뒤 Render에서 Web Service를 생성한다. 저장소 `Euiseon-Lee/frizer`, Branch `master`, Language `Docker`, Region `Singapore`, Instance Type `Free`, Root Directory 비움, Dockerfile `./Dockerfile`를 사용한다.
-2. Health Check Path는 `/health`, Auto Deploy는 `Off`로 둔다. 같은 설정을 `render.yaml`에도 보존했다. 최초 배포는 직접 확인하고 시작한다.
-3. Neon CLI가 받아 둔 `DATABASE_URL_UNPOOLED`를 사용해 `node scripts/prepare-render-env.mjs`를 실행한다(Node 20.12 이상). 비밀 설정 파일 `.env.render`를 생성한다. 기존 파일은 자동 덮어쓰지 않는다.
-4. Render의 환경변수 일괄 입력(Add from .env)에 `.env.render` 내용을 넣는다. 로그나 채팅에 값을 붙이지 않는다. 공개 GitHub 파일·Docker 이미지에는 포함하지 않는다.
-5. Deploy 후 HTTPS 주소의 `/health` 응답과 로그인 화면을 확인하고 실제 휴대폰 LTE/5G에서 등록·수정·소비·취소·엑셀 업로드를 확인한다. 로그인 아이디는 `FRIZER_LOGIN_USERNAME`, 비밀번호는 `FRIZER_LOGIN_PASSWORD` 값이다. 새 서버는 빈 재고로 시작하며 로컬 재고는 자동 이전하지 않는다.
-
-| 환경변수 | 설정 |
-| --- | --- |
-| SPRING_PROFILES_ACTIVE | prod,render |
-| FRIZER_DB_URL | 직접 연결 JDBC URL, TLS 인증서와 호스트 이름 검증 |
-| FRIZER_DB_USERNAME / FRIZER_DB_PASSWORD | Neon의 DB 역할/비밀번호 |
-| FRIZER_LOGIN_USERNAME | frizer |
-| FRIZER_LOGIN_PASSWORD | 로컬 준비 스크립트 또는 Blueprint가 생성한 임의 비밀번호 |
-| JAVA_TOOL_OPTIONS | render.yaml의 512MB 인스턴스용 메모리 제한 |
-
-앱은 Hikari 3개 이하 연결을 직접 사용한다. Flyway migration과 연결별 시간대 설정 때문에 `-pooler` URL을 사용하지 않는다. 기본 인증서를 신뢰하는 Java TLS 팩토리와 `sslmode=verify-full`을 사용한다. Neon Free의 기본 절전 정책은 유지한다.
-
-**검증 결과 및 남은 확인**
-
-- 전체 Java 테스트 496개, 실패·오류·건너뜀 0, JAR 빌드 통과. JavaScript 7개 파일 실행 통과(기존 41개에 보안 업로드/로그인 만료 2개 추가).
-- 실제 Neon PostgreSQL 18.6의 분리된 임시 브랜치에서 TLS 검증 및 V1~V14 초기화, 배포용 메모리 제한 아래 비웹 JAR 기동 통과. 임시 브랜치는 2시간 만료다. production에 테스트 데이터/스키마를 쓰지 않았다.
-- 현재 Flyway 11.7.2는 PostgreSQL 18에 대해 공식 검증 버전 초과 경고를 출력한다. 실제 위 초기화는 통과했지만 전체 업무 회귀는 로컬 PostgreSQL 17.11에서 실행했다.
-- Render 실제 배포·512MB 웹 프로세스 동작·모바일 화면·운영 DB 백업/복구 확인은 아직 미완료다.
-
-[Render 무료 제한](https://render.com/docs/free): 15분 미사용 후 절전, 첫 접속 재기동 약 1분. 무료 Render DB는 30일 만료이므로 만들지 않는다. 앱 재기동과 무관하게 데이터는 Neon에 보관한다. [Neon 무료 한도](https://neon.com/pricing)와 Render 사용량을 콘솔에서 확인하며 유료 플랜으로 자동 전환하지 않는다.
-
-### 백업과 복구
-
-V14 적용 전 `pg_dump -Fc`로 현재 DB를 백업한다. 바이너리 덤프는 PowerShell 텍스트 리다이렉션을 사용하지 않고 `docker cp`로 복사한다.
+데이터가 쌓인 DB의 스키마 변경 전에는 `pg_dump -Fc`로 먼저 백업한다. 로컬 Docker DB의 바이너리 덤프는 PowerShell 텍스트 리다이렉션을 사용하지 않고 `docker cp`로 복사한다.
 
 ```powershell
 docker compose exec -T postgres pg_dump -U frizer -d frizer -Fc -f /tmp/frizer-backup.dump
 docker compose cp postgres:/tmp/frizer-backup.dump ./frizer-backup.dump
 ```
 
-백업 파일은 개인 데이터이므로 Git에 추가하지 않는다. 실제 운영 백업은 서버와 다른 저장 장치에도 보관한다. 복구 시험은 빈 임시 DB에서 `pg_restore --no-owner --no-acl`로 수행하고 음식·항목·이력 개수와 최신 migration을 확인한다. 사용 중인 DB에 덮어써서 시험하지 않는다.
+백업 파일은 개인 데이터이므로 Git에 추가하지 않는다. 실제 운영 백업은 서버와 다른 저장 장치에도 보관한다. 복구 시험은 빈 임시 DB에서 `pg_restore --no-owner --no-acl`로 수행하고 음식·항목·이력 개수와 최신 migration을 확인한다. 사용 중인 DB에 덮어써서 시험하지 않는다. 운영(Neon) DB의 백업·복구 실습은 [STEP 4 보고서](STEP4_REPORT.md)의 남은 작업이다.
 
-분리·오등록 삭제를 첫 운영에 포함할지는 별도 범위 결정이 필요하다. 통계와 종료 항목 개별 이동은 운영 이후로 유지한다.
+2026-09-16의 배포 방식 비교, Render + Neon 최초 설정 순서와 당시 검증 기록은 git 이력으로 보존한다. 반복 배포·환경 재구축 절차는 [운영 안내](OPERATIONS.md)를 따른다.
 
 ## 명칭
 
@@ -342,10 +291,10 @@ prod는 DB 환경변수를 요구하며 SQL 바인딩 값에 대한 DEBUG 로그
 
 STEP 3 1차의 V7부터 음식명·분류는 `food_master`, 구매·등록분은 `food_item`으로 분리합니다.
 기존 ITEM ID와 이력을 유지하며 병합 요청 결과는 `food_merge_receipt`에 기록합니다.
-현재 구조와 전환 계약은 [STEP 3 보고서](STEP3_REPORT.md)를 참고합니다.
+현재 구조와 전환 계약은 [앱 개념 문서](APP_CONCEPTS.md)를 참고합니다.
 
-Flyway는 src/main/resources/db/migration의 V1부터 V15까지 순서대로 적용합니다.
-기존 운영 DB에 적용된 migration을 이후에 수정하지 않고, 추가 변경은 V16 이후 새 버전으로 작성합니다.
+Flyway는 src/main/resources/db/migration의 V1부터 V18까지 순서대로 적용합니다.
+기존 운영 DB에 적용된 migration을 이후에 수정하지 않고, 추가 변경은 V19 이후 새 버전으로 작성합니다.
 
 - `food_item`: 현재 상태. 같은 이름의 식품 복수 등록 허용.
 - `food_history`: 행동·발생 시각·이전/신규 위치·당시 수량·행동 메모.

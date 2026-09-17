@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FR!ZER | 수량 분리</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-split.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header>
+<main class="page form-page">
+<section class="heading character-heading tab-heading"><div><p class="eyebrow">수량 분리</p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div>
+<img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+<div class="tab-sheet" th:with="available=${preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() != null}">
+<section class="merge-source"><dl class="detail-grid quantity-info-grid">
+<div><dt>보관 위치</dt><dd th:text="${preview.item().storageType().name() == 'ROOM' ? '실온' : (preview.item().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></dd></div>
+<div><dt>기존 수량</dt><dd th:text="${preview.item().displayQuantity()}"></dd></div>
+</dl></section>
+<form th:if="${available}" method="post" th:action="@{/inventory/{id}/split(id=${preview.item().foodId()})}">
+<section class="form-section">
+<div class="field">
+<div class="quantity-input-row">
+<div><label for="quantityAmount">나눌 수량 <span class="required">필수</span></label><input id="quantityAmount" name="quantityAmount" type="text" inputmode="decimal" maxlength="12" autocomplete="off" required pattern="[0-9]+([.][0-9]{1,2})?" placeholder="예: 2, 0.5"></div>
+<div><label for="quantityUnit">단위</label><input id="quantityUnit" th:value="${preview.item().quantityUnit()}" disabled></div>
+</div>
+<p class="help">기존 수량보다 나눌 수량이 더 적어야 해.</p></div>
+<fieldset class="field frozen-date-group"><legend>새 보관 위치 <span class="required">필수</span></legend>
+<div class="storage-choices">
+<label><input type="radio" name="newStorage" value="ROOM" required th:checked="${preview.item().storageType().name() == 'ROOM'}"><span>실온</span></label>
+<label><input type="radio" name="newStorage" value="FRIDGE" th:checked="${preview.item().storageType().name() == 'FRIDGE'}"><span>냉장실</span></label>
+<label><input type="radio" name="newStorage" value="FREEZER" th:checked="${preview.item().storageType().name() == 'FREEZER'}"><span>냉동실</span></label>
+</div></fieldset>
+<div class="freezer-fields split-freezer-fields" id="freezerFields">
+<div class="field"><label for="freezeType">냉동 유형</label>
+<select id="freezeType" name="freezeType"><option value="HOME_FROZEN" th:selected="${preview.item().freezeType().name() != 'COMMERCIAL_FROZEN'}">직접 냉동</option><option value="COMMERCIAL_FROZEN" th:selected="${preview.item().freezeType().name() == 'COMMERCIAL_FROZEN'}">시판 냉동식품</option></select></div>
+<fieldset class="field frozen-date-group">
+<legend>우리 집 냉동실에 넣은 날</legend>
+<div><label class="sr-only" for="frozenAt">우리 집 냉동실에 넣은 날</label><input type="date" id="frozenAt" name="frozenAt" th:max="${today}" th:value="${preview.item().frozenAt()}"></div>
+<label class="check-label today-checkbox"><input type="checkbox" name="freezeToday" value="true"> 오늘 넣었어</label>
+<p class="help">언제 넣었는지 모르면 비워둬도 괜찮아. ‘냉동일 미상’으로 남겨둘게.</p>
+</fieldset>
+</div>
+</section>
+<p class="quantity-message">입력한 수량만큼 분리해서 같은 음식 아래 새 구매 항목으로 만들까?</p>
+<p class="quantity-message muted">여기서 선택한 조건만 변경돼.</p>
+<p class="quantity-message merge-caution">이 작업은 되돌릴 수 없어.</p>
+<input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
+<input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
+<button class="button merge-submit action-split" type="submit">응, 나누자</button>
+</form>
+<p role="status" th:unless="${available}" th:text="${preview.item().quantityAmount() == null ? '먼저 수정 화면에서 현재 수량과 단위를 확인해 입력해줘.' : '이미 보관 종료된 항목이야.'}"></p>
+<a class="button action-update" th:if="${preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() == null}" th:href="@{/inventory/{id}/edit(id=${preview.item().foodId()})}">수정</a>
+<div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
+</div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

@@ -1,7 +1,6 @@
 package com.euiseon.friger.inventory.dao;
 
 import java.util.List;
-import java.util.UUID;
 import com.euiseon.friger.inventory.entity.FoodMaster;
 import org.apache.ibatis.annotations.*;
 
@@ -28,18 +27,10 @@ public interface FoodMasterDao {
     int touch(long id);
     @Update("UPDATE food_item SET updated_at=GREATEST(clock_timestamp(),updated_at+interval '1 microsecond') WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id} AND food_id<>#{exceptId}")
     int invalidateOtherItems(long id, long exceptId);
-    @Update("UPDATE food_item SET master_id=#{target},updated_at=GREATEST(clock_timestamp(),updated_at+interval '1 microsecond') WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{source}")
-    int transfer(long source, long target);
     @Delete("DELETE FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     int delete(long id);
     @Select("SELECT count(*) FROM food_item WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     int countItems(long id);
     @Select("SELECT (SELECT count(*) FROM food_history h JOIN food_item i ON i.food_id=h.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id}) + (SELECT count(*) FROM food_item_move_receipt r JOIN food_item i ON i.food_id=r.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id})")
     int countHistory(long id);
-    @Select("SELECT target_id FROM food_merge_receipt WHERE user_id=#{_userId,jdbcType=BIGINT} AND request_id=#{token} AND source_id=#{source} AND target_id=#{target} AND source_version=#{sourceVersion} AND target_version=#{targetVersion}")
-    Long completed(UUID token, long source, long target, long sourceVersion, long targetVersion);
-    @Select("SELECT count(*) FROM food_merge_receipt WHERE user_id=#{_userId,jdbcType=BIGINT} AND request_id=#{token}")
-    int hasToken(@Param("token") UUID token);
-    @Insert("INSERT INTO food_merge_receipt(user_id,request_id,source_id,target_id,source_version,target_version,source_name,target_name,item_count) VALUES (#{_userId,jdbcType=BIGINT},#{token},#{source.masterId},#{target.masterId},#{source.versionNo},#{target.versionNo},#{source.foodName},#{target.foodName},#{count})")
-    int receipt(UUID token, FoodMaster source, FoodMaster target, int count);
 }

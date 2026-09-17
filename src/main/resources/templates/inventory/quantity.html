@@ -2,10 +2,11 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FR!ZER | 처리 확인</title><link rel="stylesheet" th:href="@{/css/app.css}">
-<script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
-<section class="heading tab-heading quantity-heading"><div><p class="eyebrow" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '소비 처리' : '폐기 처리')}"></p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div></section>
+<section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '소비 처리' : '폐기 처리')}"></p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div>
+<img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet" th:with="available=${action == 'CANCEL' ? preview.cancellable() : (preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() != null)}">
 <section class="form-section"><dl class="detail-grid quantity-info-grid">
 <div><dt>구매일</dt><dd th:text="${preview.item().purchasedAt() ?: '미입력'}"></dd></div>
@@ -24,7 +25,7 @@
 <input type="hidden" name="action" th:value="${action}"><input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="historyId" th:if="${action == 'CANCEL'}" th:value="${preview.event().historyId()}">
 <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
-<div class="form-actions"><button class="button" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button></div>
+<button class="button merge-submit" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button>
 </form>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

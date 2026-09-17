@@ -57,7 +57,7 @@
             document.getElementById('selectedFoodCategory').textContent = selected.querySelector('span').textContent;
         }
         const submit = document.getElementById('registrationSubmit');
-        submit.textContent = submitting ? '등록하는 중…' : '등록 완료';
+        submit.textContent = submitting ? '등록하는 중…' : '등록하자!';
         submit.disabled = submitting || (existing && !selected);
         document.getElementById('registrationCancel').href = existing && selected
             ? selected.dataset.detailUrl : picker.dataset.listUrl;

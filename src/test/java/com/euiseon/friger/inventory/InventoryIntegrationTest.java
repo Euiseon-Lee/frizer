@@ -80,7 +80,7 @@ class InventoryIntegrationTest {
         mvc.perform(get("/inventory")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("음식 등록하기")));
         mvc.perform(get("/inventory/new")).andExpect(status().isOk())
-                .andExpect(content().string(containsString("등록 완료")));
+                .andExpect(content().string(containsString("등록하자!")));
         mvc.perform(get("/history")).andExpect(status().isOk());
     }
 
@@ -567,7 +567,7 @@ class InventoryIntegrationTest {
         FoodItem food = service.findActive().getFirst();
         mvc.perform(get("/inventory/" + food.foodId() + "/edit")).andExpect(status().isOk())
                 .andExpect(model().attribute("foodForm", FoodCreateForm.from(food)))
-                .andExpect(content().string(containsString("수정 완료")))
+                .andExpect(content().string(containsString("수정하자!")))
                 .andExpect(content().string(containsString("value=\"0.5\"")))
                 .andExpect(content().string(containsString("name=\"expectedUpdatedAt\"")))
                 .andExpect(content().string(containsString("action=\"/inventory/" + food.foodId() + "/edit\"")));

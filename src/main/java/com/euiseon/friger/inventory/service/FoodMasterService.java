@@ -17,7 +17,6 @@ public class FoodMasterService {
         this.masters=masters; this.inventory=inventory;
     }
     public record Group(FoodMaster master, List<FoodItem> items) {}
-    public record Preview(FoodMaster source, FoodMaster target, int itemCount, int historyCount) {}
     @Transactional(readOnly=true)
     public List<FoodMasterDao.RegistrationChoice> registrationChoices() { return masters.registrationChoices(); }
     @Transactional(readOnly=true)
@@ -25,10 +24,6 @@ public class FoodMasterService {
         var master=masters.find(id);
         if(master==null) throw new FoodNotFoundException(id);
         return master;
-    }
-    @Transactional(readOnly=true)
-    public List<FoodMaster> choices(long source) {
-        return masters.all().stream().filter(m -> m.masterId()!=source).toList();
     }
     @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public List<Group> groups(StorageType storage,boolean ended) {
@@ -49,38 +44,4 @@ public class FoodMasterService {
         if(id==null) throw new FoodNotFoundException(item);
         return id;
     }
-    @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
-    public Preview preview(long source,long target) {
-        if(source==target) throw invalid("같은 음식끼리는 합칠 수 없어.");
-        return new Preview(find(source),find(target),masters.countItems(source),masters.countHistory(source));
-    }
-    @Transactional
-    public long merge(long source,long target,long sourceVersion,long targetVersion,UUID token) {
-        if(source==target || token==null) throw invalid("합칠 음식을 다시 선택해줘.");
-        var done=masters.completed(token,source,target,sourceVersion,targetVersion);
-        if(done!=null) return done;
-        // Consistent lock order also covers reciprocal merges. Item edits take this lock first.
-        var first=masters.lock(Math.min(source,target));
-        var second=masters.lock(Math.max(source,target));
-        done=masters.completed(token,source,target,sourceVersion,targetVersion);
-        if(done!=null) return done;
-        if(masters.hasToken(token)>0) throw invalid("이미 보낸 요청이야. 다시 확인해줘.");
-        if(first==null || second==null) throw invalid("음식이 변경되었어. 목록에서 다시 확인해줘.");
-        var from=source==first.masterId()?first:second;
-        var to=target==first.masterId()?first:second;
-        if(from.versionNo()!=sourceVersion || to.versionNo()!=targetVersion)
-            throw invalid("확인 후 개별 구매 정보가 바뀌었어. 이동 내용을 다시 확인해줘.");
-        int count=masters.transfer(source,target);
-        masters.touch(target);
-        try {
-            masters.receipt(token,from,to,count);
-        } catch (org.springframework.dao.DuplicateKeyException duplicateRequest) {
-            // Disjoint master locks do not serialize reuse of the same request token.
-            // Propagate a business conflict so this entire transfer is rolled back.
-            throw invalid("이미 보낸 요청이야. 다시 확인해줘.");
-        }
-        if(masters.delete(source)!=1) throw new IllegalStateException("음식을 이동하지 못했어. 다시 시도해줘.");
-        return target;
-    }
-    private static InvalidFoodException invalid(String message) {return new InvalidFoodException(Map.of("",message));}
 }

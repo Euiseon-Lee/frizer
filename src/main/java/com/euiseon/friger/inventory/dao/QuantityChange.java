@@ -12,7 +12,7 @@ public record QuantityChange(long historyId, String actionType, BigDecimal befor
         return com.euiseon.friger.common.type.FoodActionType.valueOf(actionType).label();
     }
     public String changeQuantity() {
-        if (actionType.equals("CREATE")) {
+        if (firstQuantity()) {
             return afterQuantityAmount != null && quantityUnit != null ? "+" + remainingQuantity() : remainingQuantity();
         }
         if (beforeQuantityAmount != null && afterQuantityAmount != null && quantityUnit != null
@@ -24,9 +24,13 @@ public record QuantityChange(long historyId, String actionType, BigDecimal befor
         return display(beforeQuantityAmount, beforeQuantityUnit) + " → " + remainingQuantity();
     }
     public String remainingQuantity() {
-        if (actionType.equals("CREATE") && (afterQuantityAmount == null || quantityUnit == null))
+        if (firstQuantity() && (afterQuantityAmount == null || quantityUnit == null))
             return quantityText == null || quantityText.isBlank() ? "미입력" : quantityText;
         return display(afterQuantityAmount, quantityUnit);
+    }
+    /** Registration and split children both carry the item's first quantity. */
+    private boolean firstQuantity() {
+        return actionType.equals("CREATE") || actionType.equals("SPLIT_IN");
     }
     private static String display(BigDecimal amount, String unit) {
         return amount == null || unit == null ? "미입력" : amount.stripTrailingZeros().toPlainString() + unit;

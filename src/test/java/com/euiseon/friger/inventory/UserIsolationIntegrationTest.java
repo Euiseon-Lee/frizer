@@ -48,12 +48,12 @@ class UserIsolationIntegrationTest {
     @Autowired InventoryService inventory;
     @Autowired InventoryDao items;
     @Autowired FoodMasterDao masters;
-    @Autowired FoodMasterService foods;
     @Autowired FoodRegistrationService registrations;
     @Autowired FoodRegistrationDao registrationReceipts;
     @Autowired FoodQuantityService quantities;
     @Autowired FoodQuantityDao quantityDao;
     @Autowired ItemMoveService moves;
+    @Autowired FoodSplitService split;
     @Autowired ItemMoveDao moveDao;
     @Autowired HistoryDao histories;
     @Autowired BulkRegistrationService bulk;
@@ -61,7 +61,7 @@ class UserIsolationIntegrationTest {
     long bob;
     @BeforeEach void setup() {
         SecurityContextHolder.clearContext();
-        for(String table:List.of("food_quantity_receipt","food_registration_receipt","food_item_move_receipt","food_merge_receipt","food_bulk_receipt","food_bulk_preview","food_history","food_item","food_master")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("food_quantity_receipt","food_registration_receipt","food_item_move_receipt","food_merge_receipt","food_bulk_receipt","food_bulk_preview","food_split_receipt","food_history","food_item","food_master")) jdbc.update("DELETE FROM "+table);
         jdbc.update("DELETE FROM app_user WHERE user_id<>1");
         jdbc.update("UPDATE app_user SET login_id='owner',enabled=true,role='USER' WHERE user_id=1");
         bob=jdbc.queryForObject("INSERT INTO app_user(login_id,password_hash,role,enabled) VALUES('tester',?,'USER',true) RETURNING user_id",Long.class,
@@ -110,8 +110,9 @@ class UserIsolationIntegrationTest {
         assertThatThrownBy(()->inventory.update(id,form("변조"),before.updatedAt())).isInstanceOf(RuntimeException.class);
         assertThat(masters.delete(master)).isZero();assertThat(masters.update(master,"변조",null)).isZero();
         assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,UUID.randomUUID(),null)).isInstanceOf(RuntimeException.class);
-        assertThatThrownBy(()->foods.merge(master,otherMaster,0,0,UUID.randomUUID())).isInstanceOf(RuntimeException.class);
-        assertThatThrownBy(()->moves.preview(other,ItemMoveService.Mode.EXISTING,master,null,null)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->moves.move(new ItemMoveService.Command(ItemMoveService.Mode.EXISTING,otherMaster,null,null,master,0,0L,List.of(id),true),UUID.randomUUID())).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->moves.preview(otherMaster,List.of(other),ItemMoveService.Mode.EXISTING,master,null,null)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->split.split(id,new FoodSplitService.Command(new java.math.BigDecimal("1"),StorageType.FRIDGE,null,null,false),0,UUID.randomUUID())).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->inventory.create(form("침입"),master,0L)).isInstanceOf(RuntimeException.class);
         as("owner");assertThat(inventory.findById(id)).isEqualTo(before);
     }

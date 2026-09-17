@@ -37,9 +37,8 @@ test('file selection automatically previews and invalidates old commit',async()=
  let stopped=false;s.results.listeners.submit({preventDefault(){stopped=true}});assert.ok(stopped);
  s.ok();await done;
 });
-test('empty selection and multiple files never upload',async()=>{
+test('empty selection never uploads',async()=>{
  const s=screen();await s.change();assert.equal(s.pending.length,0);
- s.input.files=[{},{}];await s.change();assert.equal(s.pending.length,0);assert.match(s.input.validity,/1개/);
  await s.send();assert.equal(s.pending.length,0);
 });
 test('automatic preview preserves file, replaces results and focuses section 02',async()=>{

@@ -2,7 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css}">
-<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/move-select.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
 <section class="heading character-heading tab-heading"><div><p class="eyebrow">개별 구매 목록</p>
@@ -22,8 +22,12 @@
 </div>
 <p class="small muted stock-list-hint" th:if="${ended and (!items.isEmpty() or warningOnly or selectedStorage != null)}">보관 종료된 구매 항목을 확인할 수 있어.</p>
 <section class="empty-state purchase-empty" th:if="${items.isEmpty()}"><h2 th:text="${ended ? '아직 보관이 끝난 구매 항목이 없어.' : '여기에는 음식이 없어'}"></h2><p class="purchase-ended-help" th:if="${ended}">먹거나 버려서 남은 수량이 0이 된 항목이 여기로 이동해.</p><img class="choco" width="160" height="150" alt="" data-choco-region="list-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"></section>
-<div class="food-grid" th:unless="${items.isEmpty()}" aria-label="개별 구매 목록">
-<a class="food-card master-item-card" th:each="food : ${items}" th:classappend="${ended} ? 'ended-item-card' : ''" th:with="summary=${ended ? endedSummaries[food.foodId()] : null}" th:href="@{/inventory/{id}(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">
+<form id="moveSelectForm" method="get" th:action="@{/foods/{id}/move(id=${master.masterId()})}" th:unless="${items.isEmpty()}">
+<input type="hidden" name="ended" th:if="${ended}" value="true">
+<div class="food-grid" aria-label="개별 구매 목록">
+<div class="master-item-shell" th:each="food : ${items}" th:with="summary=${ended ? endedSummaries[food.foodId()] : null}">
+<label class="move-select"><input type="checkbox" name="items" th:value="${food.foodId()}" aria-label="병합 대상 선택"></label>
+<a class="food-card master-item-card" th:classappend="${ended} ? 'ended-item-card' : ''" th:href="@{/inventory/{id}(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">
 <div class="stock-card-top"><span class="storage-tag" th:classappend="${food.storageType().name().toLowerCase()}" th:text="${food.storageType().name() == 'FRIDGE' ? '냉장실' : (food.storageType().name() == 'FREEZER' ? '냉동실' : '실온')}"></span>
 <h3 class="stock-quantity" th:if="${!ended and food.quantityAmount() != null}"><span th:text="${food.quantityAmount().stripTrailingZeros().toPlainString()}"></span><span class="stock-unit" th:text="${food.quantityUnit().strip()}"></span></h3>
 <h3 class="stock-quantity" th:if="${!ended and food.quantityAmount() == null}" th:text="${food.quantityText() ?: '수량 미입력'}"></h3>
@@ -36,10 +40,14 @@
 <div th:classappend="${!ended and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일</dt><dd th:classappend="${food.openedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.openedAt() == null ? '미입력' : #temporals.format(food.openedAt(), 'yyyy.MM.dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
 </dl>
 <div class="stock-card-footer" th:unless="${ended}"><span th:text="${'등록 ' + #temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}" th:text="${'수정 ' + #temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span></div>
-</a></div>
-<div class="form-actions purchase-primary-actions" th:unless="${ended or (warningOnly and items.isEmpty())}">
-<a class="button button-secondary button-merge action-move" th:if="${canMerge}" th:href="@{/foods/{id}/merge(id=${master.masterId()})}">다른 음식으로 이동</a>
-<button class="button button-secondary button-merge action-move" th:unless="${canMerge}" type="button" disabled title="이동할 수 있는 다른 음식이 없어">다른 음식으로 이동</button>
+</a></div></div>
+<div class="form-actions purchase-primary-actions" th:unless="${ended}">
+<button id="moveSelected" class="button button-secondary action-move" type="submit" disabled title="병합 대상을 먼저 선택해줘">다른 음식으로 병합</button>
+<a class="button action-create" th:href="@{/inventory/new(masterId=${master.masterId()})}">추가 등록</a></div>
+<div class="form-actions" th:if="${ended}">
+<button id="moveSelected" class="button button-secondary action-move" type="submit" disabled title="병합 대상을 먼저 선택해줘">다른 음식으로 병합</button></div>
+</form>
+<div class="form-actions purchase-primary-actions" th:if="${!ended and items.isEmpty() and !warningOnly}">
 <a class="button action-create" th:href="@{/inventory/new(masterId=${master.masterId()})}">추가 등록</a></div>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory(storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">전체 목록으로</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

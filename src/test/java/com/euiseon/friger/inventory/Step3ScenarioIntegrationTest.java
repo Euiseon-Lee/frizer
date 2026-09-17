@@ -38,6 +38,7 @@ class Step3ScenarioIntegrationTest {
     }
     @Autowired InventoryService inventory;
     @Autowired FoodMasterService masters;
+    @Autowired ItemMoveService moves;
     @Autowired FoodMasterDao dao;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
@@ -47,7 +48,7 @@ class Step3ScenarioIntegrationTest {
         jdbc.update("DELETE FROM food_history");
         jdbc.update("DELETE FROM food_item");
         jdbc.update("DELETE FROM food_master");
-        jdbc.update("DELETE FROM food_merge_receipt");
+        jdbc.update("DELETE FROM food_item_move_receipt");
         jdbc.update("DELETE FROM food_registration_receipt");
     }
     private FoodCreateForm form(String name) {
@@ -59,11 +60,18 @@ class Step3ScenarioIntegrationTest {
         return Map.of("masters", jdbc.queryForList("SELECT * FROM food_master ORDER BY master_id"),
                 "items", jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id"),
                 "history", jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id"),
-                "receipts", jdbc.queryForList("SELECT * FROM food_merge_receipt ORDER BY request_id"),
+                "receipts", jdbc.queryForList("SELECT * FROM food_item_move_receipt ORDER BY request_id,food_id"),
                 "registrations", jdbc.queryForList("SELECT * FROM food_registration_receipt ORDER BY request_id"));
     }
+    private List<Long> activeItems(long master) {
+        return masters.items(master).stream().filter(i->i.status()==FoodStatus.ACTIVE)
+                .map(i->i.foodId()).sorted().toList();
+    }
+    private ItemMoveService.Command wholeMove(long a,long b,long sourceVersion,long targetVersion,List<Long> items) {
+        return new ItemMoveService.Command(ItemMoveService.Mode.EXISTING,b,null,null,a,sourceVersion,targetVersion,items,true);
+    }
     private void merge(long a, long b) {
-        masters.merge(a, b, masters.find(a).versionNo(), masters.find(b).versionNo(), UUID.randomUUID());
+        moves.move(wholeMove(a,b,masters.find(a).versionNo(),masters.find(b).versionNo(),activeItems(a)),UUID.randomUUID());
     }
 
     static Stream<Arguments> lengths() {
@@ -109,22 +117,27 @@ class Step3ScenarioIntegrationTest {
                 .andExpect(status().isOk()).andExpect(model().hasErrors());
         assertThat(snapshot()).isEqualTo(before);
     }
-    @ParameterizedTest @CsvSource({"/foods/-1,404","/foods/nope,400","/foods/-1/merge,404",
+    @ParameterizedTest @CsvSource({"/foods/-1,404","/foods/nope,400","/foods/-1/move?items=1,404",
             "/inventory/-1,404","/inventory/nope,400","/inventory/-1/edit,404",
             "/inventory/new?masterId=-1,404","/inventory/new?masterId=nope,400","/inventory?storage=NOPE,400"})
     void missingAndMalformedRoutesDoNotWrite(String url,int status) throws Exception {
         var before=snapshot(); mvc.perform(get(url)).andExpect(status().is(status));
         assertThat(snapshot()).isEqualTo(before);
     }
-    @ParameterizedTest @ValueSource(strings={"targetId","sourceVersion","targetVersion","requestId"})
-    void missingOrMalformedMergeParametersDoNotWrite(String field) throws Exception {
+    @ParameterizedTest @ValueSource(strings={"targetId","sourceVersion","targetVersion","requestId","itemIds"})
+    void missingOrMalformedWholeMoveParametersDoNotWrite(String field) throws Exception {
         long a=food("A"),b=food("B"); var before=snapshot();
+        long item=masters.items(a).getFirst().foodId();
         for (String value : new String[]{null,"not-a-number-or-uuid"}) {
             var params=new org.springframework.util.LinkedMultiValueMap<String,String>();
-            params.set("targetId",""+b); params.set("sourceVersion","0"); params.set("targetVersion","0");
+            params.set("mode","EXISTING"); params.set("whole","true"); params.set("itemIds",""+item);
+            params.set("sourceId",""+a); params.set("targetId",""+b);
+            params.set("sourceVersion","0"); params.set("targetVersion","0");
             params.set("requestId",UUID.randomUUID().toString());
             if(value==null) params.remove(field); else params.set(field,value);
-            mvc.perform(post("/foods/"+a+"/merge").params(params)).andExpect(status().isBadRequest());
+            // Missing optional targets are refused with a redirect notice; the rest fail binding.
+            mvc.perform(post("/foods/"+a+"/move").params(params))
+                    .andExpect(result->assertThat(result.getResponse().getStatus()).isIn(302,400));
             assertThat(snapshot()).isEqualTo(before);
         }
     }
@@ -165,20 +178,26 @@ class Step3ScenarioIntegrationTest {
     }
     @Test void mergeRejectsMissingMastersNullTokenAndChangedRequestContent() {
         long a=food("A"),b=food("B"),c=food("C"); var before=snapshot();
-        assertThatThrownBy(()->masters.merge(a,b,0,0,null)).isInstanceOf(InvalidFoodException.class);
-        assertThatThrownBy(()->masters.merge(-1,b,0,0,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
-        assertThatThrownBy(()->masters.merge(a,-1,0,0,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
+        var items=activeItems(a);
+        assertThatThrownBy(()->moves.move(wholeMove(a,b,0,0,items),null)).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(()->moves.move(wholeMove(-1,b,0,0,items),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(()->moves.move(wholeMove(a,-1,0,0,items),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThat(snapshot()).isEqualTo(before);
-        UUID token=UUID.randomUUID(); masters.merge(a,b,0,0,token); var merged=snapshot();
-        assertThatThrownBy(()->masters.merge(c,b,0,1,token)).isInstanceOf(InvalidFoodException.class);
-        assertThatThrownBy(()->masters.merge(a,b,1,0,token)).isInstanceOf(InvalidFoodException.class);
+        UUID token=UUID.randomUUID(); moves.move(wholeMove(a,b,0,0,items),token); var merged=snapshot();
+        assertThatThrownBy(()->moves.move(wholeMove(c,b,0,1,activeItems(c)),token)).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(()->moves.move(wholeMove(a,b,1,0,items),token)).isInstanceOf(InvalidFoodException.class);
         assertThat(snapshot()).isEqualTo(merged);
     }
     @Test void chainedMergeRetryDoesNotRecreateDeletedFoods() throws Exception {
         long a=food("A"),b=food("B"),c=food("C"); UUID token=UUID.randomUUID();
-        masters.merge(a,b,0,0,token); merge(b,c); var before=snapshot();
-        mvc.perform(post("/foods/"+a+"/merge").param("targetId",""+b).param("sourceVersion","0")
-                .param("targetVersion","0").param("requestId",token.toString())).andExpect(redirectedUrl("/inventory"));
+        long item=activeItems(a).getFirst();
+        mvc.perform(post("/foods/"+a+"/move").param("mode","EXISTING").param("whole","true")
+                .param("itemIds",""+item).param("sourceId",""+a).param("targetId",""+b).param("sourceVersion","0")
+                .param("targetVersion","0").param("requestId",token.toString())).andExpect(redirectedUrl("/foods/"+b));
+        merge(b,c); var before=snapshot();
+        mvc.perform(post("/foods/"+a+"/move").param("mode","EXISTING").param("whole","true")
+                .param("itemIds",""+item).param("sourceId",""+a).param("targetId",""+b).param("sourceVersion","0")
+                .param("targetVersion","0").param("requestId",token.toString())).andExpect(redirectedUrl("/foods/"+b));
         assertThat(snapshot()).isEqualTo(before); assertThat(masters.items(c)).hasSize(3);
     }
     @Test void mixedUnitsLocationsTerminalStatesAndLegacyQuantitiesSurviveMerge() {
@@ -193,7 +212,8 @@ class Step3ScenarioIntegrationTest {
         jdbc.update("UPDATE food_item SET quantity_amount=NULL,quantity_unit=NULL,quantity_text='반 봉지쯤' WHERE food_id=?",original.get(2).foodId());
         var items=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         var history=jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
-        var p=masters.preview(a,b); assertThat(p.itemCount()).isEqualTo(4); assertThat(p.historyCount()).isEqualTo(4);
+        var p=moves.preview(a,activeItems(a),ItemMoveService.Mode.EXISTING,b,null,null);
+        assertThat(p.items().size()+p.endedCount()).isEqualTo(4); assertThat(p.historyCount()).isEqualTo(4);
         merge(a,b);
         var after=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         for(var rows:List.of(items,after)) rows.forEach(row->{row.remove("master_id");row.remove("updated_at");row.remove("version_no");row.remove("stock_revision");});
@@ -226,7 +246,8 @@ class Step3ScenarioIntegrationTest {
     @ParameterizedTest @ValueSource(booleans={false,true})
     void additionalPurchaseVersusMergeHasOneWinner(boolean addToTarget) throws Exception {
         long a=food("A"),b=food("B"),destination=addToTarget?b:a;
-        var outcomes=race(()->inventory.create(form("add"),destination,0L),()->masters.merge(a,b,0,0,UUID.randomUUID()));
+        var whole=wholeMove(a,b,0,0,activeItems(a));
+        var outcomes=race(()->inventory.create(form("add"),destination,0L),()->moves.move(whole,UUID.randomUUID()));
         assertThat(outcomes).containsExactlyInAnyOrder(true,false);
         assertThat(inventory.findActive()).hasSize(outcomes.get(0)?3:2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(outcomes.get(0)?3:2);
@@ -235,22 +256,25 @@ class Step3ScenarioIntegrationTest {
     @ParameterizedTest @ValueSource(booleans={false,true})
     void sharedEditVersusMergeHasOneWinner(boolean editTarget) throws Exception {
         long a=food("A"),b=food("B"); var item=masters.items(editTarget?b:a).getFirst();
+        var whole=wholeMove(a,b,0,0,activeItems(a));
         var outcomes=race(()->inventory.update(item.foodId(),FoodCreateForm.from(item).withIdentity("변경 이름","변경 분류"),item.updatedAt()),
-                ()->masters.merge(a,b,0,0,UUID.randomUUID()));
+                ()->moves.move(whole,UUID.randomUUID()));
         assertThat(outcomes).containsExactlyInAnyOrder(true,false);
         assertThat(inventory.findActive()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(outcomes.get(0)?3:2);
     }
     @RepeatedTest(3) void reciprocalMergesDoNotDeadlockOrLoseItems() throws Exception {
         long a=food("A"),b=food("B");
-        assertThat(race(()->masters.merge(a,b,0,0,UUID.randomUUID()),()->masters.merge(b,a,0,0,UUID.randomUUID())))
+        var forward=wholeMove(a,b,0,0,activeItems(a));var reverse=wholeMove(b,a,0,0,activeItems(b));
+        assertThat(race(()->moves.move(forward,UUID.randomUUID()),()->moves.move(reverse,UUID.randomUUID())))
                 .containsExactlyInAnyOrder(true,false);
         assertThat(masters.groups(null,false)).hasSize(1); assertThat(inventory.findActive()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(2);
     }
     @Test void competingMergesIntoSameTargetRejectStaleLoser() throws Exception {
         long a=food("A"),b=food("B"),c=food("C");
-        assertThat(race(()->masters.merge(a,c,0,0,UUID.randomUUID()),()->masters.merge(b,c,0,0,UUID.randomUUID())))
+        var first=wholeMove(a,c,0,0,activeItems(a));var second=wholeMove(b,c,0,0,activeItems(b));
+        assertThat(race(()->moves.move(first,UUID.randomUUID()),()->moves.move(second,UUID.randomUUID())))
                 .containsExactlyInAnyOrder(true,false);
         assertThat(dao.countItems(c)).isEqualTo(2); assertThat(inventory.findActive()).hasSize(3);
     }
@@ -299,7 +323,7 @@ class Step3ScenarioIntegrationTest {
     @Test void sequentialConflictsRequireReselectionAndFreshVersions() {
         long a=food("A"),b=food("B");
         inventory.create(form("추가"),a,0L);var afterAdd=snapshot();
-        assertThatThrownBy(()->masters.merge(a,b,0,0,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(()->moves.move(wholeMove(a,b,0,0,activeItems(a)),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThat(snapshot()).isEqualTo(afterAdd);
         merge(a,b);var afterMerge=snapshot();
         assertThatThrownBy(()->inventory.create(form("추가"),a,1L)).isInstanceOf(InvalidFoodException.class);
@@ -324,13 +348,19 @@ class Step3ScenarioIntegrationTest {
         jdbc.update("UPDATE source_upgrade_audit.food_item SET source_type=NULL,source_memo=NULL");
         assertThat(jdbc.queryForObject("SELECT source_type FROM source_upgrade_audit.food_item",String.class)).isNull();
     }
-    @RepeatedTest(3) void sameTokenForDifferentConcurrentMergesRejectsLoserWithoutServerError() throws Exception {
+    @RepeatedTest(3) void sameTokenForDifferentConcurrentMovesNeverErrorsOrDuplicates() throws Exception {
         long a=food("A"),b=food("B"),c=food("C"),d=food("D");UUID token=UUID.randomUUID();
-        assertThat(race(()->masters.merge(a,b,0,0,token),()->masters.merge(c,d,0,0,token)))
-                .containsExactlyInAnyOrder(true,false);
-        assertThat(inventory.findActive()).hasSize(4);assertThat(masters.groups(null,false)).hasSize(3);
+        var first=wholeMove(a,b,0,0,activeItems(a));var second=wholeMove(c,d,0,0,activeItems(c));
+        var outcomes=race(()->moves.move(first,token),()->moves.move(second,token));
+        // Per-item receipts key on (request, item), so disjoint moves sharing a forged token may
+        // both land or the slower one may see the winner's receipt and refuse. Either way there is
+        // no server error, no duplicate application and the receipts match what was applied.
+        assertThat(outcomes).contains(true);
+        int applied=(int)outcomes.stream().filter(Boolean::booleanValue).count();
+        assertThat(inventory.findActive()).hasSize(4);
+        assertThat(masters.groups(null,false)).hasSize(4-applied);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(4);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_merge_receipt",Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item_move_receipt",Integer.class)).isEqualTo(applied);
     }
     @Test void newRegistrationWithDifferentTokensKeepsSameNamedFoodsSeparate() throws Exception {
         for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","동일 요청")

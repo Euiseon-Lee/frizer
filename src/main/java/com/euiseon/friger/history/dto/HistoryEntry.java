@@ -16,7 +16,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
                 : "현재 ‘" + currentFoodName + "’의 개별 구매 항목으로 이동해.";
     }
     public String actionLabel() {
-        if (isMerge()) return "이동";
+        if (isMerge()) return "병합";
         return actionType.label();
     }
     public String homeSummary() {
@@ -69,7 +69,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         } else if (changesText != null && !changesText.isBlank()) {
             for (String line : changesText.split("\\R", -1)) {
                 int colon = line.indexOf(": ");
-                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉일", "메모").contains(line.substring(0, colon))) {
+                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉일", "메모", "새 항목").contains(line.substring(0, colon))) {
                     result.add(new DetailField(line.substring(0, colon), line.substring(colon + 2)));
                 } else if (!result.isEmpty()) {
                     var previous = result.remove(result.size() - 1);

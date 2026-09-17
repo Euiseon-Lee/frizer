@@ -18,6 +18,7 @@
                 NULL::varchar AS merged_from_name, NULL::varchar AS merged_into_name,
                 NULL::integer AS merged_item_count, 0 AS event_order, h.history_id::text AS event_key
             FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
+            WHERE h.action_type &lt;&gt; 'SPLIT_IN'
             UNION ALL
             SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at, NULL::text,

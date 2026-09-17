@@ -101,9 +101,13 @@ git rev-parse HEAD
 
 ## 4. 코드 변경 없이 재시작하기
 
-### GitHub Actions 주기 호출
+### UptimeRobot 주기 호출 — 현재 사용 중인 방법
 
-`.github/workflows/render-keepalive.yml`은 5분 간격으로 공개 `/health`를 호출한다. 로그인·DB 조회·소스 checkout·빌드는 수행하지 않는다. 파일을 GitHub 기본 브랜치에 반영하고 Actions가 허용되어 있어야 예약 실행이 시작된다. Render 앱 재배포는 필요 없다. 최초 확인은 GitHub Actions → Render keep-alive → Run workflow로 실행하고 성공 여부를 확인한다. 중지하려면 해당 workflow를 Disable workflow로 비활성화한다.
+UptimeRobot 무료 모니터가 5분 간격으로 공개 `/health`를 호출해 절전을 막는다. 설정: HTTP(s) 모니터, URL `https://frizer-y4tg.onrender.com/health`, 간격 5분. 서비스가 응답하지 않으면 이메일 알림이 온다. 관리는 https://uptimerobot.com 대시보드에서 한다. 중지하려면 모니터를 Pause한다.
+
+### GitHub Actions 주기 호출 — 예비, 예약 실행 미동작
+
+`.github/workflows/render-keepalive.yml`은 같은 5분 keep-alive를 GitHub Actions 예약 실행으로 시도한 것이다. 2026-09-17 기준 크론식 단순화(`*/5`) 재푸시, workflow Disable→Enable 토글, Actions 권한(Allow all) 확인까지 했지만 이 저장소에서 예약 실행이 한 번도 발화하지 않았다. 수동 실행(Run workflow)은 정상 동작하므로 일회성 깨우기에는 쓸 수 있다. 파일은 예비로 유지하며, 이후 예약 실행이 저절로 시작되면 UptimeRobot과 중복되므로 한쪽을 중지한다.
 
 GitHub 예약 실행은 지연·누락될 수 있어 상시 가동을 보장하지 않는다. 공개 저장소는 60일간 저장소 활동이 없으면 예약 실행이 비활성화될 수 있다. 공개 저장소의 표준 러너는 무료지만 비공개 저장소는 계정의 Actions 사용량을 소비한다. 5분 간격은 하루 288회이며, 비공개 저장소라면 활성화 전에 사용량·예산을 확인한다. Render 무료 실행 시간은 workspace당 월 750시간을 공유한다. 이 호출은 Neon DB를 깨워 두는 기능은 아니다.
 

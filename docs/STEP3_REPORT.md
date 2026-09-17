@@ -277,7 +277,8 @@ food_name/category는 MASTER로 읽기·쓰기 책임을 옮긴다. 새 앱과 �
 ### 5. food_history 유지·확장
 
 기존 PK와 food_id FK, action_type, previous_storage_type, new_storage_type,
-quantity_text, memo, created_at, changes_text를 보존한다. 기존 행의 원문은 재작성하지 않는다.
+quantity_text, created_at, changes_text를 보존한다. 기존 행의 원문은 재작성하지 않는다.
+(memo 컬럼은 상수 기록 외 용도가 없어 2026-09-17 V16에서 제거했다. 아래 정리 작업 참고.)
 
 | 추가 컬럼 | 타입 / NULL | 의미 |
 |---|---|---|
@@ -425,3 +426,12 @@ operation_id는 이력 연결 키이지 그것만으로 중복 제출 방지를 
 ### 운영 반영 확인 — 2026-09-17
 
 f08d701 Render Live, Neon V15 성공, choconuna/testuser USER 계정 생성과 두 계정의 HTTPS 로그인·주요 화면 조회·로그아웃을 확인했다. 실데이터 등록·교차 계정 변경과 실기기 접속은 별도 검증 대상이다. 반복 운영 절차는 [운영 안내](OPERATIONS.md)를 따른다. 후속 여백·운영 도구 변경과 다른 PC 준비 절차는 OPERATIONS.md를 따른다.
+
+### 코드 정리 작업 — 2026-09-17
+
+과잉 구현 리뷰(fb9979b, 68ab6fa)로 기능 변화 없이 정리했다. 전 항목 통합 테스트로 검증 완료.
+
+- **쪼코 원본 PNG 77개(239MB)를 `src-assets/choco/`로 이동.** 화면은 `assets/choco/web/v1/`의 WebP만 서빙하므로 jar와 배포 아티팩트에서 제외했다. WebP 재생성 시 `scripts/build-choco-web.py`가 새 경로를 읽는다.
+- **food_history.memo 컬럼 제거(V16).** 값이 '음식 등록'/'음식 수정' 상수뿐이고 action_type이 같은 정보를 가지며, 어떤 화면·조회 SQL도 읽지 않음을 확인했다(food_history를 읽는 SELECT는 HistoryDao.findRecent와 FoodQuantityDao 2건뿐, 셋 다 memo 미포함). food_item.memo(음식 메모)는 별개 컬럼으로 유지한다. 기존 행의 memo 값은 컬럼 drop과 함께 소멸한다.
+- **테스트 전용 메서드 제거.** `FoodMasterService.groups(storage)` 단축형, `FoodQuantityService.apply` 5-인자, `BulkWorkbook.template()` 무인자, `registrationQuantity` 서비스·DAO. 테스트는 전체 시그니처 호출 또는 jdbc 직접 조회로 전환했다. 롤백 테스트의 실패 주입 제약은 memo 대신 `CHECK (action_type <> 'CREATE')`를 쓴다.
+- **소규모 정리.** `HistoryService` 패스스루 삭제(컨트롤러가 `HistoryDao` 직접 사용), `WebConfiguration` 삭제(`spring.mvc.format.date: iso` yml 1줄로 대체), 죽은 생성자·enum·CSS 규칙·도달 불가 JS 분기 제거, redirect URL 헬퍼는 `FoodQuantityController.url` 하나로 공유.

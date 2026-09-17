@@ -20,7 +20,7 @@ public class SecurityConfiguration {
         } else {
             http.addFilterBefore(new com.euiseon.friger.account.AccountSessionFilter(accounts), org.springframework.security.web.access.intercept.AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login", "/health", "/css/**", "/assets/**", "/js/choco-selector.js", "/js/choco.js", "/js/notices.js", "/error", "/access-denied").permitAll()
+                    .requestMatchers("/login", "/health", "/css/**", "/assets/**", "/favicon.ico", "/apple-touch-icon.png", "/js/choco-selector.js", "/js/choco.js", "/js/notices.js", "/error", "/access-denied").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
                 .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/", true).permitAll())

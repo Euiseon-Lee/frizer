@@ -16,5 +16,9 @@ public class ChocoResourceConfiguration implements WebMvcConfigurer {
         registry.addResourceHandler("/assets/choco/web/**")
                 .addResourceLocations("classpath:/static/assets/choco/web/")
                 .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
+        // Unversioned tab icons stay replaceable, so they only get a short public cache.
+        registry.addResourceHandler("/favicon.ico", "/apple-touch-icon.png")
+                .addResourceLocations("classpath:/static/")
+                .setCacheControl(CacheControl.maxAge(Duration.ofDays(1)).cachePublic());
     }
 }

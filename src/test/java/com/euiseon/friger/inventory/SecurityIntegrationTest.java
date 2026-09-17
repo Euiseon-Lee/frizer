@@ -53,6 +53,16 @@ class SecurityIntegrationTest {
         mvc.perform(get("/login"))
                 .andExpect(header().string("Cache-Control", containsString("no-store")));
     }
+    @Test void browserTabIconsArePublicWithShortCache() throws Exception {
+        mvc.perform(get("/favicon.ico"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/x-icon"))
+                .andExpect(header().string("Cache-Control", "max-age=86400, public"));
+        mvc.perform(get("/apple-touch-icon.png"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(header().string("Cache-Control", "max-age=86400, public"));
+    }
     @Test void rejectedRequestsUseSharedErrorViewWithForbiddenStatus() throws Exception {
         mvc.perform(get("/access-denied"))
                 .andExpect(status().isForbidden()).andExpect(view().name("error"))

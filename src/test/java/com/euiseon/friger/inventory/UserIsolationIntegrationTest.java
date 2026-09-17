@@ -54,6 +54,7 @@ class UserIsolationIntegrationTest {
     @Autowired FoodQuantityDao quantityDao;
     @Autowired ItemMoveService moves;
     @Autowired FoodSplitService split;
+    @Autowired FoodDeleteService deleteService;
     @Autowired ItemMoveDao moveDao;
     @Autowired HistoryDao histories;
     @Autowired BulkRegistrationService bulk;
@@ -61,7 +62,7 @@ class UserIsolationIntegrationTest {
     long bob;
     @BeforeEach void setup() {
         SecurityContextHolder.clearContext();
-        for(String table:List.of("food_quantity_receipt","food_registration_receipt","food_item_move_receipt","food_merge_receipt","food_bulk_receipt","food_bulk_preview","food_split_receipt","food_history","food_item","food_master")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("food_delete_receipt","food_quantity_receipt","food_registration_receipt","food_item_move_receipt","food_merge_receipt","food_bulk_receipt","food_bulk_preview","food_split_receipt","food_history","food_item","food_master")) jdbc.update("DELETE FROM "+table);
         jdbc.update("DELETE FROM app_user WHERE user_id<>1");
         jdbc.update("UPDATE app_user SET login_id='owner',enabled=true,role='USER' WHERE user_id=1");
         bob=jdbc.queryForObject("INSERT INTO app_user(login_id,password_hash,role,enabled) VALUES('tester',?,'USER',true) RETURNING user_id",Long.class,
@@ -114,7 +115,10 @@ class UserIsolationIntegrationTest {
         assertThatThrownBy(()->moves.preview(otherMaster,List.of(other),ItemMoveService.Mode.EXISTING,master,null,null)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->split.split(id,new FoodSplitService.Command(new java.math.BigDecimal("1"),StorageType.FRIDGE,null,null,false),0,UUID.randomUUID())).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->inventory.create(form("침입"),master,0L)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->deleteService.selection(master,List.of(id))).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->deleteService.delete(new FoodDeleteService.Command(master,0,List.of(id),List.of(0L),false),UUID.randomUUID())).isInstanceOf(RuntimeException.class);
         as("owner");assertThat(inventory.findById(id)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(2);
     }
     @Test void sameRegistrationTokenIsIndependentAndForeignReceiptsAreInvisible() {
         UUID token=UUID.randomUUID(); long first=registrations.create(form("같은 음식"),token);

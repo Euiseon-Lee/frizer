@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FR!ZER | 오등록 삭제</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
+<section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${(ended ? '종료 항목 ' : '보관 중인 항목 ') + items.size() + '건 선택'}"></p><h1>오등록한 항목 지우기</h1></div>
+<img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+<div class="tab-sheet">
+<p class="error-summary" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+<section class="merge-source"><p class="small muted">삭제 대상 항목</p><p class="merge-source-name" th:text="${master.foodName()}"></p>
+<ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> · <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> · 보관 종료</span> · <span th:text="${'등록 ' + #temporals.format(item.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span></li></ul></section>
+<section class="merge-preview"><h2>이렇게 삭제할 거야</h2>
+<dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>음식 이력 총 건수</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
+<div class="merge-help"><p>먹었거나 버린 재고는 삭제 대신 ‘먹었어/버렸어’로 정리해야해.</p></div>
+<p class="merge-caution">이 작업은 취소할 수 없어.<br>삭제한 항목은 기록과 이후 통계에서도 완전히 사라져.</p>
+<form method="post" th:action="@{/foods/{id}/delete(id=${master.masterId()})}">
+<label class="check-label" th:if="${whole}"><input type="checkbox" name="deleteMaster" value="true"><span>음식 ‘<span th:text="${master.foodName()}"></span>’ 그룹도 함께 삭제할게</span></label>
+<p class="merge-caution move-keep-note" th:if="${whole}">항목 전체를 선택했구나! 그룹까지 삭제하지 않으면 빈 음식 그룹은 남겨둘게.</p>
+<input type="hidden" name="sourceId" th:value="${master.masterId()}"><input type="hidden" name="sourceVersion" th:value="${master.versionNo()}">
+<input type="hidden" name="ended" th:value="${ended}"><input type="hidden" name="requestId" th:value="${requestId}">
+<th:block th:each="item : ${items}"><input type="hidden" name="itemIds" th:value="${item.foodId()}"><input type="hidden" name="itemVersions" th:value="${versions[item.foodId()]}"></th:block>
+<button class="button merge-submit action-delete" type="submit">확인했어, 지울게</button></form></section>
+<div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/foods/{id}(id=${master.masterId()},ended=${ended ? true : null})}">돌아가기</a></div>
+</div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

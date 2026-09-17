@@ -77,7 +77,7 @@ class DatabaseSmokeTest {
         assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 17.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("15");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("16");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -210,7 +210,6 @@ class DatabaseSmokeTest {
         assertThat(saved.previousStorageType()).isEqualTo(previous == null ? null : StorageType.valueOf(previous));
         assertThat(saved.newStorageType()).isEqualTo(StorageType.valueOf(next));
         assertThat(saved.quantityText()).isEqualTo("1끼");
-        assertThat(saved.memo()).isEqualTo("행동 메모");
         assertThat(saved.createdAt()).isNotNull();
     }
 

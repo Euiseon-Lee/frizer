@@ -39,13 +39,13 @@ function render(){
     if(context!==nextContext){context=nextContext;page=selector.createPage();}
     const images=[...document.querySelectorAll('img[data-choco-region]')]
         .filter(img=>img.parentElement.getClientRects().length && !img.parentElement.closest('[hidden]'));
-    const regions=images.map(img=>({id:img.dataset.chocoRegion,role:img.dataset.chocoRole,fixed:img.dataset.chocoFixed||null}));
+    const regions=images.map(img=>({id:img.dataset.chocoRegion,role:img.dataset.chocoRole}));
     const choices=page.sync(regions);
     for(const img of images){
         const key=choices.get(img.dataset.chocoRegion);
         const keepFailedSlot=!key&&page.loadExhausted(img.dataset.chocoRegion);
         const hide=!key&&!keepFailedSlot;
-        if(img.classList.contains('choco-load-failed')!==keepFailedSlot)img.classList.toggle('choco-load-failed',keepFailedSlot);
+        img.classList.toggle('choco-load-failed',keepFailedSlot);
         if(!key){
             loads.delete(img);img.onload=null;img.onerror=null;
             img.classList.remove('choco-loading');
@@ -53,9 +53,9 @@ function render(){
             img.removeAttribute('src');delete img.dataset.chocoKey;continue;
         }
         const asset=ChocoSelector.assets[key];
-        if(img.classList.contains('choco-portrait')!==(asset.renderMode==='portrait')) img.classList.toggle('choco-portrait',asset.renderMode==='portrait');
-        if(img.classList.contains('choco-left-edge')!==(asset.renderMode==='left-edge')) img.classList.toggle('choco-left-edge',asset.renderMode==='left-edge');
-        if(img.classList.contains('choco-wide')!==(asset.renderMode==='wide'))img.classList.toggle('choco-wide',asset.renderMode==='wide');
+        img.classList.toggle('choco-portrait',asset.renderMode==='portrait');
+        img.classList.toggle('choco-left-edge',asset.renderMode==='left-edge');
+        img.classList.toggle('choco-wide',asset.renderMode==='wide');
         const base=new URL(img.dataset.chocoBase||'/assets/choco/',location.href);
         const url=new URL('web/v1/'+encodeURIComponent(key+'.webp'),base).href;
         img.dataset.chocoKey=key;

@@ -97,7 +97,7 @@ public class ItemMoveService {
     private boolean completed(UUID token,String fingerprint) {
         var receipt=moves.completed(token);
         if(receipt==null) return false;
-        if(!receipt.fingerprint().equals(fingerprint)) throw invalid("이미 보낸 요청이야. 이동 내용을 다시 확인해줘.");
+        if(!receipt.equals(fingerprint)) throw invalid("이미 보낸 요청이야. 이동 내용을 다시 확인해줘.");
         return true;
     }
 }

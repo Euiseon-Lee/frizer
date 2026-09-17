@@ -157,7 +157,7 @@ class Step3ScenarioIntegrationTest {
     }
     @Test void additionalHistoryFailureRollsBackAllTables() {
         long master=food("기준"); var before=snapshot();
-        jdbc.execute("ALTER TABLE food_history ADD CONSTRAINT audit_reject_history CHECK (memo <> '음식 등록') NOT VALID");
+        jdbc.execute("ALTER TABLE food_history ADD CONSTRAINT audit_reject_history CHECK (action_type <> 'CREATE') NOT VALID");
         try {
             assertThatThrownBy(()->inventory.create(form("추가"),master,0L)).isInstanceOf(org.springframework.dao.DataAccessException.class);
             assertThat(snapshot()).isEqualTo(before);
@@ -201,7 +201,7 @@ class Step3ScenarioIntegrationTest {
         assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(history);
         for(StorageType storage:StorageType.values()) {
             var expected=inventory.findActive().stream().filter(i->i.storageType()==storage).toList();
-            assertThat(masters.groups(storage).stream().flatMap(g->g.items().stream()).toList()).containsExactlyElementsOf(expected);
+            assertThat(masters.groups(storage,false).stream().flatMap(g->g.items().stream()).toList()).containsExactlyElementsOf(expected);
         }
     }
 
@@ -245,7 +245,7 @@ class Step3ScenarioIntegrationTest {
         long a=food("A"),b=food("B");
         assertThat(race(()->masters.merge(a,b,0,0,UUID.randomUUID()),()->masters.merge(b,a,0,0,UUID.randomUUID())))
                 .containsExactlyInAnyOrder(true,false);
-        assertThat(masters.groups(null)).hasSize(1); assertThat(inventory.findActive()).hasSize(2);
+        assertThat(masters.groups(null,false)).hasSize(1); assertThat(inventory.findActive()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(2);
     }
     @Test void competingMergesIntoSameTargetRejectStaleLoser() throws Exception {
@@ -328,7 +328,7 @@ class Step3ScenarioIntegrationTest {
         long a=food("A"),b=food("B"),c=food("C"),d=food("D");UUID token=UUID.randomUUID();
         assertThat(race(()->masters.merge(a,b,0,0,token),()->masters.merge(c,d,0,0,token)))
                 .containsExactlyInAnyOrder(true,false);
-        assertThat(inventory.findActive()).hasSize(4);assertThat(masters.groups(null)).hasSize(3);
+        assertThat(inventory.findActive()).hasSize(4);assertThat(masters.groups(null,false)).hasSize(3);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(4);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_merge_receipt",Integer.class)).isEqualTo(1);
     }
@@ -336,7 +336,7 @@ class Step3ScenarioIntegrationTest {
         for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","동일 요청")
                 .param("quantityAmount","1").param("quantityUnit","개").param("storageType","FRIDGE"))
                 .andExpect(redirectedUrl("/inventory"));
-        assertThat(masters.groups(null)).hasSize(2);assertThat(inventory.findActive()).hasSize(2);
+        assertThat(masters.groups(null,false)).hasSize(2);assertThat(inventory.findActive()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(2);
     }
     @Test void registrationPostRetryReturnsSuccessWithoutAnotherFoodOrHistory() throws Exception {
@@ -344,7 +344,7 @@ class Step3ScenarioIntegrationTest {
         for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("registrationRequestId",token.toString())
                 .param("foodName","두부").param("quantityAmount","1").param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(redirectedUrl("/inventory"));
-        assertThat(masters.groups(null)).hasSize(1);assertThat(inventory.findActive()).hasSize(1);
+        assertThat(masters.groups(null,false)).hasSize(1);assertThat(inventory.findActive()).hasSize(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_registration_receipt WHERE food_id IS NOT NULL",Integer.class)).isEqualTo(1);
     }
@@ -373,7 +373,7 @@ class Step3ScenarioIntegrationTest {
     }
     @Test void registrationFailureRollsBackClaimAndAllowsSameTokenRetry() {
         UUID token=UUID.randomUUID();var before=snapshot();
-        jdbc.execute("ALTER TABLE food_history ADD CONSTRAINT registration_failure CHECK(memo <> '음식 등록') NOT VALID");
+        jdbc.execute("ALTER TABLE food_history ADD CONSTRAINT registration_failure CHECK(action_type <> 'CREATE') NOT VALID");
         try {
             assertThatThrownBy(()->registrations.create(form("두부"),token)).isInstanceOf(org.springframework.dao.DataAccessException.class);
             assertThat(snapshot()).isEqualTo(before);

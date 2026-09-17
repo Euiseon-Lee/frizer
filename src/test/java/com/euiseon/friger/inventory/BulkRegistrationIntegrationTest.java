@@ -103,7 +103,7 @@ class BulkRegistrationIntegrationTest {
                 "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.","누락된 필수 정보: 음식명, 단위, 보관 위치");
     }
     @Test void missingAdditionalSelectionDoesNotReportFoodNameAsMissing() throws Exception {
-        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template()));var out=new ByteArrayOutputStream()) {
+        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             book.getSheet("추가 등록").getRow(4).getCell(3).setCellValue(-1);
             book.write(out);var preview=bulk.preview(out.toByteArray(),owner);
             assertThat(preview.rows().getFirst().errors()).containsExactly(
@@ -277,7 +277,7 @@ class BulkRegistrationIntegrationTest {
             .andExpect(redirectedUrl("/inventory")).andExpect(flash().attribute("successMessage","1개 항목을 등록했어!"));
     }
     @Test void rejectsEmptyWrongHeadersAndOversizedFiles() throws Exception {
-        assertThatThrownBy(()->workbook.read(workbook.template())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(()->workbook.read(workbook.template(java.util.List.of()))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(()->workbook.read(new byte[BulkWorkbook.MAX_BYTES+1])).isInstanceOf(IllegalArgumentException.class);
         byte[] bytes;
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(row("두부","1","",""))));var out=new ByteArrayOutputStream()) {book.getSheet("신규 등록").getRow(3).getCell(0).setCellValue("changed");book.write(out);bytes=out.toByteArray();}
@@ -353,7 +353,7 @@ class BulkRegistrationIntegrationTest {
         assertThatThrownBy(()->workbook.read(file(overflow))).hasMessageContaining("두 시트 합계 최대 500");
     }
     @Test void missingExistingSelectionNeverBecomesNewRegistration() throws Exception {
-        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template()));var out=new ByteArrayOutputStream()) {
+        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             var row=book.getSheet("추가 등록").getRow(4);row.getCell(3).setCellValue(1);row.getCell(4).setCellValue("개");row.getCell(8).setCellValue("실온");
             book.write(out);var p=bulk.preview(out.toByteArray(),owner);
             assertThat(p.valid()).isFalse();assertThat(p.rows().getFirst().errors()).anyMatch(e->e.contains("기존 음식명 선택"));assertThat(count("food_bulk_preview")).isZero();
@@ -376,7 +376,7 @@ class BulkRegistrationIntegrationTest {
     @Test void downloadPreservesTemplateLayoutAndClearsSampleInputs() throws Exception {
         try(var source=new org.springframework.core.io.ClassPathResource("excel/frizer-bulk-template.xlsx").getInputStream();
             var original=new XSSFWorkbook(source);
-            var result=new XSSFWorkbook(new ByteArrayInputStream(workbook.template()))) {
+            var result=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())))) {
             for(String name:List.of("신규 등록","추가 등록")) {
                 var a=original.getSheet(name);var b=result.getSheet(name);
                 assertThat(b.getMergedRegions()).isEqualTo(a.getMergedRegions());

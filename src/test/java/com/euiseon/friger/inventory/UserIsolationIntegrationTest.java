@@ -98,7 +98,7 @@ class UserIsolationIntegrationTest {
         assertThat(masters.find(master)).isNull();assertThat(masters.lock(master)).isNull();
         assertThat(items.findByMaster(master)).isEmpty();assertThat(masters.registrationChoices()).hasSize(1);
         assertThat(histories.findRecent(100)).allMatch(h->Objects.equals(h.foodId(),own));
-        assertThat(quantities.history(mine)).isEmpty();assertThat(quantities.registrationQuantity(mine)).isNull();
+        assertThat(quantities.history(mine)).isEmpty();
         mvc.perform(get("/inventory").with(user(accounts.loadUserByUsername("tester"))))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.not(containsString("소유자 전용 음식"))));
         mvc.perform(get("/inventory/"+mine).with(user(accounts.loadUserByUsername("tester")))).andExpect(status().isNotFound());
@@ -109,7 +109,7 @@ class UserIsolationIntegrationTest {
         as("tester"); long other=inventory.create(form("테스터 음식")); long otherMaster=masters.masterIdForItem(other);
         assertThatThrownBy(()->inventory.update(id,form("변조"),before.updatedAt())).isInstanceOf(RuntimeException.class);
         assertThat(masters.delete(master)).isZero();assertThat(masters.update(master,"변조",null)).isZero();
-        assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,UUID.randomUUID())).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,UUID.randomUUID(),null)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->foods.merge(master,otherMaster,0,0,UUID.randomUUID())).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->moves.preview(other,ItemMoveService.Mode.EXISTING,master,null,null)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(()->inventory.create(form("침입"),master,0L)).isInstanceOf(RuntimeException.class);
@@ -124,14 +124,14 @@ class UserIsolationIntegrationTest {
     }
     @Test void endedItemsAndQuantityReceiptsStayPrivate() {
         long id=inventory.create(form("종료 음식"));UUID token=UUID.randomUUID();
-        long event=quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,token);
+        long event=quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,token,null);
         long master=masters.masterIdForItem(id);
         as("tester");assertThat(items.findEnded()).isEmpty();assertThat(items.endedLinks()).isEmpty();
         assertThat(quantities.endedSummaries(master)).isEmpty();assertThat(quantityDao.receipt(token)).isNull();
-        assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CANCEL,1,event,token)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CANCEL,1,event,token,null)).isInstanceOf(RuntimeException.class);
     }
     byte[] file(Long master) throws Exception {
-        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template()));var out=new ByteArrayOutputStream()) {
+        try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             var row=book.getSheet(master==null?"신규 등록":"추가 등록").getRow(4);
             var values=master==null?Map.of(0,"공통 일괄 음식",1,"2",2,"개",6,"냉장실"):
                     Map.of(0,master.toString(),3,"2",4,"개",8,"냉장실");

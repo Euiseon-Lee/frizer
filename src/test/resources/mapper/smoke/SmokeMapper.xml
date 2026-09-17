@@ -89,14 +89,12 @@
           , previous_storage_type
           , new_storage_type
           , quantity_text
-          , memo
         ) VALUES (1,
             #{foodId}
           , #{action}
           , #{previous,jdbcType=VARCHAR}
           , #{next,jdbcType=VARCHAR}
           , '1끼'
-          , '행동 메모'
         )
         RETURNING history_id
     </select>
@@ -109,7 +107,6 @@
              , new_storage_type
              , quantity_text
              , changes_text
-             , memo
              , created_at
           FROM food_history
          WHERE history_id = #{id}

@@ -110,7 +110,7 @@ class SecurityIntegrationTest {
         var page = mvc.perform(get("/inventory/bulk").with(user(accounts.loadUserByUsername("owner")))).andReturn();
         var session = (MockHttpSession) page.getRequest().getSession(false);
         var formToken = session.getAttribute("bulkOwner").toString();
-        var file = new MockMultipartFile("file", "foods.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", workbook.template());
+        var file = new MockMultipartFile("file", "foods.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", workbook.template(java.util.List.of()));
         mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user(accounts.loadUserByUsername("owner"))).param("formToken", formToken))
                 .andExpect(status().isForbidden());
         mvc.perform(multipart("/inventory/bulk/preview").file(file).session(session).with(user(accounts.loadUserByUsername("owner"))).with(csrf().asHeader()).param("formToken", formToken))

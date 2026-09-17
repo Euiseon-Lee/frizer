@@ -32,10 +32,6 @@ public class FoodQuantityService {
         return quantities.quantityChanges(id);
     }
     @Transactional(readOnly=true)
-    public String registrationQuantity(long id) {
-        return quantities.registrationQuantity(id);
-    }
-    @Transactional(readOnly=true)
     public Map<Long, FoodQuantityDao.EndedSummary> endedSummaries(long masterId) {
         return quantities.endedSummaries(masterId).stream().collect(java.util.stream.Collectors.toMap(
                 FoodQuantityDao.EndedSummary::foodId, summary -> summary));
@@ -44,10 +40,6 @@ public class FoodQuantityService {
         return item.quantityAmount()!=null && event!=null && !event.reversed()
             && state.stockRevision()==event.afterStockRevision()
             && Objects.equals(item.quantityUnit(),event.quantityUnit());
-    }
-    @Transactional
-    public long apply(long id,Action action,long version,Long historyId,UUID token) {
-        return apply(id,action,version,historyId,token,null);
     }
     @Transactional
     public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity) {

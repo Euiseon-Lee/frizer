@@ -122,14 +122,9 @@ public class BulkRegistrationService {
         }
         for(var row:preview.rows()) if(!inventory.validationErrors(row.form()).isEmpty()) throw new IllegalArgumentException(row.sheet()+" "+row.row()+"행의 입력을 다시 확인해줘. 전체 등록을 취소했어.");
         for(var row:preview.rows()) {
-            Long masterId=row.masterId();
-            long itemId;
-            if(masterId==null) {
-                itemId=inventory.create(row.form());
-            } else {
-                var target=masters.lock(masterId);
-                inventory.create(row.form(),masterId,target.versionNo());
-            }
+            // Re-lock per row: an earlier row on the same master bumps its version.
+            if(row.masterId()==null) inventory.create(row.form());
+            else inventory.create(row.form(),row.masterId(),masters.lock(row.masterId()).versionNo());
         }
         int count=preview.rows().size();
         jdbc.update("UPDATE food_bulk_preview SET result_count=? WHERE user_id=? AND request_id=?",count,currentUser.id(),requestId);

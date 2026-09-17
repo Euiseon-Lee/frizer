@@ -4,7 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import com.euiseon.friger.common.type.StorageType;
-import com.euiseon.friger.history.service.HistoryService;
+import com.euiseon.friger.history.dao.HistoryDao;
 import com.euiseon.friger.inventory.service.InventoryService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeController {
     private final InventoryService inventory;
-    private final HistoryService history;
+    private final HistoryDao history;
     private final Clock clock;
-    public HomeController(InventoryService inventory, HistoryService history, Clock clock) {
+    public HomeController(InventoryService inventory, HistoryDao history, Clock clock) {
         this.inventory = inventory; this.history = history; this.clock = clock;
     }
     @GetMapping("/")
@@ -32,7 +32,7 @@ public class HomeController {
         for (var type : new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER})
             counts.put(type.name(), foods.stream().filter(f -> f.storageType() == type).count());
         model.addAttribute("counts", counts);
-        model.addAttribute("entries", history.recent(5));
+        model.addAttribute("entries", history.findRecent(5));
         return "home";
     }
 }

@@ -43,17 +43,17 @@
     </select>
     <insert id="insert">
         INSERT INTO food_history(user_id,food_id, action_type, previous_storage_type,
-            new_storage_type, quantity_text, memo, created_at, changes_text, recorded_food_name)
+            new_storage_type, quantity_text, created_at, changes_text, recorded_food_name)
         VALUES (#{_userId,jdbcType=BIGINT},#{foodId}, #{actionType}, #{previousStorageType,jdbcType=VARCHAR},
-            #{newStorageType}, #{quantityText,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{createdAt}, #{changesText,jdbcType=VARCHAR},
+            #{newStorageType}, #{quantityText,jdbcType=VARCHAR}, #{createdAt}, #{changesText,jdbcType=VARCHAR},
             (SELECT m.food_name FROM food_item i JOIN food_master m ON m.master_id=i.master_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.food_id=#{foodId}))
     </insert>
     <insert id="insertUpdate">
         INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,
-            quantity_text,memo,created_at,changes_text,recorded_food_name,
+            quantity_text,created_at,changes_text,recorded_food_name,
             before_quantity_amount,after_quantity_amount,before_quantity_unit,quantity_unit)
         VALUES (#{_userId,jdbcType=BIGINT},#{history.foodId},#{history.actionType},#{history.previousStorageType,jdbcType=VARCHAR},
-            #{history.newStorageType},#{history.quantityText,jdbcType=VARCHAR},#{history.memo,jdbcType=VARCHAR},
+            #{history.newStorageType},#{history.quantityText,jdbcType=VARCHAR},
             #{history.createdAt},#{history.changesText,jdbcType=VARCHAR},#{after.foodName},
             #{before.quantityAmount,jdbcType=NUMERIC},#{after.quantityAmount,jdbcType=NUMERIC},
             #{before.quantityUnit,jdbcType=VARCHAR},#{after.quantityUnit,jdbcType=VARCHAR})

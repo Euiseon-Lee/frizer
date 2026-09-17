@@ -63,7 +63,7 @@ public class InventoryService {
         long id = masterId == null ? inventory.insert(food) : inventory.insertForMaster(food, masterId);
         if (masterId != null) masters.touch(masterId);
         int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
-                food.storageType(), food.quantityText(), "음식 등록", now, registrationSnapshot(food)));
+                food.storageType(), food.quantityText(), now, registrationSnapshot(food)));
         if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
         return id;
     }
@@ -98,7 +98,7 @@ public class InventoryService {
         } else masters.touch(masterId);
         if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
         if (history.insertUpdate(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
-                after.quantityText(), "음식 수정", now, changes), before, after) != 1) {
+                after.quantityText(), now, changes), before, after) != 1) {
             throw new IllegalStateException("수정 이력을 저장하지 못했습니다.");
         }
         return true;
@@ -141,7 +141,6 @@ public class InventoryService {
     }
 
     private static String raw(Object value) { return value == null ? null : value.toString(); }
-
 
     private static String display(Object value) { return value == null ? "-" : value.toString(); }
 

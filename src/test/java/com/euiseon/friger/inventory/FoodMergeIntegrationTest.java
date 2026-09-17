@@ -48,7 +48,7 @@ class FoodMergeIntegrationTest {
     }
     @Test void sameNamesRemainSeparateUntilExplicitMerge() throws Exception {
         create("두부","모","FRIDGE");create("두부","모","FRIDGE");
-        assertThat(masters.groups(null)).hasSize(2);
+        assertThat(masters.groups(null,false)).hasSize(2);
     }
     @Test void mergeIsDisabledUntilAnotherFoodExists() throws Exception {
         long source=create("두부","모","FRIDGE");
@@ -73,7 +73,7 @@ class FoodMergeIntegrationTest {
         var preview=masters.preview(source,target);
         masters.merge(source,target,preview.source().versionNo(),preview.target().versionNo(),UUID.randomUUID());
         assertThat(dao.find(source)).isNull();
-        assertThat(masters.groups(null)).hasSize(1);
+        assertThat(masters.groups(null,false)).hasSize(1);
         assertThat(masters.items(target)).hasSize(2);
         var after=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         for(int i=0;i<items.size();i++) {
@@ -179,6 +179,7 @@ class FoodMergeIntegrationTest {
         jdbc.update("INSERT INTO master_upgrade.food_history(food_id,action_type,new_storage_type,changes_text) SELECT food_id,'CREATE',storage_type,'snapshot-v1:{\"음식명\":\"옛 이름\"}' FROM master_upgrade.food_item");
         var before=jdbc.queryForList("SELECT * FROM master_upgrade.food_item ORDER BY food_id");
         var history=jdbc.queryForList("SELECT * FROM master_upgrade.food_history ORDER BY history_id");
+        history.forEach(row->assertThat(row.remove("memo")).isNull());
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
         var after=jdbc.queryForList("SELECT i.*,m.food_name,m.category FROM master_upgrade.food_item i JOIN master_upgrade.food_master m ON m.master_id=i.master_id ORDER BY food_id");

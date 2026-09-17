@@ -51,7 +51,7 @@ public class FoodQuantityController {
             return url("/inventory/"+id,storage,warning,ended);
         }
     }
-    private String url(String path,StorageType storage,boolean warning,boolean ended) {
+    static String url(String path,StorageType storage,boolean warning,boolean ended) {
         var uri=UriComponentsBuilder.fromPath(path);
         if(storage!=null) uri.queryParam("storage",storage);
         if(warning) uri.queryParam("warning",true);

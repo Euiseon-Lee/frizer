@@ -23,6 +23,10 @@ spring:
       mode: never
   jackson:
     time-zone: Asia/Seoul
+  mvc:
+    format:
+      # HTML date inputs require ISO dates, including when constructor binding fails.
+      date: iso
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml

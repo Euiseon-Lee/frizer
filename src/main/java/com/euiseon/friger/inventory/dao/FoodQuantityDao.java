@@ -9,7 +9,6 @@ public interface FoodQuantityDao {
     record State(long versionNo, long stockRevision, String snapshot) {}
     record Event(long historyId, String actionType, BigDecimal processedQuantityAmount, String quantityUnit,
                  long afterStockRevision, java.time.OffsetDateTime createdAt, boolean reversed) {
-        public String label() { return actionType.equals("CONSUME") ? "소비 완료" : "폐기 완료"; }
         public String actionLabel() { return actionType.equals("CONSUME") ? "소비" : "폐기"; }
         public String quantity() { return processedQuantityAmount.stripTrailingZeros().toPlainString()+quantityUnit; }
     }
@@ -20,8 +19,6 @@ public interface FoodQuantityDao {
     Event latest(long id);
     @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.quantity_text,h.created_at FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND (h.action_type='CREATE' OR (h.action_type IN ('CONSUME','DISCARD','CANCEL') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
     java.util.List<QuantityChange> quantityChanges(long id);
-    @Select("SELECT quantity_text FROM food_history WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} AND action_type='CREATE' ORDER BY history_id LIMIT 1")
-    String registrationQuantity(long id);
     record EndedSummary(long foodId, String registrationQuantity, java.time.OffsetDateTime endedAt) {}
     @Select("SELECT i.food_id, (SELECT h.quantity_text FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=i.food_id AND h.action_type='CREATE' ORDER BY h.history_id LIMIT 1) AS registration_quantity, (SELECT h.created_at FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=i.food_id AND h.action_type IN ('CONSUME','DISCARD') AND h.after_quantity_amount=0 AND h.operation_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM food_history c WHERE c.reversal_of_history_id=h.history_id) ORDER BY h.history_id DESC LIMIT 1) AS ended_at FROM food_item i WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{masterId} AND i.status='DEPLETED'")
     java.util.List<EndedSummary> endedSummaries(long masterId);

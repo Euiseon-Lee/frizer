@@ -146,7 +146,6 @@ public class BulkWorkbook {
     private static String lookupFormula(int row, int column) {
         return "IF(A"+row+"=\"\",\"\",IFERROR(VLOOKUP(A"+row+",ExistingFoodLookup,"+column+",FALSE),\"\"))";
     }
-    public byte[] template() throws IOException { return template(List.of()); }
     public byte[] template(List<FoodMasterDao.RegistrationChoice> foods) throws IOException {
         try(var source=new org.springframework.core.io.ClassPathResource("excel/frizer-bulk-template.xlsx").getInputStream();
             var book=new XSSFWorkbook(source);var output=new ByteArrayOutputStream()) {

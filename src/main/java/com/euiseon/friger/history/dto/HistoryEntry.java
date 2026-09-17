@@ -8,15 +8,6 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
         String quantityText, OffsetDateTime createdAt, String changesText,
         Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName, Integer mergedItemCount) {
-    @org.apache.ibatis.annotations.AutomapConstructor
-    public HistoryEntry {}
-
-    public HistoryEntry(Long historyId, Long foodId, String foodName, FoodActionType actionType,
-                        StorageType previousStorageType, StorageType newStorageType,
-                        String quantityText, OffsetDateTime createdAt, String changesText) {
-        this(historyId, foodId, foodName, actionType, previousStorageType, newStorageType,
-                quantityText, createdAt, changesText, null, null, null, null, null);
-    }
     public boolean isMerge() { return mergedFromName != null; }
     public String currentLocationNote() {
         if (currentFoodName == null) return isMerge() ? "현재 음식은 전체 목록에서 확인해줘." : null;

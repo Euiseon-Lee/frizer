@@ -120,7 +120,7 @@ public class InventoryController {
         var food = service.findById(id);
         if (food.status() != FoodStatus.ACTIVE) {
             redirect.addFlashAttribute("successMessage", "보관 중인 음식만 수정할 수 있어.");
-            return editReturnUrl("/inventory/" + id, storage, warning, ended);
+            return FoodQuantityController.url("/inventory/" + id, storage, warning, ended);
         }
         model.addAttribute("foodForm", FoodCreateForm.from(food));
         editContext(id, food.updatedAt(), model);
@@ -147,20 +147,13 @@ public class InventoryController {
             });
             return "inventory/new";
         }
-        return editReturnUrl("/foods/" + masters.masterId(id), storage, warning, ended);
+        return FoodQuantityController.url("/foods/" + masters.masterId(id), storage, warning, ended);
     }
 
     private void editFilters(StorageType storage, boolean warning, boolean ended, Model model) {
         model.addAttribute("selectedStorage", storage);
         model.addAttribute("savedWarning", warning);
         model.addAttribute("ended", ended);
-    }
-    private String editReturnUrl(String path, StorageType storage, boolean warning, boolean ended) {
-        var uri = org.springframework.web.util.UriComponentsBuilder.fromPath(path);
-        if (storage != null) uri.queryParam("storage", storage);
-        if (warning) uri.queryParam("warning", true);
-        if (ended) uri.queryParam("ended", true);
-        return "redirect:" + uri.build().toUriString();
     }
 
     private void collectValidationErrors(FoodCreateForm form, BindingResult errors) {

@@ -31,22 +31,17 @@
     });
     upload.addEventListener('submit', event => event.preventDefault());
     input.addEventListener('change', async () => {
-        revision++;
         pending?.abort();
+        const request = ++revision;
         upload.removeAttribute('aria-busy');
-        const error = input.files.length > 1 ? '엑셀 파일은 1개만 선택해줘.' : '';
-        input.setCustomValidity(error);
         invalidate();
         const previous = document.getElementById('bulkPreview');
         if (previous) previous.hidden = true;
         const help = document.getElementById('bulkCompletionHelp');
         if (help) help.hidden = true;
-        notify(error, !!error);
-        if (input.files.length !== 1 || !upload.reportValidity()) return;
-        pending?.abort();
-        const request = ++revision;
+        notify('');
+        if (!input.files.length || !upload.reportValidity()) return;
         pending = new AbortController();
-        invalidate();
         upload.setAttribute('aria-busy', 'true');
         notify('미리보기를 준비하고 있어.');
         try {

@@ -13,6 +13,5 @@ public record FoodHistory(
         StorageType previousStorageType,
         StorageType newStorageType,
         String quantityText,
-        String memo,
         OffsetDateTime createdAt, String changesText) {
 }

@@ -31,10 +31,6 @@ public class FoodMasterService {
         return masters.all().stream().filter(m -> m.masterId()!=source).toList();
     }
     @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
-    public List<Group> groups(StorageType storage) {
-        return groups(storage,false);
-    }
-    @Transactional(readOnly=true, isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public List<Group> groups(StorageType storage,boolean ended) {
         // Keep the existing recent-item ordering, but group by explicit identity only.
         var result=new LinkedHashMap<Long,List<FoodItem>>();

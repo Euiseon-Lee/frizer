@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AccountService implements UserDetailsService {
-    public enum Role { ADMIN, USER }
     private final JdbcTemplate jdbc;
     public AccountService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
     @Override public AccountPrincipal loadUserByUsername(String name) {

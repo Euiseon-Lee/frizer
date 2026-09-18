@@ -21,6 +21,16 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      # 래퍼의 배포판 다운로드는 재시도가 없어 일시적인 연결 끊김에 그대로 실패한다.
+      # 다운로드만 여기서 재시도하고, 성공하면 setup-gradle 캐시에 남아 다음 실행부터 생략된다.
+      - name: Gradle 배포판 내려받기 (연결 오류 재시도)
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew --version && exit 0
+            echo "Gradle 배포판 다운로드 실패 (시도 $attempt/3), 15초 후 재시도"
+            sleep 15
+          done
+          exit 1
       - name: Java 테스트와 JAR 빌드 (Testcontainers PostgreSQL)
         run: ./gradlew test bootJar
       - name: JS 테스트 (node --test)

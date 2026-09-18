@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.containsString;
 @AutoConfigureMockMvc
 @Testcontainers
 class SecurityIntegrationTest {
-    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:17.11");
+    @Container static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:18.6");
     @DynamicPropertySource static void database(DynamicPropertyRegistry r) {
         r.add("spring.datasource.url", DB::getJdbcUrl); r.add("spring.datasource.username", DB::getUsername); r.add("spring.datasource.password", DB::getPassword);
     }

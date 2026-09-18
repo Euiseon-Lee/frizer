@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.containsString;
 @AutoConfigureMockMvc
 @Testcontainers
 class FoodMergeIntegrationTest {
-    @Container static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17.11");
+    @Container static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18.6");
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url",POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username",POSTGRES::getUsername);

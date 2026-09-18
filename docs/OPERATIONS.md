@@ -65,7 +65,7 @@ java -version
 node --test src/test/js/*.test.cjs
 ```
 
-명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB를 사용한다. 테스트를 위해 운영 DB 설정을 넣지 않는다. push 후에는 GitHub Actions `CI`가 같은 테스트(Java 전체 스위트+bootJar, JS 테스트)를 다시 돌려 통과한 커밋만 자동 배포된다. 로컬에 Node가 없으면 Docker로 실행한다: `docker run --rm -v "C:\dev\frizer:/app" -w /app node:22-alpine sh -c 'node --test src/test/js/*.test.cjs'`
+명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB(postgres:18.6, 운영 Neon과 같은 버전 — 2026-09-18 정렬)를 사용한다. 로컬 개발 compose도 18.6이다(2026-09-18 사용자 승인 하에 로컬 데이터 볼륨을 비우고 전환 — postgres:18 이미지는 볼륨을 `/var/lib/postgresql`에 마운트한다). 로컬 스키마와 초기 계정은 다음 로컬 앱 실행 때 Flyway와 `FRIZER_LOGIN_*`이 다시 만든다. 테스트를 위해 운영 DB 설정을 넣지 않는다. push 후에는 GitHub Actions `CI`가 같은 테스트(Java 전체 스위트+bootJar, JS 테스트)를 다시 돌려 통과한 커밋만 자동 배포된다. 로컬에 Node가 없으면 Docker로 실행한다: `docker run --rm -v "C:\dev\frizer:/app" -w /app node:22-alpine sh -c 'node --test src/test/js/*.test.cjs'`
 
 ### 3-3. 필요한 파일만 커밋·푸시
 
@@ -180,7 +180,7 @@ FROM food_item GROUP BY user_id ORDER BY user_id;
 
 음식 데이터가 쌓인 뒤 DB를 변경할 때는 먼저 백업하고 별도 DB에서 복원 가능 여부를 확인한다. Neon의 복구 가능 시점과 보존 기간은 계정 플랜과 설정을 직접 확인한다. 새 브랜치를 만들었다는 사실만으로 독립적인 장기 백업이 확보되었다고 판단하지 않는다. 현재 운영 DB를 대상으로 복원 실습을 하지 않는다.
 
-백업은 아래 명령으로 만든다(2026-09-18 추가). Docker Desktop 실행과 `.env.render`가 필요하고, 로컬에 pg_dump를 설치하는 대신 운영 서버와 버전이 맞는 postgres:18 이미지를 사용한다(운영 Neon은 PostgreSQL 18, 로컬 개발 compose는 17 — pg_dump가 서버보다 낮으면 거부하므로 운영 서버 버전이 오르면 이미지도 같이 올린다). 결과는 저장소 밖 `C:\dev\frizer-backups\frizer-날짜시각.dump`(`-Fc` 형식)로 저장되며 읽기 전용 작업이라 운영에 영향이 없다. 비밀번호는 명령행이 아니라 환경변수로만 전달된다.
+백업은 아래 명령으로 만든다(2026-09-18 추가). Docker Desktop 실행과 `.env.render`가 필요하고, 로컬에 pg_dump를 설치하는 대신 운영 서버와 버전이 맞는 postgres:18 이미지를 사용한다(운영 Neon·로컬 compose·테스트 모두 PostgreSQL 18 — pg_dump가 서버보다 낮으면 거부하므로 운영 서버 버전이 오르면 이미지도 같이 올린다). 결과는 저장소 밖 `C:\dev\frizer-backups\frizer-날짜시각.dump`(`-Fc` 형식)로 저장되며 읽기 전용 작업이라 운영에 영향이 없다. 비밀번호는 명령행이 아니라 환경변수로만 전달된다.
 
 ```powershell
 .\scripts\backup-db.ps1 -EnvironmentFile C:/dev/frizer/.env.render

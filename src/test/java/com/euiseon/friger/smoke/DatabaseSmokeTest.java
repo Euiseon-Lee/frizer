@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Import(DatabaseSmokeTest.MapperConfiguration.class)
 class DatabaseSmokeTest {
     @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17.11")
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18.6")
             .withDatabaseName("frizer_test")
             .withUsername("frizer_test")
             .withPassword("frizer-test-only");
@@ -74,7 +74,7 @@ class DatabaseSmokeTest {
     @Test
     void contextPostgresMigrationAndXmlMapperAreReady() {
         assertThat(mapper.selectOne()).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 17.");
+        assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 18.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("19");

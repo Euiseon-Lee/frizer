@@ -23,7 +23,7 @@ import static com.euiseon.friger.inventory.service.FoodQuantityService.Action.*;
 
 @SpringBootTest @AutoConfigureMockMvc @Testcontainers
 class FoodDeleteIntegrationTest {
-    @Container static final PostgreSQLContainer<?> POSTGRES=new PostgreSQLContainer<>("postgres:17.11");
+    @Container static final PostgreSQLContainer<?> POSTGRES=new PostgreSQLContainer<>("postgres:18.6");
     @DynamicPropertySource static void database(DynamicPropertyRegistry r) {
         r.add("spring.datasource.url",POSTGRES::getJdbcUrl);r.add("spring.datasource.username",POSTGRES::getUsername);r.add("spring.datasource.password",POSTGRES::getPassword);
     }

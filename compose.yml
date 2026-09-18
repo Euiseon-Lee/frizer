@@ -25,7 +25,7 @@ services:
       start_period: 30s
 
   postgres:
-    image: postgres:17.11
+    image: postgres:18.6
     environment:
       POSTGRES_DB: frizer
       POSTGRES_USER: frizer
@@ -35,7 +35,8 @@ services:
     ports:
       - "127.0.0.1:${FRIZER_DB_PORT:-5432}:5432"
     volumes:
-      - frizer_postgres_data:/var/lib/postgresql/data
+      # postgres:18 image keeps versioned data under /var/lib/postgresql (not .../data).
+      - frizer_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U frizer -d frizer"]
       interval: 5s

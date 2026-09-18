@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.containsString;
 @AutoConfigureMockMvc
 @Testcontainers
 class BulkRegistrationIntegrationTest {
-    @Container static final PostgreSQLContainer<?> DB=new PostgreSQLContainer<>("postgres:17.11").withDatabaseName("frizer_bulk_test");
+    @Container static final PostgreSQLContainer<?> DB=new PostgreSQLContainer<>("postgres:18.6").withDatabaseName("frizer_bulk_test");
     @DynamicPropertySource static void database(DynamicPropertyRegistry r) { r.add("spring.datasource.url",DB::getJdbcUrl);r.add("spring.datasource.username",DB::getUsername);r.add("spring.datasource.password",DB::getPassword); }
     @Autowired BulkRegistrationService bulk;
     @Autowired BulkWorkbook workbook;

@@ -436,8 +436,13 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 
 .bulk-registration .bulk-template-actions{padding:10px 0 20px;margin-bottom:20px;border-bottom:1px solid var(--line)}
 
-/* Shared date inputs: reduce the yyyy-mm-dd display by 1pt. */
-.field input[type=date]{font-size:calc(16px - 1pt)}
+/* Shared date inputs: reduce the yyyy-mm-dd display by 1pt.
+   iOS Safari ignores width on native-appearance date inputs, so two-column rows
+   overflow the card; appearance:none makes them honor width:100% like text fields.
+   The inner value then needs explicit left alignment and a minimum height, because
+   a dateless input has no intrinsic content height without the native chrome. */
+.field input[type=date]{font-size:calc(16px - 1pt);-webkit-appearance:none;appearance:none}
+.field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.2em}
 
 /* Align bulk helper text and keep upload errors close to their explanation. */
 .bulk-registration .bulk-help,.bulk-registration .bulk-upload-error,.bulk-registration .bulk-preview-summary>p{margin:8px;font-size:12px;line-height:1.8}

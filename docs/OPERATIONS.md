@@ -180,6 +180,14 @@ FROM food_item GROUP BY user_id ORDER BY user_id;
 
 음식 데이터가 쌓인 뒤 DB를 변경할 때는 먼저 백업하고 별도 DB에서 복원 가능 여부를 확인한다. Neon의 복구 가능 시점과 보존 기간은 계정 플랜과 설정을 직접 확인한다. 새 브랜치를 만들었다는 사실만으로 독립적인 장기 백업이 확보되었다고 판단하지 않는다. 현재 운영 DB를 대상으로 복원 실습을 하지 않는다.
 
+백업은 아래 명령으로 만든다(2026-09-18 추가). Docker Desktop 실행과 `.env.render`가 필요하고, 로컬에 pg_dump를 설치하는 대신 서버와 버전이 맞는 postgres:17 이미지를 사용한다. 결과는 저장소 밖 `C:\dev\frizer-backups\frizer-날짜시각.dump`(`-Fc` 형식)로 저장되며 읽기 전용 작업이라 운영에 영향이 없다. 비밀번호는 명령행이 아니라 환경변수로만 전달된다.
+
+```powershell
+.\scripts\backup-db.ps1 -EnvironmentFile C:/dev/frizer/.env.render
+```
+
+복원 검증은 운영과 분리된 빈 DB(예: 로컬 compose Postgres의 새 데이터베이스)에 `pg_restore --no-owner --no-acl`로 수행하고, 음식·항목·이력 건수와 최신 migration을 확인한다. 백업 파일에는 개인 데이터와 계정 해시가 들어 있으므로 공유·커밋하지 않는다.
+
 ## 8. 문제가 생겼을 때
 
 | 증상 | 확인 순서 |

@@ -163,8 +163,8 @@ class ItemMoveIntegrationTest {
         long source=masters.masterId(a),target=masters.masterId(b);
         mvc.perform(get("/foods/"+source+"/move").param("items",""+a)).andExpect(status().isOk())
             .andExpect(content().string(containsString("새로운 음식으로 변경")))
-            .andExpect(content().string(containsString("종료 기록이 없어. 음식 ‘<span>듀부</span>’은 사라질 거야.")));
-        mvc.perform(get("/foods/"+source+"/move/choices").param("q","두부")).andExpect(status().isOk()).andExpect(jsonPath("$[0].masterId").value(target));
+            .andExpect(content().string(containsString("이 경우 병합 시 기존 음식은 사라져.")))
+            .andExpect(content().string(containsString("data-value=\""+target+"\"")));
         mvc.perform(get("/foods/"+source+"/move/preview").param("items",""+a).param("mode","EXISTING").param("targetId",""+target))
             .andExpect(status().isOk()).andExpect(jsonPath("$.whole").value(true)).andExpect(jsonPath("$.remainingCount").value(0));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item_move_receipt",Integer.class)).isZero();

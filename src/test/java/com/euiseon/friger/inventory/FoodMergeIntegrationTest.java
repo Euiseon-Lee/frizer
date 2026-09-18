@@ -74,7 +74,7 @@ class FoodMergeIntegrationTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("/foods/"+source+"/merge"))));
         mvc.perform(get("/foods/"+source+"/move")).andExpect(redirectedUrl("/foods/"+source));
         mvc.perform(get("/foods/"+source+"/move").param("items",""+item)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("종료 기록이 없어. 음식 ‘<span>두부</span>’은 사라질 거야.")))
+                .andExpect(content().string(containsString("이 경우 병합 시 기존 음식은 사라져.")))
                 .andExpect(content().string(containsString("class=\"cancel-link purchase-back-link\" href=\"/foods/"+source)));
     }
     @Test void mergePreservesItemsHistoryAndTargetDefaults() throws Exception {
@@ -125,10 +125,10 @@ class FoodMergeIntegrationTest {
         long sameName=create("<b>두부</b>","모","FREEZER");
         long item=masters.items(source).getFirst().foodId();
         mvc.perform(get("/foods/"+source+"/move").param("items",""+item)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("확인했어, 병합하자!")));
-        mvc.perform(get("/foods/"+source+"/move/choices").param("q","두부")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].foodName").value("<b>두부</b>"));
+                .andExpect(content().string(containsString("확인했어, 병합하자!")))
+                .andExpect(content().string(containsString("&lt;b&gt;두부&lt;/b&gt;")))
+                .andExpect(content().string(containsString("data-value=\""+sameName+"\"")))
+                .andExpect(content().string(containsString("data-value=\""+target+"\"")));
         assertThat(sameName).isNotEqualTo(target);
         dao.touch(target);
         mvc.perform(post("/foods/"+source+"/move").param("mode","EXISTING")

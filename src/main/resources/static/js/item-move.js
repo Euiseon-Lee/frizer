@@ -5,25 +5,12 @@
     const find=id=>document.getElementById(id), base=root.dataset.baseUrl;
     const status=find('moveStatus'), preview=find('itemMovePreview'), retry=find('moveRetry');
     const target=find('moveTarget'), form=find('itemMoveSubmit');
+    const filter=find('moveFilter'), options=find('moveTargetOptions'), emptyNote=find('moveFilterEmpty');
     const items=root.dataset.items.split(',');
-    let revision=0, searchRevision=0, current=null, submitting=false, timer, retryAction;
+    let revision=0, current=null, submitting=false, retryAction;
     const mode=()=>root.querySelector('input[name=mode]:checked')?.value;
-    function setChoices(choices=[]) {
-        target.replaceChildren(new Option('음식을 골라줘',''));
-        const options=find('itemMoveOptions');options.replaceChildren();
-        const rows=[{foodName:'음식을 골라줘',masterId:null},...choices];
-        for(const choice of rows) {
-            const label=choice.foodName+(choice.masterId!=null && choice.category?' · '+choice.category:'');
-            const value=choice.masterId==null?'':String(choice.masterId);
-            if(value) target.add(new Option(label,value));
-            const button=document.createElement('button'),text=document.createElement('span');
-            button.type='button';button.dataset.value=value;button.title=label;
-            text.className='merge-option-text';text.textContent=label;button.append(text);options.append(button);
-        }
-        target.dispatchEvent(new Event('optionschange'));
-    }
     function invalidate() {
-        revision++; current=null; clearTimeout(timer); preview.hidden=true;
+        revision++; current=null; preview.hidden=true;
         find('moveFields').replaceChildren(); retry.hidden=true; status.textContent='';
     }
     async function get(url) {
@@ -64,26 +51,31 @@
             status.textContent=error.message; retryAction=loadPreview;retry.hidden=false;
         }
     }
-    async function search(event) {
-        if(event) event.preventDefault();
-        if(submitting) return;
-        invalidate(); const ownSearch=++searchRevision;
-        setChoices();find('moveResults').hidden=true;
-        const q=find('moveQuery').value.trim();if(!q) return;
-        status.textContent='음식을 찾고 있어.';
-        try {
-            const choices=await get(base+'/choices?'+new URLSearchParams({q}));
-            if(ownSearch!==searchRevision || submitting) return;
-            setChoices(choices);
-            find('moveResults').hidden=choices.length===0;
-            status.textContent=choices.length?'':'검색한 음식이 없어. 다른 이름으로 찾아줘.';
-        } catch(error) {if(ownSearch===searchRevision){status.textContent='음식을 불러오지 못했어. 다시 시도해줘.';retryAction=search;retry.hidden=false;}}
-    }
-    find('moveSearch').addEventListener('submit',search);
-    find('moveQuery').addEventListener('input',()=>{searchRevision++;invalidate();setChoices();find('moveResults').hidden=true;});
-    target.addEventListener('change',loadPreview);
+    // The full target list ships with the page; typing only filters it locally
+    // and never clears the current selection.
+    if(filter) filter.addEventListener('input',()=>{
+        const query=filter.value.trim().toLowerCase();
+        let visible=0;
+        for(const button of options.querySelectorAll('button')) {
+            const hit=!query || button.dataset.name.toLowerCase().includes(query);
+            button.hidden=!hit;
+            if(hit) visible++;
+        }
+        emptyNote.hidden=visible>0;
+    });
+    if(options) options.addEventListener('click',event=>{
+        const button=event.target.closest('button[data-value]');
+        if(!button || submitting) return;
+        for(const other of options.querySelectorAll('button')) {
+            const selected=other===button;
+            other.classList.toggle('is-selected',selected);
+            other.setAttribute('aria-selected',String(selected));
+        }
+        target.value=button.dataset.value;
+        loadPreview();
+    });
     root.querySelectorAll('input[name=mode]').forEach(input=>input.addEventListener('change',()=>{
-        searchRevision++;invalidate();find('existingMove').hidden=mode()!=='EXISTING';find('newMove').hidden=mode()!=='NEW';loadPreview();
+        invalidate();find('existingMove').hidden=mode()!=='EXISTING';find('newMove').hidden=mode()!=='NEW';loadPreview();
     }));
     retry.addEventListener('click',()=>retryAction&&retryAction());
     form.addEventListener('submit',event=>{

@@ -37,7 +37,7 @@ class SecurityIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired com.euiseon.friger.account.AccountService accounts;
 
-    @ParameterizedTest @ValueSource(strings={"/", "/inventory", "/inventory/new", "/history", "/inventory/bulk", "/inventory/bulk/template", "/account", "/foods/1", "/foods/1/move/choices?q=test"})
+    @ParameterizedTest @ValueSource(strings={"/", "/inventory", "/inventory/new", "/history", "/inventory/bulk", "/inventory/bulk/template", "/account", "/foods/1", "/foods/1/move?items=1"})
     void anonymousCannotReadPrivatePages(String path) throws Exception {
         mvc.perform(get(path)).andExpect(status().is3xxRedirection()).andExpect(redirectedUrlPattern("**/login"));
     }

@@ -2,7 +2,6 @@ package com.euiseon.friger.inventory.controller;
 
 import java.util.*;
 import com.euiseon.friger.inventory.service.*;
-import com.euiseon.friger.inventory.dao.FoodMasterDao;
 import com.euiseon.friger.inventory.exception.InvalidFoodException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,14 +35,10 @@ public class ItemMoveController {
         model.addAttribute("ended",ended);
         model.addAttribute("itemsParam",String.join(",",selection.items().stream()
                 .map(item->String.valueOf(item.foodId())).toList()));
+        // The whole target list ships with the page; the browser filters it locally.
+        model.addAttribute("moveChoices",masters.registrationChoices().stream()
+                .filter(choice->choice.masterId()!=id).toList());
         return "inventory/item-move";
-    }
-    @GetMapping("/choices") @ResponseBody
-    List<FoodMasterDao.RegistrationChoice> choices(@PathVariable long id,@RequestParam String q) {
-        if(q.isBlank()) return List.of();
-        String query=q.strip().toLowerCase(Locale.ROOT);
-        return masters.registrationChoices().stream().filter(c -> c.masterId()!=id
-                && c.foodName().toLowerCase(Locale.ROOT).contains(query)).toList();
     }
     @GetMapping("/preview") @ResponseBody
     ResponseEntity<?> preview(@PathVariable long id,@RequestParam List<Long> items,

@@ -7,7 +7,7 @@
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
 <section class="heading character-heading tab-heading"><div><p class="eyebrow">수량 분리</p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div>
-<img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+<img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet" th:with="available=${preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() != null}">
 <section class="merge-source"><dl class="detail-grid quantity-info-grid">
 <div><dt>보관 위치</dt><dd th:text="${preview.item().storageType().name() == 'ROOM' ? '실온' : (preview.item().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></dd></div>

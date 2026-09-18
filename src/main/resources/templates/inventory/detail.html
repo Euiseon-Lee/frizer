@@ -10,7 +10,7 @@
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
 
-    <section class="heading character-heading tab-heading"><div><p class="eyebrow">개별 구매 항목</p><h1 class="detail-title" th:text="${food.foodName()}"></h1><p class="muted">어떻게 보관했더라?</p></div><img class="choco" width="92" height="112" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+    <section class="heading character-heading tab-heading"><div><p class="eyebrow">개별 구매 항목</p><h1 class="detail-title" th:text="${food.foodName()}"></h1><p class="muted">어떻게 보관했더라?</p></div><img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
     <p class="notice" role="status" th:if="${successMessage != null}" th:text="${successMessage}"></p>
     <p class="error-summary detail-expiry-alert" role="status" th:if="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)}">소비기한 경과됐어. 확인이 필요해!</p>

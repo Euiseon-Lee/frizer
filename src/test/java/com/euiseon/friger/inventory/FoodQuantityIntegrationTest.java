@@ -325,13 +325,13 @@ class FoodQuantityIntegrationTest {
         jdbc.update("UPDATE food_item SET updated_at='2026-09-16T01:00:00Z' WHERE food_id=?",id);
         assertThat(quantities.endedSummaries(master).get(id).registrationQuantity()).isEqualTo("2.5모");
         var card=mvc.perform(get("/foods/"+master).param("ended","true")).andExpect(status().isOk())
-            .andExpect(content().string(containsString("(2026.09.15 22:41)")))
+            .andExpect(content().string(containsString("(2026-09-15 22:41)")))
             .andExpect(content().string(containsString("최초 등록 수량 <strong>2.5모</strong>")))
             .andExpect(htmlCount("class=\"stock-dates\"",0))
             .andExpect(htmlCount("class=\"stock-card-footer\"",0))
             .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         mvc.perform(get("/inventory/"+id).param("ended","true")).andExpect(status().isOk())
-            .andExpect(content().string(containsString("2026.09.15 22:41")))
+            .andExpect(content().string(containsString("2026-09-15 22:41")))
             .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>상태</dt>"))))
             .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<dt>구매일</dt>"))))
             .andExpect(htmlCount("class=\"stock-card-footer purchase-detail-footer\"",0))

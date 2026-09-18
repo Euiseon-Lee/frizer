@@ -9,7 +9,7 @@
 <div class="tab-sheet">
 <p class="error-summary" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
 <section class="merge-source"><p class="small muted">삭제 대상 항목</p><p class="merge-source-name" th:text="${master.foodName()}"></p>
-<ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> · <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> · 보관 종료</span> · <span th:text="${'등록 ' + #temporals.format(item.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></span></li></ul></section>
+<ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> · <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> · 보관 종료</span> · <span th:text="${'등록 ' + #temporals.format(item.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></span></li></ul></section>
 <section class="merge-preview"><h2>이렇게 삭제할 거야</h2>
 <dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>음식 이력 총 건수</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
 <div class="merge-help"><p>먹었거나 버린 재고는 삭제 대신 ‘먹었어/버렸어’로 정리해야해.</p></div>

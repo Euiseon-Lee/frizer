@@ -21,7 +21,7 @@
         <dl class="detail-grid">
             <div th:if="${food.status().name() == 'DEPLETED'}"><dt>최초 등록 수량</dt><dd th:text="${registrationQuantity ?: '등록 당시 수량 미상'}"></dd></div>
             <div th:unless="${food.status().name() == 'DEPLETED'}"><dt>수량</dt><dd th:text="${food.quantityAmount() != null and food.quantityUnit() != null ? food.quantityAmount().stripTrailingZeros().toPlainString() + food.quantityUnit().strip() : (food.quantityText() ?: '-')}"></dd></div>
-            <div th:if="${food.status().name() == 'DEPLETED' and endedAt != null}"><dt>보관 종료 일시</dt><dd><time th:datetime="${endedAt}" th:text="${#temporals.format(endedAt.atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></dd></div>
+            <div th:if="${food.status().name() == 'DEPLETED' and endedAt != null}"><dt>보관 종료 일시</dt><dd><time th:datetime="${endedAt}" th:text="${#temporals.format(endedAt.atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time></dd></div>
             <div><dt>용량</dt><dd th:text="${food.capacityText() ?: '-'}"></dd></div>
             <div th:with="hasSourceMemo=${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}" th:classappend="${!hasSourceMemo} ? 'detail-wide-field' : ''"><dt>출처</dt><dd th:text="${food.sourceType() == null ? '-' : sourceLabels[food.sourceType()]}"></dd></div>
             <div th:if="${food.sourceType() != null and food.sourceType().name() == 'ETC' and !#strings.isEmpty(food.sourceMemo())}"><dt>출처 메모</dt><dd th:text="${food.sourceMemo()}"></dd></div>
@@ -39,7 +39,7 @@
         <dl class="detail-grid detail-memo-group">
             <div class="detail-memo-field"><dt>메모</dt><dd class="detail-memo" th:text="${food.memo() ?: '-'}"></dd></div>
         </dl>
-    <div class="stock-card-footer purchase-detail-footer" th:if="${food.status().name() == 'ACTIVE'}"><span>등록 <time th:text="${#temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}">수정 <time th:text="${#temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd HH:mm')}"></time></span></div>
+    <div class="stock-card-footer purchase-detail-footer" th:if="${food.status().name() == 'ACTIVE'}"><span>등록 <time th:text="${#temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}">수정 <time th:text="${#temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time></span></div>
     </section>
 
 
@@ -49,7 +49,7 @@
         <ul class="consumption-history-list" th:unless="${#lists.isEmpty(quantityHistory)}">
             <li th:each="event : ${quantityHistory}">
                 <span class="action-badge history-badge quantity-history-tag" th:attr="data-event=${event.actionType()}" th:text="${event.actionLabel()}"></span>
-                <time th:datetime="${event.createdAt()}"><span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy.MM.dd')}"></span> <span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'HH:mm')}"></span></time>
+                <time th:datetime="${event.createdAt()}"><span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd')}"></span> <span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'HH:mm')}"></span></time>
                 <div class="quantity-history-value"><strong class="quantity-history-amount" th:text="${event.changeQuantity()}"></strong> <span class="quantity-history-balance">(잔량: <span th:text="${event.remainingQuantity() + ')'}"></span></span></div>
                 <a class="quantity-history-cancel" th:if="${quantityPreview.cancellable() and quantityPreview.event().historyId() == event.historyId()}" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}" th:aria-label="${event.actionLabel() + ' ' + event.changeQuantity() + ' 처리 취소'}">처리 취소</a>
             </li>

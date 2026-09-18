@@ -1,6 +1,7 @@
 package com.euiseon.friger.inventory;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 import com.euiseon.friger.common.type.*;
@@ -33,6 +34,9 @@ class FoodSplitIntegrationTest {
     @Autowired FoodMasterService masters;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
+    // The app validates dates against its Asia/Seoul clock; a bare LocalDate.now()
+    // diverges on the UTC CI runner between 15:00 and 24:00 UTC.
+    @Autowired Clock clock;
     @BeforeEach void clean() {
         jdbc.update("DELETE FROM food_split_receipt");jdbc.update("DELETE FROM food_quantity_receipt");
         jdbc.update("DELETE FROM food_history WHERE reversal_of_history_id IS NOT NULL");
@@ -65,7 +69,7 @@ class FoodSplitIntegrationTest {
         assertThat(item.quantityUnit()).isEqualTo("모");
         assertThat(item.storageType()).isEqualTo(StorageType.FREEZER);
         assertThat(item.freezeType()).isEqualTo(FreezeType.HOME_FROZEN);
-        assertThat(item.frozenAt()).isEqualTo(LocalDate.now());
+        assertThat(item.frozenAt()).isEqualTo(LocalDate.now(clock));
         assertThat(item.memo()).isEqualTo("원래 메모");
         assertThat(item.capacityText()).isEqualTo("300g");
         assertThat(item.purchasedAt()).isEqualTo(LocalDate.of(2026,9,1));
@@ -97,7 +101,7 @@ class FoodSplitIntegrationTest {
         assertThatThrownBy(()->splits.split(id,freezerCommand("0"),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThatThrownBy(()->splits.split(id,freezerCommand("0.005"),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThatThrownBy(()->splits.split(id,new FoodSplitService.Command(new BigDecimal("1"),null,null,null,false),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
-        assertThatThrownBy(()->splits.split(id,new FoodSplitService.Command(new BigDecimal("1"),StorageType.FREEZER,null,LocalDate.now().plusDays(1),false),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(()->splits.split(id,new FoodSplitService.Command(new BigDecimal("1"),StorageType.FREEZER,null,LocalDate.now(clock).plusDays(1),false),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThatThrownBy(()->splits.split(id,freezerCommand("1"),version(id)+1,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         quantities.apply(id,CONSUME,version(id),null,UUID.randomUUID(),null);
         assertThatThrownBy(()->splits.split(id,freezerCommand("1"),version(id),UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);

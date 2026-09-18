@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)][string]$EnvironmentFile,
     [string]$OutputDirectory = 'C:\dev\frizer-backups'
 )
@@ -28,12 +28,12 @@ $dbName = $Matches[3]
 New-Item -ItemType Directory -Force $OutputDirectory | Out-Null
 $fileName = "frizer-$(Get-Date -Format 'yyyyMMdd-HHmmss').dump"
 
-# 로컬 설치 없이 서버(17)와 맞는 pg_dump를 쓰기 위해 Docker 이미지를 사용한다.
+# 로컬 설치 없이 운영 서버(Neon PostgreSQL 18)와 맞는 pg_dump를 쓰기 위해 Docker 이미지를 사용한다.
 # 비밀번호는 명령행 인자가 아니라 컨테이너 환경변수로만 전달한다.
 $savedPassword = [Environment]::GetEnvironmentVariable('PGPASSWORD', 'Process')
 try {
     $env:PGPASSWORD = $configuration['FRIZER_DB_PASSWORD']
-    docker run --rm -e PGPASSWORD -e PGSSLMODE=require -v "${OutputDirectory}:/backup" postgres:17 `
+    docker run --rm -e PGPASSWORD -e PGSSLMODE=require -v "${OutputDirectory}:/backup" postgres:18 `
         pg_dump -h $dbHost -p $dbPort -U $configuration['FRIZER_DB_USERNAME'] -d $dbName `
         --format=custom --no-owner --no-acl -f "/backup/$fileName"
     if ($LASTEXITCODE -ne 0) { throw '백업에 실패했습니다. 접속 정보와 Docker 실행 상태를 확인해 주세요.' }

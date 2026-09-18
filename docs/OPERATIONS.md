@@ -24,10 +24,10 @@ Render Free는 요청이 없는 동안 절전 상태가 될 수 있어 첫 접�
 | 앱 실행 | Render Docker, Free, Singapore |
 | 자동 배포 | CI 통과 시 master 자동 배포(2026-09-18 전환, `autoDeployTrigger: checksPass`) — GitHub Actions `CI` 워크플로(Java 전체 스위트+bootJar, JS 테스트)가 게이트다. 전환 커밋까지는 수동 배포로 내보내고, 첫 자동 배포 전에 Render 대시보드 Build & Deploy의 Auto-Deploy가 `After CI Checks Pass`인지 확인한다 |
 | 프로필 | `prod,render` |
-| DB | Neon PostgreSQL, 현재 Flyway V18 |
+| DB | Neon PostgreSQL 18, 현재 Flyway V19 (2026-09-18 자동 배포로 적용, 복원 실습에서 확인) |
 | 정상 확인 경로 | `/health` |
 | 사용자 인증 도입 배포 기준 커밋 | `f08d701d9f904d257164d5fe5b079e0034108072` |
-| 최신 배포 커밋 | `e17e44f` — 수량 분리·다건 병합 포함 (2026-09-17 사용자 확인) |
+| 최신 배포 커밋 | `9413d66` — 오등록 물리 삭제(V19)·UI 정비·CI 자동 배포 전환 포함 (2026-09-18 첫 자동 배포) |
 
 2026-09-17 운영 배포에서 Render Live와 V15 성공을 확인했다. 두 계정의 HTTPS 로그인, 홈·재고·히스토리·등록 화면 조회, 로그아웃을 확인했다. 운영 음식 등록·교차 계정 수정의 실데이터 검증, 실제 휴대폰 LTE/5G 접속, 백업 복구 실습은 별도로 남아 있다. 사용자 격리는 배포 전 자동 통합 테스트에 포함했다.
 
@@ -180,13 +180,23 @@ FROM food_item GROUP BY user_id ORDER BY user_id;
 
 음식 데이터가 쌓인 뒤 DB를 변경할 때는 먼저 백업하고 별도 DB에서 복원 가능 여부를 확인한다. Neon의 복구 가능 시점과 보존 기간은 계정 플랜과 설정을 직접 확인한다. 새 브랜치를 만들었다는 사실만으로 독립적인 장기 백업이 확보되었다고 판단하지 않는다. 현재 운영 DB를 대상으로 복원 실습을 하지 않는다.
 
-백업은 아래 명령으로 만든다(2026-09-18 추가). Docker Desktop 실행과 `.env.render`가 필요하고, 로컬에 pg_dump를 설치하는 대신 서버와 버전이 맞는 postgres:17 이미지를 사용한다. 결과는 저장소 밖 `C:\dev\frizer-backups\frizer-날짜시각.dump`(`-Fc` 형식)로 저장되며 읽기 전용 작업이라 운영에 영향이 없다. 비밀번호는 명령행이 아니라 환경변수로만 전달된다.
+백업은 아래 명령으로 만든다(2026-09-18 추가). Docker Desktop 실행과 `.env.render`가 필요하고, 로컬에 pg_dump를 설치하는 대신 운영 서버와 버전이 맞는 postgres:18 이미지를 사용한다(운영 Neon은 PostgreSQL 18, 로컬 개발 compose는 17 — pg_dump가 서버보다 낮으면 거부하므로 운영 서버 버전이 오르면 이미지도 같이 올린다). 결과는 저장소 밖 `C:\dev\frizer-backups\frizer-날짜시각.dump`(`-Fc` 형식)로 저장되며 읽기 전용 작업이라 운영에 영향이 없다. 비밀번호는 명령행이 아니라 환경변수로만 전달된다.
 
 ```powershell
 .\scripts\backup-db.ps1 -EnvironmentFile C:/dev/frizer/.env.render
 ```
 
-복원 검증은 운영과 분리된 빈 DB(예: 로컬 compose Postgres의 새 데이터베이스)에 `pg_restore --no-owner --no-acl`로 수행하고, 음식·항목·이력 건수와 최신 migration을 확인한다. 백업 파일에는 개인 데이터와 계정 해시가 들어 있으므로 공유·커밋하지 않는다.
+복원 검증은 운영과 분리된 빈 DB에 `pg_restore --no-owner --no-acl`로 수행하고, 음식·항목·이력 건수와 최신 migration을 확인한다. 백업 파일에는 개인 데이터와 계정 해시가 들어 있으므로 공유·커밋하지 않는다.
+
+2026-09-18 백업·복구 실습 완료: 운영 백업(`frizer-20260918-215647.dump`)을 임시 postgres:18 컨테이너의 빈 DB에 복원해 app_user 2건, 테이블 13개, Flyway V19 success까지 확인하고 컨테이너를 제거했다. 복원 명령 예시:
+
+```powershell
+docker run -d --name frizer-restore-test -e POSTGRES_PASSWORD=<임시값> -v "C:\dev\frizer-backups:/backup:ro" postgres:18
+docker exec frizer-restore-test createdb -U postgres frizer_restore
+docker exec frizer-restore-test pg_restore --no-owner --no-acl -U postgres -d frizer_restore /backup/<파일명>.dump
+docker exec frizer-restore-test psql -U postgres -d frizer_restore -c "SELECT version, success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1;"
+docker rm -f frizer-restore-test
+```
 
 ## 8. 문제가 생겼을 때
 

@@ -22,7 +22,7 @@ Render Free는 요청이 없는 동안 절전 상태가 될 수 있어 첫 접�
 | 프로젝트 작업 위치 | `C:\dev\frizer` |
 | 배포 브랜치 | `master` |
 | 앱 실행 | Render Docker, Free, Singapore |
-| 자동 배포 | Off — GitHub에 push한 뒤 수동 배포 |
+| 자동 배포 | CI 통과 시 master 자동 배포(2026-09-18 전환, `autoDeployTrigger: checksPass`) — GitHub Actions `CI` 워크플로(Java 전체 스위트+bootJar, JS 테스트)가 게이트다. 전환 커밋까지는 수동 배포로 내보내고, 첫 자동 배포 전에 Render 대시보드 Build & Deploy의 Auto-Deploy가 `After CI Checks Pass`인지 확인한다 |
 | 프로필 | `prod,render` |
 | DB | Neon PostgreSQL, 현재 Flyway V18 |
 | 정상 확인 경로 | `/health` |
@@ -53,6 +53,8 @@ git diff
 
 브랜치가 `master`인지 확인한다. 다른 브랜치나 예상하지 않은 변경이 있으면 먼저 그 내용을 정리한다. `.env`, `.env.render`, 비밀번호, 로그, `build/` 결과물, 임시 파일은 커밋하지 않는다. `.gitignore`만 믿지 말고 커밋 대상 목록을 직접 확인한다.
 
+자동 배포 전환(2026-09-18) 이후 master push = 운영 배포 요청이다. 작업은 기능 단위 브랜치에서 진행하고, master 머지를 배포 승인으로 취급한다. **DB 마이그레이션(V 파일)이 포함된 머지는 실데이터가 쌓인 뒤에는 머지 전에 `pg_dump` 백업을 먼저 만든다** — Flyway는 실패 시 트랜잭션 롤백되지만, 성공했는데 잘못된 마이그레이션은 백업으로만 되돌릴 수 있다. Neon의 시점 복구 보존 기간은 플랜에 따라 다르므로 콘솔에서 직접 확인하고, 복구 수단으로 단독 의존하지 않는다.
+
 ### 3-2. 테스트와 빌드
 
 JDK 21, Node.js, Docker Desktop이 필요하다. Docker Desktop을 실행하고 아래 명령을 순서대로 실행한다. Java를 못 찾으면 `JAVA_HOME`을 설치한 JDK 21 폴더로 지정한다.
@@ -63,7 +65,7 @@ java -version
 node --test src/test/js/*.test.cjs
 ```
 
-명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB를 사용한다. 테스트를 위해 운영 DB 설정을 넣지 않는다. Render의 Docker 빌드는 `bootJar`를 수행하므로 로컬 테스트 통과를 별도로 확인해야 한다.
+명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB를 사용한다. 테스트를 위해 운영 DB 설정을 넣지 않는다. push 후에는 GitHub Actions `CI`가 같은 테스트(Java 전체 스위트+bootJar, JS 테스트)를 다시 돌려 통과한 커밋만 자동 배포된다. 로컬에 Node가 없으면 JS 테스트는 CI 결과로 확인한다.
 
 ### 3-3. 필요한 파일만 커밋·푸시
 
@@ -260,4 +262,4 @@ docker compose up -d --wait
 - 히스토리 하단 세로형 이미지의 카드 아래 여백은 28px, 버튼과 이미지 사이는 20px이다. 재고·개별 구매 빈 카드 및 상단 이미지 배치는 비교 검증에서 유지됐다.
 - 검증 기준(2026-09-18): Java 전체 스위트와 JAR 빌드 통과가 커밋 게이트다. JS 테스트(`node --test src/test/js/*.test.cjs`)는 최근 작업 PC에 Node가 없어 미실행 상태이며, 특히 item-move.test.cjs(대상 선택 개편으로 재작성)와 move-select.test.cjs(신규)는 Node 환경에서 실행 확인이 필요하다. 실기기 확인 대기: 모바일 밀도 축소·병합 대상 선택 개편.
 - 수량 분리와 다건 병합은 구현·운영 배포했다. 오등록 물리 삭제는 [STEP 4](STEP4_REPORT.md)의 남은 작업이고, 통계·관리자 전체 사용자 조회 등은 [STEP 5 계획](STEP5_PLAN.md)의 2차 개발 범위다. 먼저 [앱 개념 문서](APP_CONCEPTS.md), [회귀 검증 범위](TEST_MATRIX.md), [UI 기준](UI_DESIGN.md)을 읽고 다음 작업 범위를 정한다.
-- 작업은 clone한 원본 프로젝트에서 진행한다. 필요한 파일만 커밋하고 사용자에게 메시지를 확인받는다. 운영 반영은 push 후 Render 수동 배포로 별도 수행한다.
+- 작업은 clone한 원본 프로젝트에서 진행한다. 필요한 파일만 커밋하고 사용자에게 메시지를 확인받는다. 운영 반영은 master push 시 CI 통과 후 자동 배포된다(2026-09-18 전환) — 마이그레이션 포함 머지는 3-1절의 백업 원칙을 먼저 따른다.

@@ -100,14 +100,14 @@ class BulkRegistrationIntegrationTest {
         var values=row("",amount,"","");values[2]="";values[3]="";
         var preview=bulk.preview(file(values),owner);
         assertThat(preview.rows().getFirst().errors()).containsExactly(
-                "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.","누락된 필수 정보: 음식명, 단위, 보관 위치");
+                "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야 해.","누락된 필수 정보: 음식명, 단위, 보관 위치");
     }
     @Test void missingAdditionalSelectionDoesNotReportFoodNameAsMissing() throws Exception {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             book.getSheet("추가 등록").getRow(4).getCell(3).setCellValue(-1);
             book.write(out);var preview=bulk.preview(out.toByteArray(),owner);
             assertThat(preview.rows().getFirst().errors()).containsExactly(
-                    "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.",
+                    "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야 해.",
                     "기존 음식명 선택 드롭다운에서 음식을 선택해줘.","누락된 필수 정보: 단위, 보관 위치");
         }
     }

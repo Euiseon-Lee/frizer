@@ -73,7 +73,7 @@ public class BulkWorkbook {
                         if(!q.matches("[0-9]{1,9}(\\.[0-9]{1,2})?")) throw new IllegalArgumentException();
                         quantity=new BigDecimal(q);
                         if (quantity.signum() <= 0) throw new IllegalArgumentException();
-                    } catch(IllegalArgumentException e) {quantity=null;errors.add(INVALID,"quantityAmount","수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야해.");}
+                    } catch(IllegalArgumentException e) {quantity=null;errors.add(INVALID,"quantityAmount","수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야 해.");}
                     if(adding) {
                         try {
                             var selected=java.util.regex.Pattern.compile("(?s)^.+ \\[#([0-9]+)\\]$").matcher(values.get(5));
@@ -87,7 +87,7 @@ public class BulkWorkbook {
                         } else if(master!=null && number!=null && !text(number).isBlank() && !master.toString().equals(text(number))) errors.add(CONDITION,"automaticId","자동 번호가 선택한 음식과 달라. 기존 음식을 다시 선택해줘.");
                         var category=row.getCell(2);
                         if(category!=null && category.getCellType()==CellType.FORMULA) {
-                            if(!lookupFormula(i+1,3).equals(category.getCellFormula())) errors.add(INVALID,"category","자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야해.");
+                            if(!lookupFormula(i+1,3).equals(category.getCellFormula())) errors.add(INVALID,"category","자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야 해.");
                         } else if(category!=null) {
                             if(category.getCellType()==CellType.ERROR || category.getCellType()==CellType.BOOLEAN) errors.add(INVALID,"category","분류: 자동 입력 양식을 사용해줘.");
                             values.set(9,text(category));

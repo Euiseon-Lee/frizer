@@ -77,7 +77,7 @@ class Step3ScenarioIntegrationTest {
     static Stream<Arguments> lengths() {
         return Stream.of("new", "existing").flatMap(mode -> Stream.of(
                 new Object[]{"foodName",100}, new Object[]{"category",50}, new Object[]{"memo",500},
-                new Object[]{"capacityText",50}, new Object[]{"sourceMemo",200}, new Object[]{"quantityUnit",10})
+                new Object[]{"capacityText",50}, new Object[]{"sourceMemo",200}, new Object[]{"quantityUnit",4})
             .flatMap(field -> Stream.of(-1,0,1).map(delta -> Arguments.of(mode,field[0],(int)field[1]+delta,delta <= 0))));
     }
     @ParameterizedTest @MethodSource("lengths")
@@ -203,7 +203,7 @@ class Step3ScenarioIntegrationTest {
     @Test void mixedUnitsLocationsTerminalStatesAndLegacyQuantitiesSurviveMerge() {
         long a=food("A"),b=food("B");
         for(StorageType storage:StorageType.values()) {
-            var f=new FoodCreateForm("A",storage,null,new BigDecimal("0.5"),null,null,null,null,null,null,false,null,null,null,null,storage.name());
+            var f=new FoodCreateForm("A",storage,null,new BigDecimal("0.5"),null,null,null,null,null,null,false,null,null,null,null,storage.name().substring(0,4));
             inventory.create(f,a,dao.find(a).versionNo());
         }
         var original=masters.items(a);

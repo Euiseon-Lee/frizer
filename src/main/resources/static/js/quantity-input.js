@@ -20,3 +20,20 @@ quantityInput.addEventListener('blur', () => {
     if (quantityInput.value.endsWith('.')) quantityInput.value = quantityInput.value.slice(0, -1);
     previousQuantity = quantityInput.value;
 });
+
+// Cap the unit at 4 characters. The maxlength attribute truncates while an IME
+// is still composing and leaves broken jamo behind, so with JS available the
+// attribute comes off and the cap is applied only once composition settles.
+const unitInput = document.getElementById('quantityUnit');
+if (unitInput) {
+    unitInput.removeAttribute('maxlength');
+    const capUnit = () => {
+        const chars = [...unitInput.value];
+        if (chars.length > 4) {
+            unitInput.value = chars.slice(0, 4).join('');
+            unitInput.setSelectionRange(unitInput.value.length, unitInput.value.length);
+        }
+    };
+    unitInput.addEventListener('input', event => { if (!event.isComposing) capUnit(); });
+    unitInput.addEventListener('compositionend', capUnit);
+}

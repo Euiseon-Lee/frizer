@@ -32,7 +32,7 @@ public record FoodCreateForm(
         @Size(max = 200, message = "출처 메모는 200자 이내로 입력해 주세요.") String sourceMemo,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sellByAt,
         @NotBlank(message = "단위를 입력해 주세요.")
-        @Size(max = 10, message = "단위는 10자 이내로 입력해 주세요.") String quantityUnit) {
+        @Size(max = 4, message = "단위는 4자 이내로 입력해 주세요.") String quantityUnit) {
     public FoodCreateForm {
         if (quantityUnit != null) quantityUnit = quantityUnit.strip();
     }

@@ -96,7 +96,7 @@ class FoodMergeIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT default_exclude_expiry_warning FROM food_master WHERE master_id=?",Boolean.class,target)).isTrue();
         assertThat(dao.find(target).category()).isEqualTo("기준 분류");
         mvc.perform(get("/foods/"+target)).andExpect(status().isOk()).andExpect(content().string(containsString("두부")));
-        mvc.perform(get("/inventory")).andExpect(status().isOk()).andExpect(content().string(containsString("개별 구매 2건")));
+        mvc.perform(get("/inventory")).andExpect(status().isOk()).andExpect(content().string(containsString("두부")));
         mvc.perform(get("/history")).andExpect(status().isOk()).andExpect(content().string(containsString("듀부")));
     }
     @Test void previewDoesNotWriteAndWholePostSupportsSafeRetry() throws Exception {

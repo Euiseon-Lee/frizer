@@ -80,7 +80,7 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 @media(max-width:360px){.recent-history .history-row{gap:6px;grid-template-columns:auto minmax(0,1fr) minmax(0,58px) auto}.recent-history .history-row time{font-size:10px}}
 /* The whole inventory card is a link; dates sit beside the food summary. */
 .food-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;padding:14px;color:var(--ink);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
-.food-card .food-summary{min-width:0}.food-card .card-top{justify-content:flex-start;flex-wrap:wrap;gap:5px 8px;min-height:26px}.food-card .card-top .storage-tag{white-space:nowrap}.food-card h3{margin:5px 0 3px;font-size:15px;line-height:1.4;overflow-wrap:anywhere}.food-card .food-title:hover{text-decoration:none}.food-card .quantity{margin:0}
+.food-card .food-summary{min-width:0}.food-card .card-top{justify-content:flex-start;flex-wrap:wrap;gap:5px 8px;min-height:26px}.food-card .card-top .storage-tag{white-space:nowrap}.food-card h3{margin:5px 0 3px;font-size:13px;line-height:1.4;overflow-wrap:anywhere}.food-card .food-title:hover{text-decoration:none}.food-card .quantity{margin:0}
 @media(hover:hover){.food-card:hover{background:var(--subtle-hover-bg);border-color:var(--ink)}}
 .food-card:focus-visible{background:var(--subtle-hover-bg);outline:2px solid var(--ink);outline-offset:3px}.food-card:active{background:#f0e9ff}
 @media(prefers-reduced-motion:reduce){.food-card{transition:none}}

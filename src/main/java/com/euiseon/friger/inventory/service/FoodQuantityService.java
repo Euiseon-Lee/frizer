@@ -36,6 +36,13 @@ public class FoodQuantityService {
         return quantities.endedSummaries(masterId).stream().collect(java.util.stream.Collectors.toMap(
                 FoodQuantityDao.EndedSummary::foodId, summary -> summary));
     }
+    @Transactional(readOnly=true)
+    public Map<Long, String> endedRegistrationQuantities() {
+        Map<Long, String> result = new HashMap<>();
+        for (var row : quantities.endedRegistrationQuantities())
+            if (row.registrationQuantity() != null) result.put(row.foodId(), row.registrationQuantity());
+        return result;
+    }
     private boolean canCancel(FoodItem item,FoodQuantityDao.State state,FoodQuantityDao.Event event) {
         return item.quantityAmount()!=null && event!=null && !event.reversed()
             && state.stockRevision()==event.afterStockRevision()

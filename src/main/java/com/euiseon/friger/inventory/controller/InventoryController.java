@@ -71,6 +71,7 @@ public class InventoryController {
         model.addAttribute("totalCount", allGroups.stream().mapToInt(group -> group.items().size()).sum());
         model.addAttribute("groupTotals", allGroups.stream().collect(java.util.stream.Collectors.toMap(
                 group -> group.master().masterId(), group -> group.items().size())));
+        if (ended) model.addAttribute("registrationQuantities", quantities.endedRegistrationQuantities());
         model.addAttribute("groups", groups);
         return "inventory/list";
     }

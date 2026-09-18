@@ -104,7 +104,10 @@
         submit.disabled = true;
         submit.textContent = '등록하는 중…';
     });
-    window.addEventListener('pageshow', () => {
+    window.addEventListener('pageshow', event => {
+        // A BFCache return revives the typed draft; reload for a fresh form like the
+        // confirmation screens do (quantity, move).
+        if (event.persisted) { window.location.reload(); return; }
         submitting = false;
         // Browsers can restore form values after script initialization without input events.
         if (mode() === 'new') {

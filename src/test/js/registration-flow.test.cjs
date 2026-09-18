@@ -90,10 +90,14 @@ test('registration: first submission locks button, repeated submit is blocked an
   e.form.emit('submit',event);assert.equal(prevented,0);assert.equal(e.ids.registrationSubmit.disabled,true);
   assert.equal(e.ids.registrationSubmit.textContent,'등록하는 중…');assert.equal(e.ids.foodName.disabled,false);
   e.form.emit('submit',event);assert.equal(prevented,1);
+  // 일반 pageshow(첫 로드·검증 재표시)는 복원된 초안을 받아들이고 다시 제출할 수 있다.
   e.ids.foodName.value='브라우저 복원 이름';e.ids.category.value='브라우저 복원 분류';
-  e.window.emit('pageshow',{persisted:true});assert.equal(e.ids.registrationSubmit.disabled,false);
+  e.window.emit('pageshow',{persisted:false});assert.equal(e.ids.registrationSubmit.disabled,false);
   assert.equal(e.ids.foodName.value,'브라우저 복원 이름');assert.equal(e.ids.category.value,'브라우저 복원 분류');
   e.form.emit('submit',event);assert.equal(prevented,1);
+  // BFCache 복귀(persisted)는 남은 초안을 버리고 새 폼을 위해 리로드한다.
+  let reloaded=false;e.window.location={reload(){reloaded=true}};
+  e.window.emit('pageshow',{persisted:true});assert.equal(reloaded,true);
 });
 test('registration: existing purchase Enter without selection is blocked, selected identity is submitted',()=>{
   const e=registration();e.mode('existing');let prevented=0;const event={preventDefault(){prevented++}};

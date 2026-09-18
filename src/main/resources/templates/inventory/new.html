@@ -33,7 +33,7 @@
         <input th:if="${editId != null}" type="hidden" name="expectedUpdatedAt" th:value="${expectedUpdatedAt}">
         <th:block th:if="${editId != null}"><input th:if="${selectedStorage != null}" type="hidden" name="storage" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}"></th:block>
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
-            <p class="help section-help" th:if="${editId != null}"><span class="help-warning">음식명과 분류를 수정하면 다른 개별 구매 항목에 함께 적용돼.</span><br>수량·날짜·메모는 이 항목에만 적용돼.</p>
+            <p class="help section-help" th:if="${editId != null}"><span class="help-warning">음식명과 분류를 수정하면 다른 항목도 같이 수정돼.</span><br>수량·날짜·메모는 이 항목에만 적용돼.</p>
             <div class="field" id="foodNameField" th:hidden="${registrationMode == 'existing'}"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" th:classappend="${editId != null ? 'shared-edit-input' : ''}" th:disabled="${registrationMode == 'existing'}" th:readonly="${registrationMode == 'existing'}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('foodName')},aria-describedby=${#fields.hasErrors('foodName') ? 'foodName-error' : null}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off"><p class="field-error" id="foodName-error" th:errors="*{foodName}"></p></div>
             <div class="field-row">
                 <div class="field">
@@ -41,7 +41,7 @@
                         <div><label for="quantityAmount">수량 <span class="required">필수</span></label><input type="text" inputmode="decimal" th:field="*{quantityAmount}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('quantityAmount')},aria-describedby=${#fields.hasErrors('quantityAmount') ? 'quantityHelp quantityAmount-error' : 'quantityHelp'}" placeholder="예: 2, 0.5" pattern="[0-9]+([.][0-9]{1,2})?" required aria-describedby="quantityHelp"><p class="field-error" id="quantityAmount-error" th:errors="*{quantityAmount}"></p></div>
                         <div><label for="quantityUnit">단위 <span class="required">필수</span></label><input th:field="*{quantityUnit}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('quantityUnit')},aria-describedby=${#fields.hasErrors('quantityUnit') ? 'quantityUnit-error' : null}" placeholder="예: 개, 팩, 봉지, g" maxlength="4" required><p class="field-error" id="quantityUnit-error" th:errors="*{quantityUnit}"></p></div>
                     </div>
-                    <p class="help" th:if="${legacyQuantity != null}" th:text="${'기존 수량: ' + legacyQuantity + ' · 숫자와 단위로 나눠서 확인해줘.'}"></p><p class="help" id="quantityHelp">반 봉지가 남았다면 수량은 0.5, 단위는 봉지로 적으면 돼.<span class="quantity-purchase-help" th:if="${editId != null}">잔량이 수정되니, 새로 구매했다면 ‘추가 등록’을 이용해줘.</span></p>
+                    <p class="help" th:if="${legacyQuantity != null}" th:text="${'기존 수량: ' + legacyQuantity + ' · 숫자와 단위로 나눠서 확인해줘.'}"></p><p class="help" id="quantityHelp"><th:block th:if="${editId == null}">반 봉지가 남았다면 수량은 0.5, 단위는 봉지로 적으면 돼.</th:block><span class="quantity-purchase-help" th:if="${editId != null}">잔량이 수정되니, 새로 구매했다면 ‘추가 등록’을 이용해줘.</span></p>
                 </div>
                 <div class="field"><label for="capacityText">용량 <span class="optional">선택</span></label><input th:field="*{capacityText}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('capacityText')},aria-describedby=${#fields.hasErrors('capacityText') ? 'capacityText-error' : null}" placeholder="예: 200g, 300mL" maxlength="50"><p class="field-error" id="capacityText-error" th:errors="*{capacityText}"></p><p class="help">포장에 적힌 용량이나 대략적인 양을 적어주면 더 좋아!</p></div>
             </div>
@@ -56,12 +56,11 @@
                     <legend>우리 집 냉동실에 넣은 날</legend>
                     <div id="frozenDateField"><label class="sr-only" for="frozenAt">우리 집 냉동실에 넣은 날</label><input type="date" th:field="*{frozenAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('frozenAt')},aria-describedby=${#fields.hasErrors('frozenAt') ? 'frozenAt-error' : null}" th:max="${today}"><p class="field-error" id="frozenAt-error" th:errors="*{frozenAt}"></p></div>
                     <label class="check-label today-checkbox"><input type="checkbox" th:field="*{freezeToday}"> 오늘 넣었어</label>
-                    <p class="help">언제 넣었는지 모르면 비워둬도 괜찮아. ‘냉동일 미상’으로 남겨둘게.</p>
                 </fieldset>
             </div>
         </section>
         <section class="form-section"><div class="section-label"><span>03</span><h2>포장에 날짜가 적혀 있어?</h2></div>
-            <p class="help section-help">포장에 적힌 항목에 맞춰 날짜를 입력해줘.<br>둘 다 적혀 있으면 각각 입력하고, 모르면 비워둬도 괜찮아.</p>
+            <p class="help section-help">포장에 적힌 항목에 맞춰 날짜를 입력해줘.</p>
             <div class="field-row date-field-row">
                 <div class="field"><label for="sellByAt">유통기한 <span class="optional">선택</span></label><input type="date" th:field="*{sellByAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sellByAt')},aria-describedby=${#fields.hasErrors('sellByAt') ? 'sellByAt-error' : null}"><p class="field-error" id="sellByAt-error" th:errors="*{sellByAt}"></p></div>
                 <div class="field"><label for="expiredAt">소비기한 <span class="optional">선택</span></label><input type="date" th:field="*{expiredAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('expiredAt')},aria-describedby=${#fields.hasErrors('expiredAt') ? 'expiredAt-error' : null}"><p class="field-error" id="expiredAt-error" th:errors="*{expiredAt}"></p></div>

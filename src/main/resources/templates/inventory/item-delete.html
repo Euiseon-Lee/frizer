@@ -14,8 +14,9 @@
 <section class="merge-preview"><h2>이렇게 삭제할 거야</h2>
 <div class="merge-preview-card">
 <dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>음식 이력 총 건수</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
+</div>
 <p class="merge-caution move-keep-note">삭제한 항목은 기록 및 통계에서 사라져.</p>
-<p class="merge-caution">이 작업은 취소할 수 없어.</p></div>
+<p class="merge-caution">이 작업은 취소할 수 없어.</p>
 <form method="post" th:action="@{/foods/{id}/delete(id=${master.masterId()})}">
 <label class="check-label" th:if="${whole}"><input type="checkbox" name="deleteMaster" value="true"><span>음식 ‘<span th:text="${master.foodName()}"></span>’ 그룹도 함께 삭제할게</span></label>
 <input type="hidden" name="sourceId" th:value="${master.masterId()}"><input type="hidden" name="sourceVersion" th:value="${master.versionNo()}">

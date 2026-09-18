@@ -6,6 +6,7 @@ function element(value='') {
   return {value, hidden:false, disabled:false, checked:false, readOnly:false, textContent:'', dataset:{}, listeners:{},
     addEventListener(type,fn){(this.listeners[type]??=[]).push(fn)},
     emit(type,event={}){for(const fn of this.listeners[type]??[]) fn(event)},
+    removeAttribute(name){(this.removed??=[]).push(name)},
     focus(){this.focused=true}, closest(){return this.field??=(element())},
     setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b}};
 }
@@ -131,11 +132,23 @@ test('form: freeze-today uses server date; manual date clears checkbox; first in
 for(const [typed,afterInput,afterBlur] of [['1.239','1.23','1.23'],['.5','.5','0.5'],['2.','2.','2'],['','',''],['0','0','0'],
   ['-1','2','2'],['NaN','2','2'],['1e3','2','2'],['1,2','2','2'],['한글','2','2'],['1.2.3','2','2']]) {
   test(`quantity input: ${JSON.stringify(typed)} preserves decimal input contract`,()=>{
-    const input=element('2');run('quantity-input',{getElementById:()=>input});
+    const input=element('2'),unit=element('개');
+    run('quantity-input',{getElementById:id=>id==='quantityUnit'?unit:input});
     input.value=typed;input.selectionStart=typed.length;input.emit('input');assert.equal(input.value,afterInput);
     input.emit('blur');assert.equal(input.value,afterBlur);
   });
 }
+test('quantity unit: 4-char cap replaces maxlength and waits for IME composition',()=>{
+  const amount=element('2'),unit=element('');
+  run('quantity-input',{getElementById:id=>id==='quantityUnit'?unit:amount});
+  // maxlength truncates mid-composition, so the script must take over the cap.
+  assert.deepEqual(unit.removed,['maxlength']);
+  unit.value='조각조각';unit.emit('input');assert.equal(unit.value,'조각조각');
+  unit.value='조각조각들';unit.emit('input');assert.equal(unit.value,'조각조각');
+  assert.equal(unit.selectionStart,4);
+  unit.value='조각조각들';unit.emit('input',{isComposing:true});assert.equal(unit.value,'조각조각들');
+  unit.emit('compositionend');assert.equal(unit.value,'조각조각');
+});
 
 test('registration: bulk panel is exclusive and preserves the single-item draft',()=>{
   const e=registration();e.ids.foodName.value='내 두부';e.ids.foodName.emit('input');

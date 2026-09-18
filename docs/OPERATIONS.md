@@ -65,7 +65,7 @@ java -version
 node --test src/test/js/*.test.cjs
 ```
 
-명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB를 사용한다. 테스트를 위해 운영 DB 설정을 넣지 않는다. push 후에는 GitHub Actions `CI`가 같은 테스트(Java 전체 스위트+bootJar, JS 테스트)를 다시 돌려 통과한 커밋만 자동 배포된다. 로컬에 Node가 없으면 JS 테스트는 CI 결과로 확인한다.
+명령이 실패하면 배포하지 말고 오류를 수정한다. Java 테스트는 Testcontainers의 독립 DB를 사용한다. 테스트를 위해 운영 DB 설정을 넣지 않는다. push 후에는 GitHub Actions `CI`가 같은 테스트(Java 전체 스위트+bootJar, JS 테스트)를 다시 돌려 통과한 커밋만 자동 배포된다. 로컬에 Node가 없으면 Docker로 실행한다: `docker run --rm -v "C:\dev\frizer:/app" -w /app node:22-alpine sh -c 'node --test src/test/js/*.test.cjs'`
 
 ### 3-3. 필요한 파일만 커밋·푸시
 

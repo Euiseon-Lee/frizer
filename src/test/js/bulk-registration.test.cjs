@@ -3,11 +3,14 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 function screen({secure=false}={}) {
- const make=()=>({listeners:{},textContent:'',hidden:false,disabled:false,addEventListener(n,f){this.listeners[n]=f},setAttribute(){},removeAttribute(){}});
+ const make=()=>({listeners:{},textContent:'',hidden:false,disabled:false,addEventListener(n,f){this.listeners[n]=f},setAttribute(){},removeAttribute(){},classList:{classes:new Set(),add(c){this.classes.add(c)},remove(c){this.classes.delete(c)}}});
  const input=make();input.files=[];input.setCustomValidity=v=>input.validity=v;
  const upload=make();upload.action='/inventory/bulk/preview';upload.reportValidity=()=>!input.validity;
  const submit=make(),token={value:'old'},message=make(),results=make(),complete=make(),help=make();
- let preview,redirect;
+ const download=make();download.href='/inventory/bulk/template';download.textContent='엑셀 양식 받기';
+ const link=make();link.click=()=>{link.clicked=true};link.remove=()=>{link.removed=true};
+ let preview,redirect,reloaded=false;
+ const window={listeners:{},addEventListener(n,f){this.listeners[n]=f},location:{assign(url){redirect=url},reload(){reloaded=true}}};
  const csrf={value:'masked-csrf-token'};
  const nodes={bulkFile:input,bulkUploadMessage:message,bulkResults:results,bulkComplete:complete,bulkCompletionHelp:help};
  upload.querySelector=s=>s.includes('_csrf')?(secure?csrf:null):s.includes('button')?submit:token;
@@ -16,11 +19,11 @@ function screen({secure=false}={}) {
  const page={childNodes:['new-preview'],token:'new',error:'',valid:true,duplicate:false};
  class Parser{parseFromString(){return {getElementById:id=>id==='bulkResults'?page:id==='bulkUploadMessage'?{textContent:page.error}:null,querySelector:()=>({value:page.token})};}}
  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/bulk-registration.js','utf8'),{
-  document:{getElementById:id=>id==='bulkPreview'?preview:nodes[id],querySelector:()=>upload},
+  document:{getElementById:id=>id==='bulkPreview'?preview:nodes[id],querySelector:s=>s.includes('bulk-template-download')?download:upload,createElement:()=>link,body:{append(){}}},
   fetch:(url,options)=>new Promise((resolve,reject)=>pending.push({url,options,resolve,reject})),FormData:class{},AbortController,DOMParser:Parser,
-  URL,window:{location:{assign(url){redirect=url}}}
+  URL,window
  });
- return {input,upload,submit,token,message,results,complete,help,pending,page,nodes,get redirect(){return redirect},get preview(){return preview},change(){return input.listeners.change()},send(){let prevented=false;const done=upload.listeners.submit({preventDefault(){prevented=true}});assert.ok(prevented);return done;},ok(i=0){pending[i].resolve({ok:true,text:async()=>'<html>'})}};
+ return {input,upload,submit,token,message,results,complete,help,pending,page,nodes,download,link,window,get redirect(){return redirect},get reloaded(){return reloaded},get preview(){return preview},change(){return input.listeners.change()},send(){let prevented=false;const done=upload.listeners.submit({preventDefault(){prevented=true}});assert.ok(prevented);return done;},ok(i=0){pending[i].resolve({ok:true,text:async()=>'<html>'})},template(){let prevented=false;const done=download.listeners.click({preventDefault(){prevented=true}});assert.ok(prevented);return done;}};
 }
 test('secure multipart upload carries rendered CSRF token in header',async()=>{
  const s=screen({secure:true});s.input.files=[{}];const done=s.change();
@@ -67,6 +70,27 @@ test('clearing a file hides previous preview and blocks an in-flight result',asy
  s.page.childNodes=['stale'];s.ok(1);await next;assert.deepEqual(s.results.children,['new-preview']);assert.equal(s.preview.hidden,true);
 });
 
+test('template download locks the button until the file arrives',async()=>{
+ const s=screen();const first=s.template();
+ assert.equal(s.pending.length,1);assert.equal(s.download.textContent,'양식을 준비하고 있어…');
+ await s.template();assert.equal(s.pending.length,1);
+ s.pending[0].resolve({ok:true,blob:async()=>new Blob(['x'])});await first;
+ assert.equal(s.link.clicked,true);assert.equal(s.link.download,'frizer-bulk-template.xlsx');assert.equal(s.link.removed,true);
+ assert.equal(s.download.textContent,'엑셀 양식 받기');
+});
+test('template download failure explains and restores the button for a retry',async()=>{
+ const s=screen();const done=s.template();
+ s.pending[0].reject(new Error('offline'));await done;
+ assert.match(s.message.textContent,/양식을 내려받지 못했어/);assert.equal(s.download.textContent,'엑셀 양식 받기');
+ const retry=s.template();assert.equal(s.pending.length,2);
+ s.pending[1].resolve({ok:true,blob:async()=>new Blob(['x'])});await retry;
+});
+test('template download follows an expired login to the login page',async()=>{
+ const s=screen();const done=s.template();
+ s.pending[0].resolve({ok:true,redirected:true,url:'https://frizer.example/login'});await done;
+ assert.equal(s.redirect,'https://frizer.example/login');
+});
+
 test('duplicate confirmation controls commit and cannot revive an invalidated preview',async()=>{
  const s=screen();s.page.duplicate=true;s.input.files=[{}];const done=s.change();s.ok();await done;
  assert.equal(s.complete.disabled,true);
@@ -76,4 +100,10 @@ test('duplicate confirmation controls commit and cannot revive an invalidated pr
 });
 test('nonduplicate preview enables commit without a confirmation checkbox',async()=>{
  const s=screen();s.input.files=[{}];const done=s.change();s.ok();await done;assert.equal(s.complete.disabled,false);
+});
+test('preview wait message carries the spinner class and BFCache return reloads',async()=>{
+ const s=screen();s.input.files=[{}];const done=s.change();
+ assert.match(s.message.className,/busy-indicator/);
+ s.ok();await done;assert.doesNotMatch(s.message.className,/busy-indicator/);
+ s.window.listeners.pageshow({persisted:true});assert.equal(s.reloaded,true);
 });

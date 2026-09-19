@@ -23,5 +23,6 @@
 <input type="hidden" name="ended" th:value="${ended}"><input type="hidden" name="requestId" th:value="${requestId}">
 <th:block th:each="item : ${items}"><input type="hidden" name="itemIds" th:value="${item.foodId()}"><input type="hidden" name="itemVersions" th:value="${versions[item.foodId()]}"></th:block>
 <button class="button merge-submit action-delete" type="submit">확인했어, 지울게</button></form></section>
-<div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/foods/{id}(id=${master.masterId()},ended=${ended ? true : null})}">돌아가기</a></div>
+<div class="form-actions"><a class="cancel-link purchase-back-link" th:if="${backItemId != null}" th:href="@{/inventory/{id}(id=${backItemId},ended=${ended ? true : null})}">돌아가기</a>
+<a class="cancel-link purchase-back-link" th:if="${backItemId == null}" th:href="@{/foods/{id}(id=${master.masterId()},ended=${ended ? true : null})}">돌아가기</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

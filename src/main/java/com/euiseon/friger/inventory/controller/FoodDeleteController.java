@@ -1,7 +1,9 @@
 package com.euiseon.friger.inventory.controller;
 
 import java.util.*;
+import com.euiseon.friger.common.type.FoodStatus;
 import com.euiseon.friger.inventory.service.FoodDeleteService;
+import com.euiseon.friger.inventory.service.FoodMasterService;
 import com.euiseon.friger.inventory.exception.InvalidFoodException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,7 +14,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/foods/{id}/delete")
 public class FoodDeleteController {
     private final FoodDeleteService deletes;
-    public FoodDeleteController(FoodDeleteService deletes) {this.deletes=deletes;}
+    private final FoodMasterService masters;
+    public FoodDeleteController(FoodDeleteService deletes,FoodMasterService masters) {this.deletes=deletes;this.masters=masters;}
     @GetMapping
     String page(@PathVariable long id,@RequestParam(required=false) List<Long> items,
                 @RequestParam(defaultValue="false") boolean ended,Model model,RedirectAttributes redirect) {
@@ -29,6 +32,11 @@ public class FoodDeleteController {
         model.addAttribute("historyCount",selection.historyCount());
         model.addAttribute("requestId",UUID.randomUUID());
         model.addAttribute("ended",ended);
+        // Entered from a collapsed (single-item) detail: 돌아가기 returns to that item,
+        // because the middle list was never on the user's path.
+        model.addAttribute("backItemId",selection.items().size()==1 && masters.items(id).stream()
+                .filter(item->(item.status()==FoodStatus.DEPLETED)==ended).count()==1
+                ? selection.items().getFirst().foodId() : null);
         return "inventory/item-delete";
     }
     @PostMapping

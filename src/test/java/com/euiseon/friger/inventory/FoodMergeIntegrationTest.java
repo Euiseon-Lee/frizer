@@ -75,7 +75,8 @@ class FoodMergeIntegrationTest {
         mvc.perform(get("/foods/"+source+"/move")).andExpect(redirectedUrl("/foods/"+source));
         mvc.perform(get("/foods/"+source+"/move").param("items",""+item)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("이 경우 병합 시 기존 음식은 사라져.")))
-                .andExpect(content().string(containsString("class=\"cancel-link purchase-back-link\" href=\"/foods/"+source)));
+                // 항목 1개짜리 그룹은 상세에서 진입하므로 돌아가기도 항목 상세로 간다.
+                .andExpect(content().string(containsString("class=\"cancel-link purchase-back-link\" href=\"/inventory/"+item)));
     }
     @Test void mergePreservesItemsHistoryAndTargetDefaults() throws Exception {
         long source=create("듀부","모","FRIDGE"),target=create("두부","g","ROOM");

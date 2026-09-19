@@ -1071,6 +1071,11 @@ class InventoryIntegrationTest {
                 .andExpect(content().string(containsString(">추가 등록할래?</a>")))
                 .andExpect(content().string(containsString("전체 목록으로")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("개별 목록으로"))));
+        // 접힌 그룹에서 진입한 병합·삭제 확인 화면의 돌아가기는 항목 상세로 복귀한다.
+        mvc.perform(get("/foods/" + master + "/move").param("items", "" + item)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("purchase-back-link\" href=\"/inventory/" + item)));
+        mvc.perform(get("/foods/" + master + "/delete").param("items", "" + item)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("purchase-back-link\" href=\"/inventory/" + item)));
         // 항목이 2개가 되면 접기가 풀리고 기존 층위로 돌아간다.
         mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("registrationMode", "existing")
                 .param("masterId", "" + master).param("masterVersion", "0")
@@ -1081,5 +1086,8 @@ class InventoryIntegrationTest {
         mvc.perform(get("/inventory/" + item)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("개별 목록으로")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("다른 음식하고 합치자"))));
+        // 항목이 2개면 목록에서 진입하므로 돌아가기도 개별 목록으로 간다.
+        mvc.perform(get("/foods/" + master + "/move").param("items", "" + item)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("purchase-back-link\" href=\"/foods/" + master)));
     }
 }

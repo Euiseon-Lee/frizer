@@ -33,6 +33,10 @@ public class ItemMoveController {
         model.addAttribute("activeCount",selection.activeCount());
         model.addAttribute("requestId",UUID.randomUUID());
         model.addAttribute("ended",ended);
+        // Entered from a collapsed (single-item) detail: 돌아가기 returns to that item,
+        // because the middle list was never on the user's path.
+        model.addAttribute("backItemId",(ended?selection.endedCount():selection.activeCount())==1
+                && selection.items().size()==1 ? selection.items().getFirst().foodId() : null);
         model.addAttribute("itemsParam",String.join(",",selection.items().stream()
                 .map(item->String.valueOf(item.foodId())).toList()));
         // The whole target list ships with the page; the browser filters it locally.

@@ -38,6 +38,10 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
   --history-cancel-fg: #626775;
   --history-split-bg: #F1EEFA;
   --history-split-fg: #5C5085;
+  /* Physical delete never appears in history; its button gets a cool gray of its own
+     so it reads apart from 버렸어 (and from 나누자's purple) on the collapsed detail. */
+  --delete-button-bg: #ECEEF4;
+  --delete-button-fg: #4A5468;
 }
 .history-badge { background: var(--badge-bg, #EEF0F3); color: var(--badge-fg, #505C6B); }
 .history-badge[data-event="CREATE"] { --badge-bg: var(--history-create-bg); --badge-fg: var(--history-create-fg); }
@@ -174,6 +178,10 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .purchase-primary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
 .purchase-primary-actions>.button{min-width:0;padding-inline:10px;text-align:center;word-break:keep-all}
 .purchase-back-link{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px}
+/* Splits the item actions from the group actions on a collapsed (single-item) detail. */
+.detail-action-divider{border-top:1px solid var(--line);margin:14px 0 4px}
+.food-name-filter{margin:0 0 14px}
+.food-filter-empty{margin:0 0 14px;padding:0 8px}
 .form-actions:has(>.purchase-back-link){padding-block:0}
 .inventory-bar h2{display:flex;align-items:center;gap:calc(5px + .25em)}.inventory-bar h2 .count{margin-left:0;font-size:calc(12px + 1pt)}
 
@@ -382,7 +390,7 @@ label.merge-target-heading{font-size:18px;font-weight:700;margin:0 0 20px}
 .button.quantity-discard{--action-button-bg:var(--history-discard-bg);--action-button-fg:var(--history-discard-fg)}
 .button.action-move{--action-button-bg:var(--history-move-bg);--action-button-fg:var(--history-move-fg)}
 .button.action-split{--action-button-bg:var(--history-split-bg);--action-button-fg:var(--history-split-fg)}
-.button.action-delete{--action-button-bg:var(--history-discard-bg);--action-button-fg:var(--history-discard-fg)}
+.button.action-delete{--action-button-bg:var(--delete-button-bg);--action-button-fg:var(--delete-button-fg)}
 .button.action-cancel{--action-button-bg:var(--subtle-hover-bg);--action-button-fg:var(--ink);--action-button-border:var(--history-cancel-fg)}
 .button:is(.action-create,.action-update,.quantity-consume,.quantity-discard,.action-move,.action-split,.action-delete,.action-cancel){background:var(--action-button-bg);color:var(--action-button-fg);border:1px solid var(--action-button-border,var(--action-button-fg));transition:filter .15s ease}
 .button:is(.action-create,.action-update,.quantity-consume,.quantity-discard,.action-move,.action-split,.action-delete):not(:disabled):is(:hover,:active){background:var(--action-button-bg);color:var(--action-button-fg);border-color:var(--action-button-fg);filter:brightness(var(--button-hover-brightness))}

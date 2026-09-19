@@ -293,13 +293,13 @@ class FoodQuantityIntegrationTest {
     @Test void cancelledProcessingRemainsInQuantityTimelineWithoutCancelButton() throws Exception {
         long id=create(),event=finish(id);
         mvc.perform(get("/foods/"+masters.masterId(id)).param("ended","true")).andExpect(status().isOk())
-            .andExpect(content().string(containsString("다른 음식으로 병합")))
+            .andExpect(content().string(containsString("다른 음식하고 합치자")))
             .andExpect(content().string(org.hamcrest.Matchers.not(containsString("추가 등록"))))
             .andExpect(content().string(containsString("전체 목록으로")));
         cancel(id,event);
         mvc.perform(get("/foods/"+masters.masterId(id))).andExpect(status().isOk())
             .andExpect(content().string(containsString("추가 등록")))
-            .andExpect(content().string(containsString("다른 음식으로 병합")));
+            .andExpect(content().string(containsString("다른 음식하고 합치자")));
         assertThat(quantities.history(id)).hasSize(3);
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
             .andExpect(htmlCount("class=\"consumption-history-list\"",1))

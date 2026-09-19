@@ -4,7 +4,7 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FR!ZER | 뭐 있지?</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/notices.js}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/food-filter.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page">
@@ -16,8 +16,10 @@
     <section class="empty-state" th:if="${foods.isEmpty()}">
         <img class="choco" width="120" height="130" alt="" data-choco-region="list-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"><h2 th:text="${ended ? '보관 종료된 음식이 없어' : (totalCount == 0 ? '보관 중인 음식이 없어' : (warningOnly ? '이 조건에 맞는 음식이 없어' : '여기에는 음식이 없어'))}"></h2><a class="button action-create" th:if="${!ended and (!warningOnly or totalCount == 0)}" th:href="@{/inventory/new}"><span th:text="${'음식 등록하기'}">첫 음식 등록하기</span></a>
     </section>
-    <section class="food-grid" th:unless="${foods.isEmpty()}" aria-label="전체 음식 목록">
-        <a class="food-card food-group-card" th:each="group : ${groups}" th:href="@{/foods/{id}(id=${group.master().masterId()},ended=${ended ? true : null},storage=${selectedStorage},warning=${savedWarning ? true : null})}" th:aria-label="${group.master().foodName() + ' 상세 보기'}"><h3 class="food-title" th:text="${group.master().foodName()}"></h3><p class="small muted purchase-count" th:if="${warningOnly}" th:text="${'확인할 구매 ' + group.items().size() + '건 / 전체 ' + groupTotals[group.master().masterId()] + '건'}"></p><div class="group-stock-grid"><div class="group-stock" th:each="food : ${group.items()}">
+    <div class="field food-name-filter" th:unless="${foods.isEmpty()}"><label for="foodFilter" class="sr-only">음식 검색</label><input id="foodFilter" type="search" maxlength="100" placeholder="음식 검색" autocomplete="off" aria-controls="foodGrid"></div>
+    <p class="small muted food-filter-empty" id="foodFilterEmpty" hidden>검색한 음식이 없어. 다른 이름으로 찾아줘.</p>
+    <section id="foodGrid" class="food-grid" th:unless="${foods.isEmpty()}" aria-label="전체 음식 목록">
+        <a class="food-card food-group-card" th:each="group : ${groups}" th:href="${groupTotals[group.master().masterId()] == 1} ? @{/inventory/{id}(id=${group.items().getFirst().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})} : @{/foods/{id}(id=${group.master().masterId()},ended=${ended ? true : null},storage=${selectedStorage},warning=${savedWarning ? true : null})}" th:attr="data-name=${group.master().foodName()}" th:aria-label="${group.master().foodName() + ' 상세 보기'}"><h3 class="food-title" th:text="${group.master().foodName()}"></h3><p class="small muted purchase-count" th:if="${warningOnly}" th:text="${'확인할 구매 ' + group.items().size() + '건 / 전체 ' + groupTotals[group.master().masterId()] + '건'}"></p><div class="group-stock-grid"><div class="group-stock" th:each="food : ${group.items()}">
             <div class="card-top">
                 <span class="stock-location-quantity">
                     <span class="storage-tag" th:classappend="${food.storageType().name().toLowerCase()}" th:text="${storageLabels[food.storageType()]}"></span>

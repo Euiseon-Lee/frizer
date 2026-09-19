@@ -70,7 +70,7 @@ class FoodMergeIntegrationTest {
         mvc.perform(get("/foods/"+source)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"moveSelectForm\"")))
                 .andExpect(content().string(containsString("name=\"items\" value=\""+item+"\"")))
-                .andExpect(content().string(containsString(">다른 음식으로 병합</button>")))
+                .andExpect(content().string(containsString(">다른 음식하고 합치자</button>")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("/foods/"+source+"/merge"))));
         mvc.perform(get("/foods/"+source+"/move")).andExpect(redirectedUrl("/foods/"+source));
         mvc.perform(get("/foods/"+source+"/move").param("items",""+item)).andExpect(status().isOk())

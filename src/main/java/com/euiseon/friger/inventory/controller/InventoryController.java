@@ -109,7 +109,12 @@ public class InventoryController {
         model.addAttribute("selectedStorage", storage);
         model.addAttribute("warningOnly", !endedView && warning);
         model.addAttribute("food", service.findById(id));
-        model.addAttribute("masterId", masters.masterId(id));
+        long masterId = masters.masterId(id);
+        model.addAttribute("masterId", masterId);
+        // A group with a single item in this view collapses the middle list: the food
+        // card links straight here, so the detail exposes the group actions itself.
+        model.addAttribute("soleItem", masters.items(masterId).stream()
+                .filter(item -> (item.status() == FoodStatus.DEPLETED) == endedView).count() == 1);
         return "inventory/detail";
     }
 

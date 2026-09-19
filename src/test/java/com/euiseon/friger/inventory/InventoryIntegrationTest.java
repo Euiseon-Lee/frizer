@@ -296,7 +296,8 @@ class InventoryIntegrationTest {
                 .andExpect(content().string(containsString("2통")))
                 .andExpect(content().string(containsString("2026-09-12")))
                 .andExpect(content().string(containsString("일요일에 받음")));
-        mvc.perform(get("/inventory")).andExpect(content().string(containsString("/foods/" + jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, food.foodId()))));
+        // 항목 1개짜리 그룹이라 목록 카드는 상세로 직행한다(층위 접기).
+        mvc.perform(get("/inventory")).andExpect(content().string(containsString("href=\"/inventory/" + food.foodId() + "?")));
         mvc.perform(get("/inventory/999999999")).andExpect(status().isNotFound());
     }
 
@@ -1052,5 +1053,33 @@ class InventoryIntegrationTest {
                 .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(resting).contains("data-choco-role=\"rest\"").doesNotContain("data-choco-region=\"home-warning\"");
         java.nio.file.Files.writeString(directory.resolve("home-rest.html"), resting);
+    }
+
+    @Test
+    void singleItemGroupCollapsesIntoDetailWithGroupActions() throws Exception {
+        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("foodName", "외톨이 두부")
+                .param("quantityAmount", "1").param("quantityUnit", "모").param("storageType", "FRIDGE"))
+                .andExpect(status().is3xxRedirection());
+        long item = service.findActive().getFirst().foodId();
+        long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, item);
+        // 항목이 1개뿐인 음식은 목록 카드가 개별 목록을 건너뛰고 상세로 직행한다.
+        mvc.perform(get("/inventory")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/inventory/" + item + "?")));
+        mvc.perform(get("/inventory/" + item)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("/foods/" + master + "/move?items=" + item)))
+                .andExpect(content().string(containsString("/foods/" + master + "/delete?items=" + item)))
+                .andExpect(content().string(containsString(">추가 등록할래?</a>")))
+                .andExpect(content().string(containsString("전체 목록으로")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("개별 목록으로"))));
+        // 항목이 2개가 되면 접기가 풀리고 기존 층위로 돌아간다.
+        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("registrationMode", "existing")
+                .param("masterId", "" + master).param("masterVersion", "0")
+                .param("quantityAmount", "2").param("quantityUnit", "모").param("storageType", "FRIDGE"))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(get("/inventory")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/foods/" + master + "?")));
+        mvc.perform(get("/inventory/" + item)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("개별 목록으로")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("다른 음식하고 합치자"))));
     }
 }

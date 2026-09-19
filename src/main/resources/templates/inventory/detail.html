@@ -58,7 +58,13 @@
     <div class="form-actions purchase-primary-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button quantity-consume" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CONSUME',storage=${selectedStorage},warning=${savedWarning ? true : null})}">먹었어</a><a class="button quantity-discard" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='DISCARD',storage=${selectedStorage},warning=${savedWarning ? true : null})}">버렸어</a></div>
     <p class="small muted" th:if="${food.status().name() != 'ACTIVE' and !quantityPreview.cancellable()}">이후 수량이나 보관 정보가 바뀌어 처리를 취소할 수 없어.</p>
     <div class="form-actions purchase-primary-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button action-split" th:if="${food.quantityAmount() != null}" th:href="@{/inventory/{id}/split(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">나누자</a><a class="button action-update" th:href="@{/inventory/{id}/edit(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">수정하자</a></div>
-    <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/foods/{id}(id=${masterId},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">개별 목록으로</a></div>
+    <th:block th:if="${soleItem}">
+    <div class="detail-action-divider" th:if="${food.status().name() == 'ACTIVE'}"></div>
+    <div class="form-actions purchase-primary-actions"><a class="button button-secondary action-move" th:href="@{/foods/{id}/move(id=${masterId},items=${food.foodId()},ended=${ended ? true : null})}">다른 음식하고 합치자</a><a class="button button-secondary action-delete" th:href="@{/foods/{id}/delete(id=${masterId},items=${food.foodId()},ended=${ended ? true : null})}">잘못 등록했어</a></div>
+    <div class="form-actions" th:unless="${ended}"><a class="button action-create" th:href="@{/inventory/new(masterId=${masterId})}">추가 등록할래?</a></div>
+    </th:block>
+    <div class="form-actions" th:unless="${soleItem}"><a class="cancel-link purchase-back-link" th:href="@{/foods/{id}(id=${masterId},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">개별 목록으로</a></div>
+    <div class="form-actions" th:if="${soleItem}"><a class="cancel-link purchase-back-link" th:href="@{/inventory(storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">전체 목록으로</a></div>
     </div>
 </main>
 <nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body>

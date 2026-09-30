@@ -8,3 +8,4 @@ state.value='OPENED';events.change();assert.equal(date.disabled,false);assert.eq
 date.value='2026-09-10';state.value='UNKNOWN';events.change();assert.equal(date.disabled,true);
 state.value='OPENED';events.pageshow();assert.equal(date.disabled,false);assert.equal(date.value,'2026-09-10');
 console.log('opening-state: default, uncertain, opened and BFCache controls passed');
+state.value='NOT_APPLICABLE';events.change();assert.equal(date.disabled,true);assert.equal(hint.hidden,true);

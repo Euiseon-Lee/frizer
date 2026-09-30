@@ -108,7 +108,7 @@ public class BulkWorkbook {
                     int openingColumn=headers.indexOf("개봉 상태");
                     Cell openingCell=openingColumn<0?null:row.getCell(openingColumn);
                     String openingText=text(openingCell);
-                    OpeningStatus opening=choice(openingText,Map.of("미개봉",OpeningStatus.UNOPENED,"개봉함",OpeningStatus.OPENED,"불확실",OpeningStatus.UNKNOWN),"openingStatus",errors);
+                    OpeningStatus opening=choice(openingText,Map.of("해당 없음",OpeningStatus.NOT_APPLICABLE,"미개봉",OpeningStatus.UNOPENED,"개봉함",OpeningStatus.OPENED,"불확실",OpeningStatus.UNKNOWN),"openingStatus",errors);
                     if(opening==null) opening=dates[3]==null?OpeningStatus.UNOPENED:OpeningStatus.OPENED;
                     if(dates[3]!=null && opening!=OpeningStatus.OPENED)
                         errors.add(CONDITION,"openedAt","개봉일: 개봉 상태를 ‘개봉함’으로 바꾸거나 날짜를 비워줘.");
@@ -202,7 +202,7 @@ public class BulkWorkbook {
                 dropdown(sheet,adding?8:6,new String[]{"실온","냉장실","냉동실"});
                 dropdown(sheet,adding?6:4,new String[]{"장보기","배달 잔반","직접 조리","부모님","기타"});
                 dropdown(sheet,adding?10:8,new String[]{"직접 냉동","시판 냉동식품"});
-                dropdown(sheet,headers.indexOf("개봉 상태"),new String[]{"미개봉","개봉함","불확실"});
+                dropdown(sheet,headers.indexOf("개봉 상태"),new String[]{"해당 없음","미개봉","개봉함","불확실"});
                 var helper=sheet.getDataValidationHelper();
                 String q=adding?"D5":"B5";
                 var rule=helper.createValidation(helper.createCustomConstraint("AND(ISNUMBER("+q+"),"+q+">0,"+q+"<=999999999.99,ROUND("+q+",2)="+q+")"),new CellRangeAddressList(4,103,adding?3:1,adding?3:1));
@@ -216,7 +216,7 @@ public class BulkWorkbook {
             // Keep the source layout; update obsolete instructions in the downloaded copy only.
             var guide=book.getSheet("안내");
             cell(guide,4,0).setCellValue("4. 신규 등록은 한 행마다 새 음식을 만들어. 같은 이름도 자동으로 합치지 않아.");
-            cell(guide,5,0).setCellValue("5. 개봉 상태는 미개봉·개봉함·불확실 중 선택해. 비우면 개봉일이 있을 때 개봉함, 없을 때 미개봉으로 저장돼.");
+            cell(guide,5,0).setCellValue("5. 개봉 상태는 해당 없음·미개봉·개봉함·불확실 중 선택해. 비우면 개봉일이 있을 때 개봉함, 없을 때 미개봉으로 저장돼.");
             cell(guide,6,0).setCellValue("6. 추가 등록은 C열에서 기존 음식을 선택해. A열 음식 번호와 B열 분류는 자동 표시돼.");
             cell(guide,7,0).setCellValue("7. 개봉함만 개봉일을 입력할 수 있어. 날짜가 없으면 개봉일 불확실로 저장하고 등록일을 확인일로 기록해.");
             cell(guide,11,0).setCellValue("11. 이름 100자, 단위 4자, 용량 50자, 출처 메모 200자, 메모 500자까지 입력할 수 있어.");

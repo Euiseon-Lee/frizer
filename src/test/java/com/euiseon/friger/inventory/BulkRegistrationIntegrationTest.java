@@ -75,10 +75,10 @@ class BulkRegistrationIntegrationTest {
     @Test void openingStatesPersistForNewAndAdditionalItemsWithWarningsEnabled() throws Exception {
         var seed=bulk.preview(file(row("두부","1","","")),owner);bulk.commit(seed.requestId(),owner,false);
         long master=masters.all().getFirst().masterId();
-        for(Long target:Arrays.asList(null,master)) for(String state:List.of("미개봉","개봉함","불확실")) {
+        for(Long target:Arrays.asList(null,master)) for(String state:List.of("해당 없음","미개봉","개봉함","불확실")) {
             var bytes=openingFile(state,"",target);var preview=bulk.preview(bytes,owner);
             assertThat(preview.valid()).isTrue();
-            String expected=state.equals("미개봉")?"UNOPENED":state.equals("개봉함")?"OPENED":"UNKNOWN";
+            String expected=state.equals("해당 없음")?"NOT_APPLICABLE":state.equals("미개봉")?"UNOPENED":state.equals("개봉함")?"OPENED":"UNKNOWN";
             assertThat(preview.rows().getFirst().form().openingStatus().name()).isEqualTo(expected);
             bulk.commit(preview.requestId(),owner,false);
             var repeated=bulk.preview(bytes,owner);
@@ -92,7 +92,7 @@ class BulkRegistrationIntegrationTest {
         }
     }
     @Test void openingDateValidationAndBlankStateInference() throws Exception {
-        for(String state:List.of("미개봉","불확실","열었음")) {
+        for(String state:List.of("해당 없음","미개봉","불확실","열었음")) {
             var preview=bulk.preview(openingFile(state,"2026-01-01",null),owner);
             assertThat(preview.valid()).isFalse();assertThat(count("food_item")).isZero();
         }

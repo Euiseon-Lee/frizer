@@ -88,6 +88,28 @@ class WarningSettingsIntegrationTest {
         service.changeWarning(id,null,true,false,edited.updatedAt());
         assertThat(service.findById(id).openingConfirmedAt()).isEqualTo(TODAY.minusDays(20));
     }
+    @Test void notApplicableClearsOpeningDatesButKeepsExpiryWarning() throws Exception {
+        long id=service.create(opening(OpeningStatus.OPENED,TODAY.minusMonths(4)));
+        var before=service.findById(id);
+        assertThat(before.openedOverdue(TODAY)).isTrue();
+        var notApplicable=new FoodCreateForm("조리 음식",StorageType.FRIDGE,null,BigDecimal.ONE,TODAY.minusDays(1),
+            null,before.openedAt(),null,null,FreezeType.NONE,false,null,null,null,null,"개",false,null,false,OpeningStatus.NOT_APPLICABLE);
+        service.update(id,notApplicable,before.updatedAt());
+        var changed=service.findById(id);
+        assertThat(changed.openingStatus()).isEqualTo(OpeningStatus.NOT_APPLICABLE);
+        assertThat(changed.openingLabel()).isEqualTo("해당 없음");
+        assertThat(changed.openedAt()).isNull();assertThat(changed.openingConfirmedAt()).isNull();
+        assertThat(changed.openedOverdue(TODAY)).isFalse();assertThat(changed.openingReference()).isNull();
+        assertThat(changed.useByOverdue(TODAY)).isTrue();assertThat(changed.needsReview(TODAY)).isTrue();
+        mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("해당 없음")));
+        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+            .param("foodName","해당 없음 폼").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개")
+            .param("openingStatus","NOT_APPLICABLE")).andExpect(status().is3xxRedirection());
+        assertThat(service.findActive()).filteredOn(x->x.foodName().equals("해당 없음 폼"))
+            .singleElement().satisfies(x->assertThat(x.openingStatus()).isEqualTo(OpeningStatus.NOT_APPLICABLE));
+        service.update(id,opening(OpeningStatus.OPENED,null),changed.updatedAt());
+        assertThat(service.findById(id).openingConfirmedAt()).isEqualTo(TODAY);
+    }
     @Test void exactDateAndStateTransitionsRemainConsistent() {
         long id=service.create(opening(OpeningStatus.OPENED,TODAY.minusDays(5)));
         var before=service.findById(id);

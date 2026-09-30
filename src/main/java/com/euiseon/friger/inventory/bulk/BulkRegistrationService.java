@@ -80,7 +80,7 @@ public class BulkRegistrationService {
                 }
             } else if(storage!=null && (form.frozenAt()!=null || form.freezeType()!=null)) errors.add(CONDITION,"freezeInfo","냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.");
             if(form.sourceMemo()!=null && !errors.invalid("sourceType") && form.sourceType()!=FoodSourceType.ETC) errors.add(CONDITION,"sourceMemo","출처 메모: 출처가 기타일 때만 입력해줘.");
-            form=new FoodCreateForm(form.foodName(), storage,form.category(),form.quantityAmount()==null?null:form.quantityAmount().stripTrailingZeros(),form.expiredAt(),form.purchasedAt(),form.openedAt(),frozen,form.sourceType(),freeze,false,form.memo(),form.capacityText(),form.sourceMemo(),form.sellByAt(),form.quantityUnit());
+            form=new FoodCreateForm(form.foodName(), storage,form.category(),form.quantityAmount()==null?null:form.quantityAmount().stripTrailingZeros(),form.expiredAt(),form.purchasedAt(),form.openedAt(),frozen,form.sourceType(),freeze,false,form.memo(),form.capacityText(),form.sourceMemo(),form.sellByAt(),form.quantityUnit(),false,null,false,form.openingStatus());
             rows.add(new BulkWorkbook.Entry(row.row(),row.cells(),form,row.group(),row.masterId(),version,errors.issues(),row.sheet()));
         }
         // Versions and spreadsheet row positions are excluded: an unchanged file remains a duplicate after stock edits.

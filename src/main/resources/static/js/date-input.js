@@ -1,11 +1,15 @@
-// iOS shows nothing in an empty appearance:none date input, so CSS draws a hint
-// on .date-empty. Delegated listeners keep the class in sync even when another
-// script fills the date (e.g. the freeze-today checkbox), and pageshow covers
-// BFCache restores.
+// Use one fixed-height input and an overlaid hint, never two layout rows on iOS.
 (() => {
     const sync = () => {
-        for (const input of document.querySelectorAll('input[type=date]'))
+        for (const input of document.querySelectorAll('input[type=date]')) {
+            if (!input.parentElement.classList.contains('date-input-wrap')) {
+                const wrap = document.createElement('span');
+                wrap.className = 'date-input-wrap';
+                input.before(wrap);
+                wrap.append(input);
+            }
             input.classList.toggle('date-empty', !input.value);
+        }
     };
     document.addEventListener('input', sync);
     document.addEventListener('change', sync);

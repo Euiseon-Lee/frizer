@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FR!ZER | 개별 구매 항목</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v='opening-21')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
-<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script><script th:src="@{/js/warning-settings.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -13,9 +13,39 @@
     <section class="heading character-heading tab-heading"><div><p class="eyebrow">개별 구매 항목</p><h1 class="detail-title" th:text="${food.foodName()}"></h1><p class="muted">어떻게 보관했더라?</p></div><img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
     <p class="notice" role="status" th:if="${successMessage != null}" th:text="${successMessage}"></p>
-    <p class="error-summary detail-expiry-alert" role="status" th:if="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)}">소비기한 경과됐어. 확인이 필요해!</p>
-    <p class="error-summary detail-expiry-alert" role="status" th:if="${food.status().name() == 'ACTIVE' and food.sellByOverdue(today)}">유통기한 경과됐어. 확인이 필요해!</p>
-    <p class="error-summary detail-expiry-alert" role="status" th:if="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)}">개봉 후 3개월이 지났어. 확인이 필요해!</p>
+    <div th:if="${food.status().name() == 'ACTIVE'}">
+        <div class="warning-alert" th:classappend="${!food.warningPaused(today) and (food.useByOverdue(today) or food.sellByOverdue(today) or food.openedOverdue(today))} ? 'warning-alert-overdue' : ''">
+            <div class="warning-alert-copy">
+                <span th:if="${food.warningPaused(today)}" th:text="${food.warningPausedForever() ? '영구적으로 경고 알림 꺼짐' : food.warningPausedUntil() + '까지 경고 알림 꺼짐'}"></span>
+                <th:block th:unless="${food.warningPaused(today)}">
+                    <span data-warning-reason th:if="${food.useByOverdue(today)}">소비기한이 지났어. 확인이 필요해!</span>
+                    <span data-warning-reason th:if="${food.sellByOverdue(today)}">유통기한이 지났어. 확인이 필요해!</span>
+                    <span data-warning-reason th:if="${food.openedOverdue(today)}" th:text="${food.openingWarning()}">개봉 후 3개월이 지났어. 확인이 필요해!</span>
+                    <span th:if="${!food.useByOverdue(today) and !food.sellByOverdue(today) and !food.openedOverdue(today)}">경고 알림 켜짐</span>
+                </th:block>
+            </div>
+            <button type="button" class="warning-settings-link" data-warning-open hidden>알림 설정</button>
+            <noscript><a th:href="@{/inventory/{id}/edit(id=${food.foodId()})}">알림 설정</a></noscript>
+        </div>
+        <p class="help frozen-storage-notice" th:if="${food.frozenNotice(today) != null}" th:text="${food.frozenNotice(today)}"></p>
+        <dialog aria-labelledby="warningDialogTitle" class="warning-dialog" data-warning-dialog th:attr="data-warning-reopen=${warningDialogOpen == true}">
+            <form method="post" th:action="@{/inventory/{id}/warning(id=${food.foodId()})}" data-warning-settings>
+                <h2 id="warningDialogTitle">경고 알림 잠시 끄기</h2>
+                <p class="warning-dialog-help">이 날짜까지 알림에서 제외 될거야!</p>
+                <input type="hidden" name="expectedUpdatedAt" th:value="${food.updatedAt()}">
+                <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}">
+                <input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
+                <div class="warning-date-row field">
+                    <label class="sr-only" for="warningPausedUntil">경고 알림 제외 종료일</label>
+                    <input type="date" id="warningPausedUntil" name="warningPausedUntil" data-warning-date th:min="${today}" max="9999-12-31" th:value="${warningDialogOpen == true ? warningUntilInput : (food.warningPaused(today) and !food.warningPausedForever() ? food.warningPausedUntil() : null)}" required>
+                    <label class="check-label warning-forever"><input type="checkbox" name="warningForever" value="true" data-warning-forever th:checked="${warningDialogOpen == true ? warningForeverInput : food.warningPausedForever()}"><span>영구 적용</span></label>
+                </div>
+                <p class="field-error" role="alert" th:if="${warningError != null}" th:text="${warningError}"></p>
+                <button class="warning-settings-link warning-resume" type="submit" name="resume" value="true" formnovalidate th:if="${food.warningPaused(today)}">알림 제외 즉시 해제하기</button>
+                <div class="warning-dialog-actions"><button type="button" class="button" data-warning-close>취소</button><button type="submit" class="button action-update">저장</button></div>
+            </form>
+        </dialog>
+    </div>
     <section class="form-section purchase-detail-card">
 
         <dl class="detail-grid">
@@ -34,7 +64,7 @@
             <div th:classappend="${food.status().name() == 'ACTIVE' and food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.sellByOverdue(today)}">!</span></dt><dd><span th:text="${food.sellByAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.sellByAt()}, ${today})}"></span></dd></div>
             <div th:classappend="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.useByOverdue(today)}">!</span></dt><dd th:classappend="${food.expiredAt() != null} ? 'date-emphasis' : ''"><span th:text="${food.expiredAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.expiredAt()}, ${today})}"></span></dd></div>
             <div><dt>구매일</dt><dd><span th:text="${food.purchasedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.purchasedAt()}, ${today})}"></span></dd></div>
-            <div th:classappend="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)}">!</span></dt><dd><span th:text="${food.openedAt() ?: '-'}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
+            <div th:classappend="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일<span class="expiry-icon" aria-hidden="true" th:if="${food.status().name() == 'ACTIVE' and food.openedOverdue(today)}">!</span></dt><dd><span th:if="${food.openedAt() == null}" th:text="${food.openingLabel()}"></span><span th:if="${food.openedAt() != null}" th:text="${food.openedAt()}"></span><span class="opening-elapsed" th:if="${food.openingElapsed(today) != null}" th:text="${food.openingElapsed(today)}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
         </dl>
         <dl class="detail-grid detail-memo-group">
             <div class="detail-memo-field"><dt>메모</dt><dd class="detail-memo" th:text="${food.memo() ?: '-'}"></dd></div>

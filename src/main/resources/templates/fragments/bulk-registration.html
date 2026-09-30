@@ -32,7 +32,7 @@
 <div><dt>구매일</dt><dd th:text="${row.form().purchasedAt() ?: '미입력'}"></dd></div>
 <div><dt>소비기한</dt><dd th:text="${row.form().expiredAt() ?: '미입력'}"></dd></div>
 <div><dt>유통기한</dt><dd th:text="${row.form().sellByAt() ?: '미입력'}"></dd></div>
-<div><dt>개봉일</dt><dd th:text="${row.form().openedAt() ?: '미입력'}"></dd></div>
+<div><dt>개봉 상태</dt><dd th:text="${row.form().openingStatus().name() == 'OPENED' ? '개봉함' : (row.form().openingStatus().name() == 'UNOPENED' ? '미개봉' : '불확실')}"></dd></div><div><dt>개봉일</dt><dd th:text="${row.form().openedAt() ?: (row.form().openingStatus().name() == 'OPENED' ? '개봉일 불확실' : '-')}"></dd></div>
 <div><dt>냉동일</dt><dd th:text="${row.form().frozenAt() ?: '미입력'}"></dd></div>
 <div><dt>냉동 구분</dt><dd th:text="${row.form().freezeType() == null or row.form().freezeType().name() == 'NONE' ? '해당 없음' : (row.form().freezeType().name() == 'HOME_FROZEN' ? '직접 냉동' : '시판 냉동식품')}"></dd></div>
 <div class="bulk-detail-wide"><dt>메모</dt><dd th:text="${row.form().memo() ?: '미입력'}"></dd></div>

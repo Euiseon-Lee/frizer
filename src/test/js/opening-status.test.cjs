@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const events={};const state={value:'UNOPENED',addEventListener:(name,fn)=>events[name]=fn};
+const date={value:''},hint={};const elements={'[data-opening-status]':state,'[data-opening-date]':date,'[data-opening-hint]':hint};
+vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/opening-status.js','utf8'),{document:{querySelector:s=>elements[s]},window:{addEventListener:(name,fn)=>events[name]=fn}});
+assert.equal(date.disabled,true);assert.equal(hint.hidden,true);
+state.value='OPENED';events.change();assert.equal(date.disabled,false);assert.equal(hint.hidden,false);
+date.value='2026-09-10';state.value='UNKNOWN';events.change();assert.equal(date.disabled,true);
+state.value='OPENED';events.pageshow();assert.equal(date.disabled,false);assert.equal(date.value,'2026-09-10');
+console.log('opening-state: default, uncertain, opened and BFCache controls passed');

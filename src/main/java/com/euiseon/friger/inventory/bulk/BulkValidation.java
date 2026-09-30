@@ -34,6 +34,7 @@ public final class BulkValidation {
             case "quantityUnit" -> "단위"; case "storageType" -> "보관 위치";
             case "category" -> "분류"; case "capacityText" -> "용량";
             case "memo" -> "메모"; case "sourceMemo" -> "출처 메모";
+            case "openingStatus" -> "개봉 상태";
             case "purchasedAt" -> "구매일"; case "openedAt" -> "개봉일";
             case "frozenAt" -> "냉동일"; case "expiredAt" -> "소비기한";
             case "sellByAt" -> "유통기한"; case "sourceType" -> "출처";

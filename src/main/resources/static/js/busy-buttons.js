@@ -17,7 +17,9 @@
         if (!button) return;
         if (button.dataset.busyLock) { event.preventDefault(); return; }
         lock(button);
-        button.disabled = true;
+        // Named submitters must stay successful controls (e.g. resume=true).
+        // The busy lock above still rejects repeat submissions.
+        if (!button.name) button.disabled = true;
     });
     document.addEventListener('click', event => {
         const link = event.target.closest?.('a.button, a.cancel-link');

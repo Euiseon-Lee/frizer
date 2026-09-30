@@ -58,7 +58,7 @@
     </select>
 
     <select id="findFood" resultType="com.euiseon.friger.inventory.entity.FoodItem">
-        SELECT food_id
+        SELECT opening_status, opening_confirmed_at, warning_paused_until, food_id
              , m.food_name
              , storage_type
              , m.category

@@ -49,3 +49,13 @@ h.win.listeners.pageshow();
 assert.equal(hb.disabled,false);assert.ok(!hb.classes.has('busy-indicator'));assert.equal('busyLock' in hb.dataset,false);
 
 console.log('busy-buttons: post submit lock, repeat block, nav spinner and pageshow release passed');
+
+// 이름이 있는 제출 버튼은 비활성화하면 name/value가 요청에서 빠진다.
+const named=env();const resume=button();resume.name='resume';resume.value='true';
+const warningForm=form('post',resume);
+assert.equal(named.submit(warningForm,resume).defaultPrevented,false);
+assert.equal(resume.disabled,false,'resume=true must remain in the native form submission');
+assert.ok(resume.classes.has('busy-indicator'));
+assert.equal(named.submit(warningForm,resume).defaultPrevented,true,'repeat resume remains blocked');
+named.locked.push(resume);named.win.listeners.pageshow();
+assert.equal(named.submit(warningForm,resume).defaultPrevented,false,'back navigation releases the lock');

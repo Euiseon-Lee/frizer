@@ -1,0 +1,30 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), vm = require('node:vm');
+const source = fs.readFileSync('src/main/resources/static/js/warning-settings.js', 'utf8');
+function setup(value = '', permanent = false) {
+    const events = {}, classes = new Set();
+    const date = {value, classList: {toggle(name, on) {on ? classes.add(name) : classes.delete(name);}}};
+    const forever = {checked: permanent};
+    const toggle = {checked: true};
+    const root = {querySelector: s => ({'[data-warning-date]': date, '[data-warning-forever]': forever, '[data-warning-toggle]': toggle})[s], addEventListener: (name, fn) => events[name] = fn};
+    const form = {reset() {date.value = value; forever.checked = permanent;}};
+    const dialog = {dataset: {}, showModal() {}, close() {}, querySelector: s => s === 'form' ? form : {addEventListener: (n, f) => events.cancelClick = f}, addEventListener: (n, f) => events[n] = f};
+    const open = {addEventListener() {}, focus() {}};
+    vm.runInNewContext(source, {document: {querySelectorAll: () => [root], querySelector: s => s === '[data-warning-dialog]' ? dialog : open, dispatchEvent() {}}, window: {addEventListener: (n, f) => events[n] = f}, Event: class {}});
+    return {date, forever, toggle, events, classes};
+}
+const a = setup('2026-10-15');
+a.forever.checked = true; a.events.change();
+assert.equal(a.date.value, '9999-12-31'); assert.equal(a.date.disabled, true); assert.equal(a.date.required, false);
+a.events.pageshow(); a.forever.checked = false; a.events.change();
+assert.equal(a.date.value, '2026-10-15'); assert.equal(a.date.disabled, false);
+a.forever.checked = true; a.events.change(); a.events.cancelClick();
+assert.equal(a.date.value, '2026-10-15'); assert.equal(a.forever.checked, false);
+const b = setup('', true);
+assert.equal(b.date.value, '9999-12-31'); assert.equal(b.classes.has('date-empty'), false);
+b.forever.checked = false; b.events.change();
+assert.equal(b.date.value, ''); assert.equal(b.classes.has('date-empty'), true);
+b.date.value = '2026-11-01'; b.events.cancelClick();
+assert.equal(b.date.value, '9999-12-31');
+b.forever.checked = false; b.events.change(); assert.equal(b.date.value, '');
+console.log('warning-settings: permanent date, restoration, pageshow and dialog cancel passed');

@@ -19,11 +19,19 @@ public class BulkWorkbook {
     public static final int MAX_ROWS = 500;
     public static final int MAX_BYTES = 2 * 1024 * 1024;
     public static final List<String> HEADERS = List.of("음식명", "수량", "단위", "보관 위치", "음식 묶음", "기존 음식 선택", "용량", "출처", "출처 메모", "분류", "구매일", "소비기한", "유통기한", "개봉일", "냉동일", "냉동 구분", "메모", "기존 음식 번호 (자동)");
-    public static final List<String> NEW_HEADERS = List.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "메모");
-    public static final List<String> ADD_HEADERS = List.of("기존 음식명 선택", "음식 번호", "분류", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "메모");
+    private static final List<String> LEGACY_NEW_HEADERS = List.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "메모");
+    private static final List<String> LEGACY_ADD_HEADERS = List.of("기존 음식명 선택", "음식 번호", "분류", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "메모");
+    public static final List<String> NEW_HEADERS = List.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "개봉 상태", "메모");
+    public static final List<String> ADD_HEADERS = List.of("음식 번호", "분류", "기존 음식명 선택", "수량", "단위", "용량", "출처", "출처 메모", "보관 위치", "냉동일", "냉동 구분", "유통기한", "소비기한", "구매일", "개봉일", "개봉 상태", "메모");
+    private static List<String> headers(Sheet sheet, boolean adding) {
+        for (var candidate : List.of(adding ? ADD_HEADERS : NEW_HEADERS, adding ? LEGACY_ADD_HEADERS : LEGACY_NEW_HEADERS)) {
+            var row=sheet.getRow(3);boolean matches=row!=null;
+            for(int c=0;matches && c<candidate.size();c++) matches=candidate.get(c).equals(text(row.getCell(c)));
+            if(matches) return candidate;
+        }
+        throw new IllegalArgumentException(sheet.getSheetName()+" 시트 4행의 열 이름과 순서를 유지해줘. 앱에서 양식을 다시 받을 수 있어.");
+    }
     // Normalize both layouts to the same internal field order used by validation and previews.
-    private static final int[] NEW_MAP = {0,1,2,6,-1,-1,3,4,5,-1,11,10,9,12,7,8,13};
-    private static final int[] ADD_MAP = {-1,3,4,8,-1,0,5,6,7,-1,13,12,11,14,9,10,15};
     private static final List<String> FIELDS = List.of("foodName", "quantityAmount", "quantityUnit", "storageType", "group", "masterId", "capacityText", "sourceType", "sourceMemo", "category", "purchasedAt", "expiredAt", "sellByAt", "openedAt", "frozenAt", "freezeType", "memo");
     public record Entry(int row, List<String> cells, FoodCreateForm form, String group, Long masterId,
                         Long version, List<BulkValidation.Issue> issues, String sheet) {
@@ -42,18 +50,17 @@ public class BulkWorkbook {
                 var sheet = book.getSheet(sheetName);
                 if (sheet == null) throw new IllegalArgumentException("‘" + sheetName + "’ 시트가 없어. 앱에서 양식을 다시 받아줘.");
                 boolean adding = sheetName.equals("추가 등록");
-                var headers = adding ? ADD_HEADERS : NEW_HEADERS;
-                int[] map = adding ? ADD_MAP : NEW_MAP;
-                var header = sheet.getRow(3);
-                for (int c=0; c<headers.size(); c++)
-                    if (header == null || !headers.get(c).equals(text(header.getCell(c))))
-                        throw new IllegalArgumentException(sheetName + " 시트 4행의 열 이름과 순서를 유지해줘. 앱에서 양식을 다시 받을 수 있어.");
+                var headers = headers(sheet,adding);
+                int[] map=new int[FIELDS.size()];
+                for(int c=0;c<map.length;c++) map[c]=headers.indexOf(c==5?"기존 음식명 선택":HEADERS.get(c));
+                if(adding) map[9]=-1; // Automatic category formulas are validated separately.
+                int selectionColumn=headers.indexOf("기존 음식명 선택"), idColumn=headers.indexOf("음식 번호"), categoryColumn=headers.indexOf("분류");
                 if (sheet.getLastRowNum() > 10003) throw new IllegalArgumentException("불필요한 빈 행을 지우고 두 시트 합계 기준 최대 500개 항목만 업로드해줘.");
                 for (int i=4; i<=sheet.getLastRowNum(); i++) {
                     var row=sheet.getRow(i);
                     if (row==null) continue;
                     boolean blank=true;
-                    for(var cell:row) if (!(adding && (cell.getColumnIndex()==1 || cell.getColumnIndex()==2)) && !text(cell).isBlank()) {blank=false;break;}
+                    for(var cell:row) if (!(adding && (cell.getColumnIndex()==idColumn || cell.getColumnIndex()==categoryColumn)) && !text(cell).isBlank()) {blank=false;break;}
                     if(blank) continue;
                     if(entries.size()>=MAX_ROWS) throw new IllegalArgumentException("신규 등록과 추가 등록 두 시트 합계 최대 500개 항목을 등록할 수 있어.");
                     var values=new ArrayList<String>();
@@ -81,13 +88,13 @@ public class BulkWorkbook {
                             master=Long.valueOf(selected.group(1));
                             if(master<=0) throw new IllegalArgumentException();
                         } catch(IllegalArgumentException e) {errors.add(INVALID,"masterId","기존 음식명 선택 드롭다운에서 음식을 선택해줘.");}
-                        var number=row.getCell(1);
+                        var number=row.getCell(idColumn);
                         if(number!=null && number.getCellType()==CellType.FORMULA) {
-                            if(!lookupFormula(i+1,2).equals(number.getCellFormula())) errors.add(INVALID,"automaticId","자동 번호 수식이 변경됐어. 새 양식에 내용을 옮겨줘.");
+                            if(!lookupFormula(i+1,2,selectionColumn).equals(number.getCellFormula())) errors.add(INVALID,"automaticId","자동 번호 수식이 변경됐어. 새 양식에 내용을 옮겨줘.");
                         } else if(master!=null && number!=null && !text(number).isBlank() && !master.toString().equals(text(number))) errors.add(CONDITION,"automaticId","자동 번호가 선택한 음식과 달라. 기존 음식을 다시 선택해줘.");
-                        var category=row.getCell(2);
+                        var category=row.getCell(categoryColumn);
                         if(category!=null && category.getCellType()==CellType.FORMULA) {
-                            if(!lookupFormula(i+1,3).equals(category.getCellFormula())) errors.add(INVALID,"category","자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야 해.");
+                            if(!lookupFormula(i+1,3,selectionColumn).equals(category.getCellFormula())) errors.add(INVALID,"category","자동 분류 수식이 변경됐어. 새 양식에 내용을 복사해서 사용해야 해.");
                         } else if(category!=null) {
                             if(category.getCellType()==CellType.ERROR || category.getCellType()==CellType.BOOLEAN) errors.add(INVALID,"category","분류: 자동 입력 양식을 사용해줘.");
                             values.set(9,text(category));
@@ -98,8 +105,17 @@ public class BulkWorkbook {
                     FreezeType freeze = choice(values.get(15), Map.of("직접 냉동", FreezeType.HOME_FROZEN, "시판 냉동식품", FreezeType.COMMERCIAL_FROZEN), "freezeType", errors);
                     var dates = new LocalDate[5];
                     for (int d = 0; d < 5; d++) dates[d] = date(map[d+10] < 0 ? null : row.getCell(map[d+10]), values.get(d+10), FIELDS.get(d+10), errors);
+                    int openingColumn=headers.indexOf("개봉 상태");
+                    Cell openingCell=openingColumn<0?null:row.getCell(openingColumn);
+                    String openingText=text(openingCell);
+                    OpeningStatus opening=choice(openingText,Map.of("미개봉",OpeningStatus.UNOPENED,"개봉함",OpeningStatus.OPENED,"불확실",OpeningStatus.UNKNOWN),"openingStatus",errors);
+                    if(opening==null) opening=dates[3]==null?OpeningStatus.UNOPENED:OpeningStatus.OPENED;
+                    if(dates[3]!=null && opening!=OpeningStatus.OPENED)
+                        errors.add(CONDITION,"openedAt","개봉일: 개봉 상태를 ‘개봉함’으로 바꾸거나 날짜를 비워줘.");
+                    if(opening==OpeningStatus.OPENED && dates[3]==null)
+                        errors.add(AUTOMATIC,"openingStatus","개봉일 불확실로 저장하고, 등록한 날을 개봉 상태 확인일로 기록할게.");
                     var form = new FoodCreateForm(values.get(0), storage, optional(values.get(9)), quantity, dates[1], dates[0], dates[3], dates[4], source, freeze, false,
-                            optional(values.get(16)), optional(values.get(6)), optional(values.get(8)), dates[2], values.get(2));
+                            optional(values.get(16)), optional(values.get(6)), optional(values.get(8)), dates[2], values.get(2), false, null, false, opening);
                     entries.add(new Entry(i+1, values, form, "", master, null, errors.issues(), sheet.getSheetName()));
             }
             }
@@ -143,8 +159,9 @@ public class BulkWorkbook {
     public static String choiceLabel(long id, String name, String category) {
         return name + (category == null || category.isBlank() ? "" : " · " + category) + " [#" + id + "]";
     }
-    private static String lookupFormula(int row, int column) {
-        return "IF(A"+row+"=\"\",\"\",IFERROR(VLOOKUP(A"+row+",ExistingFoodLookup,"+column+",FALSE),\"\"))";
+    private static String lookupFormula(int row, int column, int selectionColumn) {
+        String selection=org.apache.poi.ss.util.CellReference.convertNumToColString(selectionColumn)+row;
+        return "IF("+selection+"=\"\",\"\",IFERROR(VLOOKUP("+selection+",ExistingFoodLookup,"+column+",FALSE),\"\"))";
     }
     public byte[] template(List<FoodMasterDao.RegistrationChoice> foods) throws IOException {
         try(var source=new org.springframework.core.io.ClassPathResource("excel/frizer-bulk-template.xlsx").getInputStream();
@@ -178,13 +195,14 @@ public class BulkWorkbook {
                 for(var row:sheet) if(row.getRowNum()>=4) for(var value:row) value.setBlank();
                 for(int r=4;r<104;r++) {
                     for(int c=0;c<headers.size();c++) cell(sheet,r,c);
-                    if(adding) for(int c=1;c<=2;c++) cell(sheet,r,c).setCellFormula(lookupFormula(r+1,c+1));
+                    if(adding) for(int c=0;c<=1;c++) cell(sheet,r,c).setCellFormula(lookupFormula(r+1,c+2,2));
                 }
                 // Reset the sample's overlapping list ranges before applying per-column rules.
                 if(sheet.getCTWorksheet().isSetDataValidations()) sheet.getCTWorksheet().unsetDataValidations();
                 dropdown(sheet,adding?8:6,new String[]{"실온","냉장실","냉동실"});
                 dropdown(sheet,adding?6:4,new String[]{"장보기","배달 잔반","직접 조리","부모님","기타"});
                 dropdown(sheet,adding?10:8,new String[]{"직접 냉동","시판 냉동식품"});
+                dropdown(sheet,headers.indexOf("개봉 상태"),new String[]{"미개봉","개봉함","불확실"});
                 var helper=sheet.getDataValidationHelper();
                 String q=adding?"D5":"B5";
                 var rule=helper.createValidation(helper.createCustomConstraint("AND(ISNUMBER("+q+"),"+q+">0,"+q+"<=999999999.99,ROUND("+q+",2)="+q+")"),new CellRangeAddressList(4,103,adding?3:1,adding?3:1));
@@ -192,10 +210,17 @@ public class BulkWorkbook {
             }
             if(!foods.isEmpty()) {
                 var helper=additional.getDataValidationHelper();
-                var selector=helper.createValidation(helper.createFormulaListConstraint("ExistingFoodNames"),new CellRangeAddressList(4,103,0,0));
+                var selector=helper.createValidation(helper.createFormulaListConstraint("ExistingFoodNames"),new CellRangeAddressList(4,103,2,2));
                 selector.setShowErrorBox(true);selector.setErrorStyle(DataValidation.ErrorStyle.STOP);selector.createErrorBox("음식 선택","목록에 있는 음식을 선택해줘.");additional.addValidationData(selector);
             }
-            // The guide is authored in the source workbook; preserve its content and formatting.
+            // Keep the source layout; update obsolete instructions in the downloaded copy only.
+            var guide=book.getSheet("안내");
+            cell(guide,4,0).setCellValue("4. 신규 등록은 한 행마다 새 음식을 만들어. 같은 이름도 자동으로 합치지 않아.");
+            cell(guide,5,0).setCellValue("5. 개봉 상태는 미개봉·개봉함·불확실 중 선택해. 비우면 개봉일이 있을 때 개봉함, 없을 때 미개봉으로 저장돼.");
+            cell(guide,6,0).setCellValue("6. 추가 등록은 C열에서 기존 음식을 선택해. A열 음식 번호와 B열 분류는 자동 표시돼.");
+            cell(guide,7,0).setCellValue("7. 개봉함만 개봉일을 입력할 수 있어. 날짜가 없으면 개봉일 불확실로 저장하고 등록일을 확인일로 기록해.");
+            cell(guide,11,0).setCellValue("11. 이름 100자, 단위 4자, 용량 50자, 출처 메모 200자, 메모 500자까지 입력할 수 있어.");
+            cell(guide,12,0).setCellValue("12. 새 항목 추가용 양식이야. 경고 알림 제외는 앱 화면에서 설정해줘. 기존 항목 수정·소비·폐기는 지원하지 않아.");
             book.setForceFormulaRecalculation(true);book.write(output);return output.toByteArray();
         }
     }

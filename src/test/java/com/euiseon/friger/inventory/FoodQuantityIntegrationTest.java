@@ -95,8 +95,8 @@ class FoodQuantityIntegrationTest {
     }
     @Test void changingAndRestoringSensitiveFieldStillBlocksCancellation() throws Exception {
         long id=create(),event=finish(id);
-        jdbc.update("UPDATE food_item SET opened_at='2026-09-01' WHERE food_id=?",id);
-        jdbc.update("UPDATE food_item SET opened_at=NULL WHERE food_id=?",id);
+        jdbc.update("UPDATE food_item SET opening_status='OPENED',opened_at='2026-09-01' WHERE food_id=?",id);
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN',opening_confirmed_at=NULL,opened_at=NULL WHERE food_id=?",id);
         assertThat(quantities.preview(id).cancellable()).isFalse();
         assertThatThrownBy(()->cancel(id,event)).isInstanceOf(InvalidFoodException.class);
     }
@@ -284,7 +284,7 @@ class FoodQuantityIntegrationTest {
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
             .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if(Boolean.getBoolean("frizer.exportPurchasePreview"))java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/purchase-detail-preview/ended.html"),ended);
-        jdbc.update("UPDATE food_item SET opened_at='2026-09-01' WHERE food_id=?",id);
+        jdbc.update("UPDATE food_item SET opening_status='OPENED',opened_at='2026-09-01' WHERE food_id=?",id);
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",0));
         assertThatThrownBy(()->cancel(id,event)).isInstanceOf(InvalidFoodException.class);

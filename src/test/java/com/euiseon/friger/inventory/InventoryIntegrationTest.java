@@ -381,7 +381,7 @@ class InventoryIntegrationTest {
         assertThat(saved.expiredAt()).isNull();
         String html = mvc.perform(get("/inventory/" + saved.foodId())).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(html).contains("유통기한 경과").doesNotContain("소비기한 경과");
+        assertThat(html).contains("유통기한이 지났어").doesNotContain("소비기한이 지났어");
     }
 
     @Test
@@ -770,10 +770,10 @@ class InventoryIntegrationTest {
         long id=service.findActive().getFirst().foodId();
         String detail=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if(useBy!=null) assertThat(detail).doesNotContain("유통기한 경과");
-        assertThat(detail.split("class=\"error-summary detail-expiry-alert\"",-1).length-1).isEqualTo(warningCount);
+        assertThat(detail.split("data-warning-reason",-1).length-1).isEqualTo(warningCount);
         assertThat(detail).doesNotContain("<dd class=\"small expired\"");
         if(warningCount==1) {
-            String warning=(useBy==null ? "유통기한" : "소비기한")+" 경과됐어. 확인이 필요해!";
+            String warning=(useBy==null ? "유통기한" : "소비기한")+"이 지났어. 확인이 필요해!";
             assertThat(detail).contains(warning);
             assertThat(detail.indexOf(warning)).isLessThan(detail.indexOf("<section class=\"form-section purchase-detail-card\">"));
         }
@@ -808,7 +808,7 @@ class InventoryIntegrationTest {
         if (useBy == null) assertThat(list).doesNotContain("<span>소비기한</span>");
         var detail = mvc.perform(get("/inventory/" + food.foodId())).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(detail.split("class=\"error-summary detail-expiry-alert\"", -1).length - 1).isEqualTo(warnings);
+        assertThat(detail.split("data-warning-reason", -1).length - 1).isEqualTo(warnings);
         assertThat(detail.split("class=\"detail-warning\"", -1).length - 1).isEqualTo(warnings);
         assertThat(detail.split("class=\"expiry-icon\"", -1).length - 1).isEqualTo(warnings);
         if (food.openedOverdue(LocalDate.of(2026, 9, 13))) {
@@ -849,8 +849,8 @@ class InventoryIntegrationTest {
         for (String useBy : deadlines) {
             for (String sellBy : deadlines) {
                 for (String opened : openings) {
-                    jdbc.update("UPDATE food_item SET expired_at=CAST(? AS date), sell_by_at=CAST(? AS date), opened_at=CAST(? AS date) WHERE food_id=?",
-                            useBy, sellBy, opened, id);
+                    jdbc.update("UPDATE food_item SET expired_at=CAST(? AS date), sell_by_at=CAST(? AS date), opened_at=CAST(? AS date),opening_status=?,opening_confirmed_at=NULL WHERE food_id=?",
+                            useBy, sellBy, opened, opened==null?"UNKNOWN":"OPENED", id);
                     boolean usePast = "2026-09-12".equals(useBy);
                     boolean sellPast = useBy == null && "2026-09-12".equals(sellBy);
                     boolean useToday = "2026-09-13".equals(useBy);
@@ -875,7 +875,7 @@ class InventoryIntegrationTest {
                 }
             }
         }
-        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개', expired_at='2026-09-01', opened_at='2026-01-01' WHERE food_id=?", id);
+        jdbc.update("UPDATE food_item SET status='DEPLETED',quantity_amount=0,quantity_unit=COALESCE(quantity_unit,'개'),quantity_text='0개', expired_at='2026-09-01', opening_status='OPENED', opened_at='2026-01-01' WHERE food_id=?", id);
         var model = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
         assertThat((java.util.List<FoodItem>) model.get("overviewFoods")).isEmpty();
     }
@@ -913,7 +913,7 @@ class InventoryIntegrationTest {
                 .extracting(FoodItem::foodId).containsExactlyElementsOf(service.findActive().stream().map(FoodItem::foodId).toList());
         assertThat(multiple).contains("소비기한 오늘", "오늘 개봉", "개봉 후 +<span>241</span>일", "WARNING!")
                 .doesNotContain("+<span>0</span>일", "class=\"overview-food-context\"");
-        jdbc.update("UPDATE food_item SET expired_at='2026-09-14', opened_at='2026-09-14'");
+        jdbc.update("UPDATE food_item SET expired_at='2026-09-14', opening_status='OPENED', opened_at='2026-09-14'");
         String normal = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(normal).contains("지금 확인이 필요한 음식은 없어.").doesNotContain("class=\"alert-card overview-card\"");
@@ -966,8 +966,8 @@ class InventoryIntegrationTest {
         long itemId = service.findActive().getFirst().foodId();
         long masterId = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, itemId);
         String value = date.isEmpty() ? null : date;
-        jdbc.update("UPDATE food_item SET expired_at=CAST(? AS date),sell_by_at=CAST(? AS date),purchased_at=CAST(? AS date),opened_at=CAST(? AS date) WHERE food_id=?",
-                value, value, value, value, itemId);
+        jdbc.update("UPDATE food_item SET expired_at=CAST(? AS date),sell_by_at=CAST(? AS date),purchased_at=CAST(? AS date),opened_at=CAST(? AS date),opening_status=?,opening_confirmed_at=NULL WHERE food_id=?",
+                value, value, value, value, value==null?"UNKNOWN":"OPENED", itemId);
         for (String path : new String[]{"/foods/" + masterId, "/inventory/" + itemId}) {
             String html = mvc.perform(get(path)).andExpect(status().isOk()).andReturn().getResponse()
                     .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);

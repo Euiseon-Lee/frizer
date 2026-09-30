@@ -77,6 +77,14 @@ class UserIsolationIntegrationTest {
     FoodCreateForm form(String name) {
         return new FoodCreateForm(name,StorageType.FRIDGE,null,new BigDecimal("2"),null,null,null,null,null,FreezeType.NONE,false,null,null,null,null,"개");
     }
+    @Test void warningSettingsRequireOwnerAndCsrf() throws Exception {
+        long id=inventory.create(form("소유자 알림"));var item=inventory.findById(id);
+        mvc.perform(post("/inventory/"+id+"/warning").with(user(accounts.loadUserByUsername("owner")))
+            .param("warningForever","true").param("expectedUpdatedAt",item.updatedAt().toString())).andExpect(status().isForbidden());
+        mvc.perform(post("/inventory/"+id+"/warning").with(user(accounts.loadUserByUsername("tester"))).with(csrf())
+            .param("warningForever","true").param("expectedUpdatedAt",item.updatedAt().toString())).andExpect(status().isNotFound());
+        as("owner");assertThat(inventory.findById(id).warningPausedUntil()).isNull();
+    }
     @Test void bothRealLoginsWorkAndUserIdsSurviveLoginRename() throws Exception {
         for(String name:List.of("owner","tester")) {
             org.springframework.security.test.context.TestSecurityContextHolder.clearContext();
@@ -139,7 +147,7 @@ class UserIsolationIntegrationTest {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             var row=book.getSheet(master==null?"신규 등록":"추가 등록").getRow(4);
             var values=master==null?Map.of(0,"공통 일괄 음식",1,"2",2,"개",6,"냉장실"):
-                    Map.of(0,master.toString(),3,"2",4,"개",8,"냉장실");
+                    Map.of(2,master.toString(),3,"2",4,"개",8,"냉장실");
             values.forEach((c,v)->row.getCell(c,org.apache.poi.ss.usermodel.Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).setCellValue(v));
             book.write(out);return out.toByteArray();
         }
@@ -287,6 +295,8 @@ class UserIsolationIntegrationTest {
         for(String table:List.of("food_master","food_item","food_history","food_registration_receipt","food_quantity_receipt","food_merge_receipt","food_item_move_receipt","food_bulk_preview","food_bulk_receipt"))
             assertThat(jdbc.queryForObject("SELECT user_id FROM users_upgrade."+table,Long.class)).isEqualTo(1);
         var after=jdbc.queryForMap("SELECT * FROM users_upgrade.food_item");
+        assertThat(after.remove("warning_paused_until")).isNull();
+        assertThat(after.remove("opening_status")).isEqualTo(after.get("opened_at")==null?"UNKNOWN":"OPENED");assertThat(after.remove("opening_confirmed_at")).isNull();
         after.remove("user_id");assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT enabled FROM users_upgrade.app_user",Boolean.class)).isFalse();
         assertThat(jdbc.queryForObject("SELECT password_hash FROM users_upgrade.app_user",String.class)).isNull();

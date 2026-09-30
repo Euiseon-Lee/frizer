@@ -55,6 +55,16 @@ class FoodSplitIntegrationTest {
     }
     long version(long id) {return quantities.preview(id).version();}
 
+    @Test void uncertainOpeningConfirmationIsCopiedToSplitChild() throws Exception {
+        long id=create();
+        LocalDate confirmed=LocalDate.now(clock).minusDays(20);
+        jdbc.update("UPDATE food_item SET opened_at=NULL,opening_status='OPENED',opening_confirmed_at=? WHERE food_id=?",confirmed,id);
+        long child=splits.split(id,freezerCommand("1"),version(id),UUID.randomUUID());
+        var item=inventory.findById(child);
+        assertThat(item.openingStatus()).isEqualTo(OpeningStatus.OPENED);
+        assertThat(item.openedAt()).isNull();
+        assertThat(item.openingConfirmedAt()).isEqualTo(confirmed);
+    }
     @Test void splitDeductsSourceAndCreatesLinkedSibling() throws Exception {
         long id=create(),master=masters.masterId(id);
         long child=splits.split(id,freezerCommand("1"),version(id),UUID.randomUUID());

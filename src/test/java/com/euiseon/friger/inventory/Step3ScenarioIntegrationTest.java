@@ -341,7 +341,7 @@ class Step3ScenarioIntegrationTest {
         org.flywaydb.core.Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
         var migrated=jdbc.queryForList("SELECT * FROM source_upgrade_audit.food_item");
-        migrated.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});
+        migrated.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);assertThat(row.remove("warning_paused_until")).isNull();assertThat(row.remove("opening_status")).isEqualTo(row.get("opened_at")==null?"UNKNOWN":"OPENED");assertThat(row.remove("opening_confirmed_at")).isNull();});
         assertThat(migrated).isEqualTo(before);
         assertThatThrownBy(()->jdbc.update("UPDATE source_upgrade_audit.food_item SET source_type=NULL"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);

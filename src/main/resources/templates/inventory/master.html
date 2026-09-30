@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css}">
+<title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-21')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/move-select.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
@@ -38,7 +38,7 @@
 <div th:classappend="${!ended and food.sellByOverdue(today)} ? 'detail-warning' : ''"><dt>유통기한</dt><dd th:classappend="${food.sellByAt() == null ? 'date-unknown' : ''}"><span th:text="${food.sellByAt() == null ? '미입력' : #temporals.format(food.sellByAt(), 'yyyy-MM-dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.sellByAt()}, ${today})}"></span></dd></div>
 <div class="stock-expiry" th:classappend="${!ended and food.useByOverdue(today)} ? 'detail-warning' : ''"><dt>소비기한</dt><dd th:classappend="${food.expiredAt() == null ? 'date-unknown' : ''}"><span th:text="${food.expiredAt() == null ? '미입력' : #temporals.format(food.expiredAt(), 'yyyy-MM-dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.expiredAt()}, ${today})}"></span></dd></div>
 <div><dt>구매일</dt><dd th:classappend="${food.purchasedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.purchasedAt() == null ? '미입력' : #temporals.format(food.purchasedAt(), 'yyyy-MM-dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.purchasedAt()}, ${today})}"></span></dd></div>
-<div th:classappend="${!ended and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일</dt><dd th:classappend="${food.openedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.openedAt() == null ? '미입력' : #temporals.format(food.openedAt(), 'yyyy-MM-dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span></dd></div>
+<div th:classappend="${!ended and food.openedOverdue(today)} ? 'detail-warning' : ''"><dt>개봉일</dt><dd th:classappend="${food.openedAt() == null ? 'date-unknown' : ''}"><span th:text="${food.openedAt() == null ? food.openingLabel() : #temporals.format(food.openedAt(), 'yyyy-MM-dd')}"></span><span th:replace="~{fragments/shell :: elapsedDays(${food.openedAt()}, ${today})}"></span><span class="opening-elapsed" th:if="${food.openingElapsed(today) != null}" th:text="${food.openingElapsed(today)}"></span></dd></div>
 </dl>
 <div class="stock-card-footer" th:unless="${ended}"><span th:text="${'등록 ' + #temporals.format(food.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></span><span th:if="${food.updatedAt().isAfter(food.createdAt())}" th:text="${'수정 ' + #temporals.format(food.updatedAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></span></div>
 </a></div></div>

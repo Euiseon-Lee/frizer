@@ -197,7 +197,7 @@ class FoodMergeIntegrationTest {
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword())
                 .schemas(schema).defaultSchema(schema).load().migrate();
         var after=jdbc.queryForList("SELECT i.*,m.food_name,m.category FROM master_upgrade.food_item i JOIN master_upgrade.food_master m ON m.master_id=i.master_id ORDER BY food_id");
-        after.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);row.remove("master_id");assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);});assertThat(after).isEqualTo(before);
+        after.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);row.remove("master_id");assertThat(row.remove("version_no")).isEqualTo(0L);assertThat(row.remove("stock_revision")).isEqualTo(0L);assertThat(row.remove("warning_paused_until")).isNull();assertThat(row.remove("opening_status")).isEqualTo(row.get("opened_at")==null?"UNKNOWN":"OPENED");assertThat(row.remove("opening_confirmed_at")).isNull();});assertThat(after).isEqualTo(before);
         var afterHistory=jdbc.queryForList("SELECT * FROM master_upgrade.food_history ORDER BY history_id");
         afterHistory.forEach(row->assertThat(row.remove("recorded_food_name")).isEqualTo("옛 이름"));
         afterHistory.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);

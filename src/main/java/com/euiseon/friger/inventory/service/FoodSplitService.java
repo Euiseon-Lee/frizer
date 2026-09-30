@@ -81,7 +81,7 @@ public class FoodSplitService {
         var child=new FoodItem(null,item.foodName(),c.storage(),item.category(),amountText,
             item.expiredAt(),item.purchasedAt(),item.openedAt(),frozenAt,item.sourceType(),freeze,
             FoodStatus.ACTIVE,item.memo(),now,now,item.capacityText(),item.sourceMemo(),item.sellByAt(),
-            amount,item.quantityUnit());
+            amount,item.quantityUnit()).withOpening(item.openingStatus(),item.openingConfirmedAt());
         long childId=inventory.insertForMaster(child,masterId);
         if(history.insert(new FoodHistory(null,childId,FoodActionType.SPLIT_IN,null,c.storage(),amountText,now,null))!=1)
             throw new IllegalStateException("분리 이력을 저장하지 못했습니다.");

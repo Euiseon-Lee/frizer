@@ -1,6 +1,7 @@
 package com.euiseon.friger.inventory.dto;
 
 import java.time.LocalDate;
+import com.euiseon.friger.common.type.OpeningStatus;
 import java.math.BigDecimal;
 import com.euiseon.friger.common.type.FoodSourceType;
 import com.euiseon.friger.common.type.FreezeType;
@@ -32,15 +33,39 @@ public record FoodCreateForm(
         @Size(max = 200, message = "출처 메모는 200자 이내로 입력해 주세요.") String sourceMemo,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sellByAt,
         @NotBlank(message = "단위를 입력해 주세요.")
-        @Size(max = 4, message = "단위는 4자 이내로 입력해 주세요.") String quantityUnit) {
+        @Size(max = 4, message = "단위는 4자 이내로 입력해 주세요.") String quantityUnit,
+        Boolean warningPaused,
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate warningPausedUntil,
+        Boolean warningForever, OpeningStatus openingStatus) {
+    public FoodCreateForm(String foodName, StorageType storageType, String category, BigDecimal quantityAmount,
+            LocalDate expiredAt, LocalDate purchasedAt, LocalDate openedAt, LocalDate frozenAt,
+            FoodSourceType sourceType, FreezeType freezeType, Boolean freezeToday, String memo,
+            String capacityText, String sourceMemo, LocalDate sellByAt, String quantityUnit,
+            Boolean warningPaused, LocalDate warningPausedUntil, Boolean warningForever) {
+        this(foodName,storageType,category,quantityAmount,expiredAt,purchasedAt,openedAt,frozenAt,
+            sourceType,freezeType,freezeToday,memo,capacityText,sourceMemo,sellByAt,quantityUnit,
+            warningPaused,warningPausedUntil,warningForever,null);
+    }
+    public FoodCreateForm(String foodName, StorageType storageType, String category, BigDecimal quantityAmount,
+            LocalDate expiredAt, LocalDate purchasedAt, LocalDate openedAt, LocalDate frozenAt,
+            FoodSourceType sourceType, FreezeType freezeType, Boolean freezeToday, String memo,
+            String capacityText, String sourceMemo, LocalDate sellByAt, String quantityUnit) {
+        this(foodName,storageType,category,quantityAmount,expiredAt,purchasedAt,openedAt,frozenAt,
+            sourceType,freezeType,freezeToday,memo,capacityText,sourceMemo,sellByAt,quantityUnit,false,null,false);
+    }
     public FoodCreateForm {
+        if (openingStatus == null) openingStatus = openedAt == null ? OpeningStatus.UNOPENED : OpeningStatus.OPENED;
         if (quantityUnit != null) quantityUnit = quantityUnit.strip();
     }
     public static FoodCreateForm from(com.euiseon.friger.inventory.entity.FoodItem food) {
         return new FoodCreateForm(food.foodName(), food.storageType(), food.category(),
                 food.quantityAmount() == null ? null : food.quantityAmount().stripTrailingZeros(),
                 food.expiredAt(), food.purchasedAt(), food.openedAt(), food.frozenAt(), food.sourceType(), food.freezeType(), false,
-                food.memo(), food.capacityText(), food.sourceMemo(), food.sellByAt(), food.quantityUnit());
+                food.memo(), food.capacityText(), food.sourceMemo(), food.sellByAt(), food.quantityUnit(), food.warningPausedUntil()!=null,
+                food.warningPausedForever() ? null : food.warningPausedUntil(), food.warningPausedForever(), food.openingStatus());
+    }
+    public static FoodCreateForm from(com.euiseon.friger.inventory.entity.FoodItem food, LocalDate today) {
+        return from(food.warningPaused(today) ? food : food.withWarningPausedUntil(null));
     }
     public static FoodCreateForm empty() {
         return new FoodCreateForm(null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null);
@@ -48,6 +73,6 @@ public record FoodCreateForm(
     public FoodCreateForm withIdentity(String name, String sharedCategory) {
         return new FoodCreateForm(name, storageType, sharedCategory, quantityAmount, expiredAt, purchasedAt,
                 openedAt, frozenAt, sourceType, freezeType, freezeToday, memo, capacityText, sourceMemo,
-                sellByAt, quantityUnit);
+                sellByAt, quantityUnit, warningPaused, warningPausedUntil, warningForever, openingStatus);
     }
 }

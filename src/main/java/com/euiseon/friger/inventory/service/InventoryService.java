@@ -70,6 +70,10 @@ public class InventoryService {
 
     @Transactional
     public boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt) {
+        return update(id,form,expectedUpdatedAt,false);
+    }
+
+    private boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt, boolean warningOnly) {
         Long masterId = masters.masterIdForItem(id);
         if (masterId == null) throw new FoodNotFoundException(id);
         var master = masters.lock(masterId);
@@ -83,7 +87,15 @@ public class InventoryService {
         }
         OffsetDateTime now = OffsetDateTime.now(clock).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         if (!now.isAfter(before.updatedAt())) now = before.updatedAt().plusNanos(1000);
-        FoodItem after = normalized(form, id, before.createdAt(), now);
+        FoodItem after = warningOnly
+                ? before.withWarningPausedUntil(Boolean.TRUE.equals(form.warningPaused())
+                    ? (Boolean.TRUE.equals(form.warningForever()) ? LocalDate.of(9999,12,31) : form.warningPausedUntil()) : null, now)
+                : normalized(form, id, before.createdAt(), now);
+        if (!warningOnly && after.openingStatus() == OpeningStatus.OPENED && before.openingStatus() == OpeningStatus.OPENED
+                && before.openingConfirmedAt() != null) after = after.withOpening(after.openingStatus(), before.openingConfirmedAt());
+        if (!java.util.Objects.equals(before.expiredAt(), after.expiredAt())
+                || !java.util.Objects.equals(before.frozenAt(), after.frozenAt())
+                || before.storageType() != after.storageType()) after = after.withWarningPausedUntil(null);
         Map<String, String> oldValues = values(before);
         Map<String, String> newValues = values(after);
         String changes = newValues.entrySet().stream()
@@ -135,8 +147,11 @@ public class InventoryService {
         values.put("유통기한", raw(food.sellByAt()));
         values.put("소비기한", raw(food.expiredAt()));
         values.put("구매일", raw(food.purchasedAt()));
+        values.put("개봉 상태", food.openingLabel());
+        values.put("개봉 상태 확인일", raw(food.openingConfirmedAt()));
         values.put("개봉일", raw(food.openedAt()));
         values.put("메모", raw(food.memo()));
+        values.put("경고 알림 제외 종료일", food.warningPausedForever() ? "영구 적용" : raw(food.warningPausedUntil()));
         return values;
     }
 
@@ -153,10 +168,11 @@ public class InventoryService {
         if (storage == null) errors.put("storageType", "보관 위치를 선택해 주세요.");
         LocalDate today = LocalDate.now(clock);
         rejectFuture(errors, "purchasedAt", form.purchasedAt(), today);
-        rejectFuture(errors, "openedAt", form.openedAt(), today);
+        if (form.openingStatus() == OpeningStatus.OPENED) rejectFuture(errors, "openedAt", form.openedAt(), today);
         if (storage == StorageType.FREEZER && !Boolean.TRUE.equals(form.freezeToday())) {
             rejectFuture(errors, "frozenAt", form.frozenAt(), today);
         }
+        errors.putAll(warningErrors(Boolean.TRUE.equals(form.warningPaused()), form.warningPausedUntil(), Boolean.TRUE.equals(form.warningForever())));
         return errors;
     }
 
@@ -176,10 +192,32 @@ public class InventoryService {
             frozenAt = Boolean.TRUE.equals(form.freezeToday()) ? today : form.frozenAt();
         }
         return new FoodItem(id, form.foodName().strip(), storage, optional(form.category()),
-                form.quantityAmount().stripTrailingZeros().toPlainString() + form.quantityUnit(), form.expiredAt(), form.purchasedAt(), form.openedAt(),
+                form.quantityAmount().stripTrailingZeros().toPlainString() + form.quantityUnit(), form.expiredAt(), form.purchasedAt(), form.openingStatus() == OpeningStatus.OPENED ? form.openedAt() : null,
                 frozenAt, source, freeze, FoodStatus.ACTIVE, optional(form.memo()), createdAt, updatedAt,
                 optional(form.capacityText()),
-                form.sourceType() == FoodSourceType.ETC ? optional(form.sourceMemo()) : null, form.sellByAt(), form.quantityAmount(), form.quantityUnit());
+                form.sourceType() == FoodSourceType.ETC ? optional(form.sourceMemo()) : null, form.sellByAt(), form.quantityAmount(), form.quantityUnit(),
+                Boolean.TRUE.equals(form.warningPaused()) ? (Boolean.TRUE.equals(form.warningForever()) ? LocalDate.of(9999,12,31) : form.warningPausedUntil()) : null,
+                form.openingStatus(), form.openingStatus() == OpeningStatus.OPENED ? today : null);
+    }
+
+
+    public Map<String,String> warningErrors(boolean paused, LocalDate until, boolean forever) {
+        if (!paused || forever) return Map.of();
+        if (until == null) return Map.of("warningPausedUntil", "알림을 다시 확인할 날짜를 선택해줘.");
+        if (until.isBefore(LocalDate.now(clock)) || until.isAfter(LocalDate.of(9999,12,31)))
+            return Map.of("warningPausedUntil", "오늘 이후의 날짜를 선택해줘.");
+        return Map.of();
+    }
+
+    @Transactional
+    public void changeWarning(long id, LocalDate until, boolean forever, boolean resume, OffsetDateTime expected) {
+        var before=findById(id);
+        var errors=warningErrors(!resume,until,forever);
+        if (!errors.isEmpty()) throw new InvalidFoodException(errors);
+        var f=FoodCreateForm.from(before);
+        update(id,new FoodCreateForm(f.foodName(),f.storageType(),f.category(),f.quantityAmount(),f.expiredAt(),
+            f.purchasedAt(),f.openedAt(),f.frozenAt(),f.sourceType(),f.freezeType(),false,f.memo(),
+            f.capacityText(),f.sourceMemo(),f.sellByAt(),f.quantityUnit(),!resume,until,forever),expected,true);
     }
 
     private static String optional(String value) {

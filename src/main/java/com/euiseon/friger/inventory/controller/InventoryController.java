@@ -128,7 +128,7 @@ public class InventoryController {
             redirect.addFlashAttribute("successMessage", "보관 중인 음식만 수정할 수 있어.");
             return FoodQuantityController.url("/inventory/" + id, storage, warning, ended);
         }
-        model.addAttribute("foodForm", FoodCreateForm.from(food));
+        model.addAttribute("foodForm", FoodCreateForm.from(food, LocalDate.now(clock)));
         editContext(id, food.updatedAt(), model);
         return "inventory/new";
     }
@@ -154,6 +154,27 @@ public class InventoryController {
             return "inventory/new";
         }
         return FoodQuantityController.url("/foods/" + masters.masterId(id), storage, warning, ended);
+    }
+
+    @PostMapping("/inventory/{id}/warning")
+    String warning(@PathVariable long id,
+            @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate warningPausedUntil,
+            @RequestParam(defaultValue="false") boolean warningForever,
+            @RequestParam(defaultValue="false") boolean resume,
+            @RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
+            @RequestParam(required=false) StorageType storage,
+            @RequestParam(defaultValue="false") boolean warning,
+            @RequestParam(defaultValue="false") boolean ended, RedirectAttributes redirect) {
+        try {
+            service.changeWarning(id,warningPausedUntil,warningForever,resume,expectedUpdatedAt);
+            redirect.addFlashAttribute("successMessage",resume ? "경고 알림을 다시 켰어." : "경고 알림 설정을 저장했어.");
+        } catch (InvalidFoodException invalid) {
+            redirect.addFlashAttribute("warningError",String.join(" ",invalid.errors().values()));
+            redirect.addFlashAttribute("warningDialogOpen",true);
+            redirect.addFlashAttribute("warningUntilInput",warningPausedUntil);
+            redirect.addFlashAttribute("warningForeverInput",warningForever);
+        }
+        return FoodQuantityController.url("/inventory/"+id,storage,warning,ended);
     }
 
     private void editFilters(StorageType storage, boolean warning, boolean ended, Model model) {

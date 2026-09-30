@@ -33,3 +33,6 @@ node_modules/
 # Local Neon agent tooling (not application deployment inputs)
 .agents/skills/
 skills-lock.json
+
+# Office lock files
+~$*

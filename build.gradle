@@ -53,3 +53,6 @@ tasks.named('wrapper') {
     gradleVersion = '8.13'
     distributionType = Wrapper.DistributionType.BIN
 }
+
+// Excel creates lock files beside an open template; never package them.
+tasks.named('processResources') { exclude '**/~$*' }

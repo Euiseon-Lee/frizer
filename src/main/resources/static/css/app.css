@@ -449,19 +449,16 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 
 .bulk-registration .bulk-template-actions{padding:10px 0 20px;margin-bottom:20px;border-bottom:1px solid var(--line)}
 
-/* Shared date inputs: reduce the yyyy-mm-dd display by 1pt.
-   iOS Safari ignores width on native-appearance date inputs, so two-column rows
-   overflow the card; appearance:none makes them honor width:100% like text fields.
-   The inner value then needs explicit alignment and a minimum height, because
-   a dateless input has no intrinsic content height without the native chrome. */
-.field input[type=date]{font-size:calc(16px - 1pt);-webkit-appearance:none;appearance:none;text-align:center}
-.field input[type=date]::-webkit-date-and-time-value{text-align:center;margin:0;min-height:1.2em}
-/* With appearance off, iOS draws nothing in an empty date input, so date-input.js marks
-   empty ones and this hint fills the gap on every platform. Chromium's own 연도-월-일
-   placeholder (datetime-edit) is hidden while empty so the hint does not double up;
-   iOS has no datetime-edit, and a filled input drops .date-empty and shows normally. */
-.field input[type=date].date-empty::before{content:'연도-월-일';width:100%;text-align:center;color:#696b7a;font-size:12px}
-.field input[type=date].date-empty::-webkit-datetime-edit,.field input[type=date].date-empty::-webkit-calendar-picker-indicator{display:none}
+/* Fixed geometry for populated and empty native date controls, including iOS. */
+.field input[type=date]{box-sizing:border-box;display:block;width:100%;min-width:0;max-width:100%;height:44px;min-height:44px;max-height:44px;padding:9px 11px;line-height:24px;font-size:calc(16px - 1pt);-webkit-appearance:none;appearance:none;text-align:center}
+.field input[type=date]::-webkit-date-and-time-value{display:block;min-height:0;height:24px;line-height:24px;margin:0;text-align:center}
+.date-input-wrap{position:relative;display:block;min-width:0;width:100%}
+.date-input-wrap:has(>.date-empty)::after{content:'연도-월-일';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--muted);font-size:12px}
+.field input[type=date].date-empty::-webkit-date-and-time-value{visibility:hidden}
+.field input[type=date].date-empty::-webkit-datetime-edit{visibility:hidden}
+/* Keep the native picker clickable across the entire field, even when empty. */
+.date-input-wrap>input[type=date]{position:relative}
+.date-input-wrap>input[type=date]:not(:disabled)::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
 
 /* Align bulk helper text and keep upload errors close to their explanation. */
 .bulk-registration .bulk-help,.bulk-registration .bulk-upload-error,.bulk-registration .bulk-preview-summary>p{margin:8px;font-size:12px;line-height:1.8}
@@ -496,3 +493,40 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .button.login-button:not(:disabled):is(:hover,:active){background:var(--primary);border-color:var(--primary);color:var(--white);filter:brightness(var(--button-hover-brightness))}
 .access-error-message{font-size:14px;line-height:1.7;margin:0 0 20px;padding:20px 16px;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:20px}
 .access-error-message-centered{text-align:center}
+
+/* Per-purchase warning settings share form and checkbox spacing. */
+.warning-settings-inline{border-top:1px solid var(--line);padding-top:20px;margin:20px 0 28px}
+.warning-toggle{display:flex;align-items:center;gap:8px;font-size:13px;line-height:24px;min-height:44px;padding-top:20px;margin-top:-20px;cursor:pointer}
+.warning-toggle input{appearance:none;position:relative;flex:0 0 40px;width:40px;height:24px;margin:0;border:1px solid var(--line);border-radius:20px;background:var(--subtle-hover-bg);cursor:pointer}
+.warning-toggle input::after{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;background:var(--muted)}
+.warning-toggle input:checked{background:var(--history-update-fg);border-color:var(--history-update-fg)}
+.warning-toggle input:checked::after{left:18px;background:white}
+.warning-date-row.field{display:flex;align-items:center;gap:12px;margin:9px 0 0}
+.warning-date-row>.date-input-wrap,.warning-date-row>input[type=date]{flex:1;min-width:0;width:0}
+.warning-date-row.field .warning-forever{display:flex;align-items:center;flex-shrink:0;gap:8px;margin:0;font-size:13px;font-weight:400;min-height:44px;white-space:nowrap}
+.warning-date-row.field .warning-forever input{width:19px;height:19px;min-height:0;padding:0;margin:0;flex:0 0 19px}
+.warning-date-row input:disabled{opacity:.5}
+.warning-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 14px;min-height:54px;border:1px solid var(--line);border-radius:16px;background:var(--subtle-hover-bg);margin-bottom:14px;font-size:13px;color:var(--muted)}
+.warning-alert-overdue{color:var(--warning-text);border-color:var(--warning-text);background:var(--warning-expired-bg)}
+.warning-alert-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.warning-settings-link{border:0;background:transparent;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;min-height:44px;flex-shrink:0;padding:4px 0;cursor:pointer}
+.frozen-storage-notice{margin:0 4px 16px}
+.warning-dialog{position:fixed;inset:auto 0 0;margin:0 auto;width:min(100%,448px);max-width:100%;max-height:90dvh;overflow:auto;padding:22px 20px 24px;border:1px solid var(--line);border-radius:24px 24px 0 0;background:white;color:var(--ink)}
+.warning-dialog::backdrop{background:#0005}
+.warning-dialog h2{font-size:16px;line-height:1.5;margin:0}
+.warning-dialog-help{font-size:13px;color:var(--muted);margin:6px 0 14px}
+.warning-dialog .warning-date-row{margin-top:0}
+.warning-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.warning-dialog-actions>button:first-child{background:var(--subtle-hover-bg);color:var(--ink);border:1px solid var(--line)}
+.warning-resume{display:block;width:fit-content;max-width:100%;margin:8px 0 0 auto;font-size:13px;text-align:right;color:var(--muted)}
+.warning-resume+.warning-dialog-actions{margin-top:8px}
+
+/* Opening state and date remain aligned, including disabled dates. */
+.opening-fields select{font-size:13px}
+.opening-fields input:disabled{background:var(--subtle-hover-bg);color:var(--muted);opacity:.55}
+.opening-fields{margin-bottom:0}
+.opening-help{margin:9px 0 20px}
+.opening-elapsed{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+
+.opening-fields>.field{margin-bottom:0}
+.opening-fields:has(+.opening-help[hidden]){margin-bottom:20px}

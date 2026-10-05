@@ -77,6 +77,19 @@ class UserIsolationIntegrationTest {
     FoodCreateForm form(String name) {
         return new FoodCreateForm(name,StorageType.FRIDGE,null,new BigDecimal("2"),null,null,null,null,null,FreezeType.NONE,false,null,null,null,null,"개");
     }
+    @Test void historySearchAndUnlimitedViewRemainOwnerScoped() throws Exception {
+        inventory.create(form("공통 소유자 음식"));
+        as("tester");inventory.create(form("공통 다른 사용자 음식"));
+        for(String name:List.of("owner","tester")) {
+            as(name);
+            assertThat(histories.findEntries(null,"공통")).hasSize(1);
+            String own=name.equals("owner")?"공통 소유자 음식":"공통 다른 사용자 음식";
+            assertThat(histories.findEntries(null,"공통").getFirst().foodName()).isEqualTo(own);
+            var result=mvc.perform(get("/history").with(user(accounts.loadUserByUsername(name)))
+                    .param("limit","all").param("q","공통")).andExpect(status().isOk()).andReturn();
+            assertThat((List<?>)result.getModelAndView().getModel().get("entries")).hasSize(1);
+        }
+    }
     @Test void warningSettingsRequireOwnerAndCsrf() throws Exception {
         long id=inventory.create(form("소유자 알림"));var item=inventory.findById(id);
         mvc.perform(post("/inventory/"+id+"/warning").with(user(accounts.loadUserByUsername("owner")))

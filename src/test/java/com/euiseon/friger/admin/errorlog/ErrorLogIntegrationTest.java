@@ -54,6 +54,11 @@ class ErrorLogIntegrationTest {
         @Bean FailureEndpoint failureEndpoint() { return new FailureEndpoint(); }
     }
     @RestController static class FailureEndpoint {
+        @Autowired JdbcTemplate jdbc;
+        @GetMapping("/css/test-database-failure") String databaseFailure() {
+            jdbc.update("INSERT INTO app_user (login_id,password_hash,role,enabled) SELECT login_id,password_hash,role,enabled FROM app_user WHERE login_id='owner'");
+            return "unexpected success";
+        }
         @GetMapping("/css/test-failure") String fail() { throw new IllegalStateException("password=never-store-this"); }
         @GetMapping("/css/test-resolved") String resolved() { throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "private-message"); }
     }
@@ -89,6 +94,19 @@ class ErrorLogIntegrationTest {
         assertThat(jdbc.queryForList("SELECT error_code FROM application_error_log", String.class))
                 .containsExactlyInAnyOrder("CSRF_MISSING", "CSRF_INVALID", "AUTHENTICATION_FAILED");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM application_error_log WHERE http_status = 302", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT diagnostic_context->>'authenticationFailure' FROM application_error_log WHERE error_code='AUTHENTICATION_FAILED'", String.class))
+                .isEqualTo("BAD_CREDENTIALS");
+    }
+
+    @Test void databaseDiagnosticsSurvivePersistenceAndAppearOnlyInDetail() throws Exception {
+        assertThat(http.getForEntity("/css/test-database-failure", String.class).getStatusCode().value()).isEqualTo(500);
+        long id = jdbc.queryForObject("SELECT id FROM application_error_log", Long.class);
+        var detail = reads.find(id).orElseThrow();
+        assertThat(detail.diagnosticContext()).contains("23505", "constraint", "고유값 중복").doesNotContain("owner", "password_hash");
+        assertThat(reads.search(ErrorLogQuery.parse(Map.of())).rows().getFirst().diagnosticContext()).isNull();
+        mvc.perform(get("/admin/error-logs/" + id).with(user(accounts.loadUserByUsername("owner"))))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("23505")))
+                .andExpect(content().string(containsString("진단 정보")));
     }
 
     @Test void realServletErrorDispatchKeepsExistingPageAndStoresOnlyOnce() {
@@ -179,7 +197,7 @@ class ErrorLogIntegrationTest {
     private long seed(OffsetDateTime time, String code, String path, int status, Long userId, String stack) {
         var requestId = UUID.randomUUID();
         store.save(new ErrorLogEntry(0, time, requestId, userId, "GET", path, status, code,
-                "java.lang.IllegalStateException", "테스트 오류", stack, "INVALID", "test-build"));
+                "java.lang.IllegalStateException", "테스트 오류", stack, "INVALID", "test-build", "{}"));
         return jdbc.queryForObject("SELECT id FROM application_error_log WHERE request_id=?", Long.class, requestId);
     }
 }

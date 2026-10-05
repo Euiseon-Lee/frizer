@@ -34,7 +34,7 @@ public class ErrorLogReadService {
         // Large diagnostic text is fetched only on the detail page.
         var rows = jdbc.query("""
                 SELECT e.id, occurred_at, request_id, e.user_id, http_method, request_path, http_status, error_code,
-                       exception_class, '' AS message, NULL AS stack_trace, session_state, app_version, u.login_id
+                       exception_class, '' AS message, NULL AS stack_trace, NULL AS diagnostic_context, session_state, app_version, u.login_id
                 FROM application_error_log e LEFT JOIN app_user u ON u.user_id = e.user_id
                 """ + where + " ORDER BY occurred_at DESC, id DESC LIMIT ? OFFSET ?", ErrorLogReadService::map, args.toArray());
         return new Page(rows, total);
@@ -43,7 +43,7 @@ public class ErrorLogReadService {
     public Optional<ErrorLogView> find(long id) {
         return jdbc.query("""
                 SELECT e.id, occurred_at, request_id, e.user_id, http_method, request_path, http_status, error_code,
-                       exception_class, message, stack_trace, session_state, app_version, u.login_id
+                       exception_class, message, stack_trace, jsonb_pretty(diagnostic_context) AS diagnostic_context, session_state, app_version, u.login_id
                 FROM application_error_log e LEFT JOIN app_user u ON u.user_id = e.user_id WHERE e.id = ?
                 """, ErrorLogReadService::map, id).stream().findFirst();
     }
@@ -53,6 +53,6 @@ public class ErrorLogReadService {
                 r.getObject("request_id", UUID.class), r.getObject("user_id", Long.class),
                 r.getString("http_method"), r.getString("request_path"), r.getInt("http_status"),
                 r.getString("error_code"), r.getString("exception_class"), r.getString("message"),
-                r.getString("stack_trace"), r.getString("session_state"), r.getString("app_version"), r.getString("login_id"));
+                r.getString("stack_trace"), r.getString("session_state"), r.getString("app_version"), r.getString("login_id"), r.getString("diagnostic_context"));
     }
 }

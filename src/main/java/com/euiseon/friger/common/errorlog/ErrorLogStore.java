@@ -15,10 +15,10 @@ public class ErrorLogStore {
         jdbc.update("""
             INSERT INTO application_error_log
             (occurred_at, request_id, user_id, http_method, request_path, http_status, error_code,
-             exception_class, message, stack_trace, session_state, app_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             exception_class, message, stack_trace, session_state, app_version, diagnostic_context)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb))
             ON CONFLICT (request_id) DO NOTHING
             """, e.occurredAt(), e.requestId(), e.userId(), e.httpMethod(), e.requestPath(),
-                e.httpStatus(), e.errorCode(), e.exceptionClass(), e.message(), e.stackTrace(), e.sessionState(), e.appVersion());
+                e.httpStatus(), e.errorCode(), e.exceptionClass(), e.message(), e.stackTrace(), e.sessionState(), e.appVersion(), e.diagnosticContext());
     }
 }

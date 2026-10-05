@@ -20,5 +20,6 @@
     </dl>
   </div></section>
   <section class="card mb-4"><div class="card-header"><h2 class="card-title">오류 설명</h2></div><div class="card-body" th:text="${entry.message}"></div></section>
-  <section class="card"><div class="card-header"><h2 class="card-title">호출 위치</h2></div><div class="card-body"><p class="text-secondary">민감정보 보호를 위해 예외 원문 메시지와 요청 입력값은 저장하지 않습니다.</p><pre class="admin-stack mb-0" tabindex="0" aria-label="예외 호출 위치" th:text="${entry.stackTrace ?: '저장된 호출 정보가 없습니다.'}"></pre></div></section>
+  <section class="card mb-4"><div class="card-header"><h2 class="card-title">진단 정보</h2></div><div class="card-body"><pre class="admin-stack mb-0" th:text="${entry.diagnosticContext}"></pre></div></section>
+  <section class="card"><div class="card-header"><h2 class="card-title">호출 위치</h2></div><div class="card-body"><p class="text-secondary">민감정보 보호를 위해 예외 원문과 요청 본문은 저장하지 않고, 허용된 진단 항목만 기록합니다.</p><pre class="admin-stack mb-0" tabindex="0" aria-label="예외 호출 위치" th:text="${entry.stackTrace ?: '저장된 호출 정보가 없습니다.'}"></pre></div></section>
 </div></main></div></div></body></html>

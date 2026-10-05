@@ -79,14 +79,14 @@ public class ErrorLogRecorder {
         var entry = new ErrorLogEntry(0, state.time, state.id, state.userId,
                 limit(request.getMethod(), 10), state.path, state.status, state.code,
                 state.error == null ? null : limit(state.error.getClass().getName(), 255),
-                message(state.code), safeStack(state.error), state.session, version);
+                message(state.code), safeStack(state.error), state.session, version, ErrorDiagnostics.collect(request, state.error));
         try {
             store.save(entry);
         } catch (RuntimeException failure) {
             // Do not print the persistence exception: SQL/driver messages can contain secrets.
-            log.error("error_log_write_failed requestId={} code={} status={} path={} userId={} session={} version={} storageError={} trace={}",
+            log.error("error_log_write_failed requestId={} code={} status={} path={} userId={} session={} version={} storageError={} diagnostics={} trace={}",
                     entry.requestId(), entry.errorCode(), entry.httpStatus(), entry.requestPath(), entry.userId(),
-                    entry.sessionState(), entry.appVersion(), failure.getClass().getName(), entry.stackTrace());
+                    entry.sessionState(), entry.appVersion(), failure.getClass().getName(), entry.diagnosticContext(), entry.stackTrace());
         }
     }
 

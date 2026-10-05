@@ -1,6 +1,8 @@
 package com.euiseon.friger.inventory.controller;
 
 import java.util.UUID;
+import jakarta.servlet.http.HttpServletRequest;
+import com.euiseon.friger.common.errorlog.ErrorDiagnostics;
 import java.math.BigDecimal;
 import com.euiseon.friger.common.type.StorageType;
 import com.euiseon.friger.inventory.service.*;
@@ -34,7 +36,8 @@ public class FoodQuantityController {
                  @RequestParam(required=false) Long historyId,@RequestParam UUID requestId,
                  @RequestParam(required=false) String quantityAmount,
                  @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
-                 @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect) {
+                 @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request) {
+        ErrorDiagnostics.quantity(request,id,action,version,historyId,null);
         try {
             BigDecimal selected=null;
             if(action!=FoodQuantityService.Action.CANCEL || quantityAmount!=null) {
@@ -42,6 +45,7 @@ public class FoodQuantityController {
                     throw new InvalidFoodException(java.util.Map.of("","처리할 수량을 숫자로 입력해줘. 소수점 둘째 자리까지 사용할 수 있어."));
                 selected=new BigDecimal(quantityAmount);
             }
+            ErrorDiagnostics.quantity(request,id,action,version,historyId,selected);
             quantities.apply(id,action,version,historyId,requestId,selected);
             redirect.addFlashAttribute("successMessage",action==FoodQuantityService.Action.CANCEL ? "처리를 취소했어. 다시 보관 중이야." : action==FoodQuantityService.Action.CONSUME ? "먹은 것으로 기록했어." : "버린 것으로 기록했어.");
             if(action!=FoodQuantityService.Action.CANCEL) redirect.addFlashAttribute("processedItemId",id);

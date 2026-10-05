@@ -7,6 +7,27 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ErrorLogRecorderTest {
+    @Test void persistsApprovedDiagnosticsWithoutRequestOrDatabaseSecrets() {
+        var store = mock(ErrorLogStore.class);
+        var recorder = new ErrorLogRecorder(store, "test");
+        var request = new MockHttpServletRequest("POST", "/inventory/3/quantity");
+        request.addParameter("password", "input-secret");
+        request.addParameter("memo", "private-memo");
+        ErrorDiagnostics.quantity(request, 3,
+                com.euiseon.friger.inventory.service.FoodQuantityService.Action.CONSUME,
+                2, null, new java.math.BigDecimal("1.25"));
+        var error = new org.postgresql.util.PSQLException(new org.postgresql.util.ServerErrorMessage(
+                "SERROR\0C23505\0Msecret-message\0DKey (password)=(secret-value) already exists.\0nfood_quantity_receipt_pkey\0\0"));
+        recorder.mark(request, "SERVER_ERROR", 500, new RuntimeException("private-cause", error));
+        recorder.complete(request, 500);
+        var captured = ArgumentCaptor.forClass(ErrorLogEntry.class);
+        verify(store).save(captured.capture());
+        var entry = captured.getValue();
+        assertThat(entry.diagnosticContext()).contains("23505", "food_quantity_receipt_pkey", "고유값 중복",
+                "INVENTORY_QUANTITY", "CONSUME", "1.25", "foodId");
+        assertThat(entry.toString()).doesNotContain("input-secret", "private-memo", "secret-message", "secret-value", "private-cause");
+    }
+
     @Test void capturesOnceWithoutSecretsAndSurvivesStorageFailure() {
         var store = mock(ErrorLogStore.class);
         doThrow(new IllegalStateException("password=storage-secret")).when(store).save(any());

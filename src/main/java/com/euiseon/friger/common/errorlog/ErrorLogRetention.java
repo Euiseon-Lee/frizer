@@ -6,7 +6,9 @@ import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +28,7 @@ public class ErrorLogRetention {
     }
 
     @Scheduled(cron = "${frizer.error-log.cleanup-cron:0 0 4 * * *}", zone = "Asia/Seoul")
+    @EventListener(ApplicationReadyEvent.class)
     public void clean() {
         try {
             int total = deleteBefore(Instant.now().minus(days, ChronoUnit.DAYS));

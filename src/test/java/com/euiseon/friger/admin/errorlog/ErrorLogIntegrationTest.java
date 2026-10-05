@@ -191,6 +191,7 @@ class ErrorLogIntegrationTest {
         seed(now.minusDays(30), "SERVER_ERROR", "/boundary", 500, null, "stack");
         var cleanup = new ErrorLogRetention(jdbc, 30);
         assertThat(cleanup.deleteBefore(now.minusDays(30).toInstant())).isEqualTo(1);
+        assertThat(cleanup.deleteBefore(now.minusDays(30).toInstant())).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM application_error_log", Integer.class)).isEqualTo(2);
     }
 

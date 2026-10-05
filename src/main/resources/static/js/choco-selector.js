@@ -12,6 +12,14 @@ const groups={
 };
 // Photo keys use the same lowercase kebab-case convention as the asset filenames.
 const addedPhotos={
+ "side-stand-yawn":{"emotionGroup":"REST","poseGroup":"yawning-standing","renderMode":"wide"},
+ "rainbow-toy-sit":{"emotionGroup":"REST","poseGroup":"decorated-sit","renderMode":"portrait"},
+ "object-hold-sit":{"emotionGroup":"NEUTRAL","poseGroup":"adult-sit","renderMode":"portrait"},
+ "sleepy-rest":{"emotionGroup":"REST","poseGroup":"curled","renderMode":"contain"},
+ "tongue-out-closeup":{"emotionGroup":"HAPPY","poseGroup":"front-portrait","renderMode":"portrait"},
+ "tongue-out-side-profile":{"emotionGroup":"HAPPY","poseGroup":"side-portrait","renderMode":"portrait"},
+ "closed-mouth-gaze":{"emotionGroup":"NEUTRAL","poseGroup":"front-portrait","renderMode":"portrait"},
+ "open-mouth-gaze":{"emotionGroup":"HAPPY","poseGroup":"front-portrait","renderMode":"portrait"},
  "belly-up-sprawl":{"emotionGroup":"REST","poseGroup":"belly-up","renderMode":"wide"},
  "sleeping-with-chicken-toy":{"emotionGroup":"REST","poseGroup":"sleeping-side","renderMode":"wide"},
  "belly-up-curl":{"emotionGroup":"REST","poseGroup":"belly-up","renderMode":"wide"},

@@ -69,6 +69,18 @@ class SecurityIntegrationTest {
                 .andExpect(content().string(containsString("아무리 쪼코라도 다시 시도하는 것밖엔 방법이 없달까😢")))
                 .andExpect(content().string(containsString("href=\"/\">홈으로 돌아가자")));
     }
+    @Test void permissionDeniedAndCsrfRejectionHaveDifferentGuidance() throws Exception {
+        mvc.perform(get("/access-denied").requestAttr(org.springframework.security.web.WebAttributes.ACCESS_DENIED_403,
+                new org.springframework.security.access.AccessDeniedException("denied")))
+                .andExpect(status().isForbidden()).andExpect(content().string(containsString("이 페이지에 대한 접근 권한이 없어.")))
+                .andExpect(content().string(containsString("다른 계정으로 로그인하기")));
+        mvc.perform(get("/access-denied").requestAttr(org.springframework.security.web.WebAttributes.ACCESS_DENIED_403,
+                new org.springframework.security.web.csrf.MissingCsrfTokenException(null)))
+                .andExpect(status().isForbidden()).andExpect(content().string(containsString("요청을 확인할 수 없어서 처리에 실패했어.")));
+        mvc.perform(get("/error").accept("text/html").requestAttr("jakarta.servlet.error.status_code", 401))
+                .andExpect(status().isUnauthorized()).andExpect(content().string(containsString("로그인이 필요한 페이지야.")))
+                .andExpect(content().string(containsString("로그인하기")));
+    }
     @ParameterizedTest @ValueSource(ints={403, 404, 500})
     void sharedErrorViewKeepsStatusSpecificMessageAndDestination(int code) throws Exception {
         String message = code == 403 ? "아무리 쪼코라도 다시 시도하는 것밖엔 방법이 없달까😢" : code == 404 ? "찾을 수 없는 페이지라 열 수 없어." : "호출에 완벽히 실패해버렸달까.";

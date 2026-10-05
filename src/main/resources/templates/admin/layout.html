@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · FR!ZER 관리'">FR!ZER 관리</title>
+  <link rel="stylesheet" th:href="@{/css/vendor/tabler-1.6.1.min.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <script th:src="@{/js/admin-table.js}" defer></script>
+</head>
+<body>
+<aside th:fragment="sidebar" class="navbar navbar-vertical navbar-expand-lg bg-white" aria-label="관리자 메뉴">
+  <div class="container-fluid">
+    <div class="admin-sidebar-header"><a class="navbar-brand admin-brand" th:href="@{/admin}"><img class="admin-brand-icon" th:src="@{/favicon.ico}" alt="" width="24" height="24">FR!ZER</a></div>
+    <div class="navbar-nav admin-menu w-100">
+      <a class="nav-link active" aria-current="page" th:href="@{/admin/error-logs}"><span class="nav-link-title">오류 로그</span></a>
+    </div>
+  </div>
+</aside>
+<header th:fragment="header" class="navbar admin-header bg-white border-bottom">
+  <div class="container-xl justify-content-between">
+    <span class="badge bg-primary-lt">ADMIN</span>
+    <div class="d-flex align-items-center gap-3">
+      <a th:href="@{/}" class="text-secondary">서비스로 이동</a>
+      <form method="post" th:action="@{/logout}" class="m-0"><button class="btn btn-sm" type="submit">로그아웃</button></form>
+    </div>
+  </div>
+</header>
+</body></html>

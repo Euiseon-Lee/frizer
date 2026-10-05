@@ -201,17 +201,31 @@ class UserIsolationIntegrationTest {
         assertThatThrownBy(()->AccountService.validateCredentials("a".repeat(101),"a".repeat(10))).hasMessage("아이디는 100자 이내로 입력해줘.");
     }
     @Test void operatorProvisioningCreatesUserAndNeverResetsAnExistingPassword() throws Exception {
-        var command=new AccountProvisionCommand(jdbc,"extra-test","extra-test-password");
+        var command=new AccountProvisionCommand(jdbc,"extra-test","extra-test-password","USER");
         command.run(new DefaultApplicationArguments());
         var created=accounts.loadUserByUsername("extra-test");
         assertThat(created.getAuthorities()).extracting(Object::toString).containsExactly("ROLE_USER");
         assertThat(PasswordEncoderFactories.createDelegatingPasswordEncoder().matches("extra-test-password",created.getPassword())).isTrue();
-        assertThatThrownBy(()->new AccountProvisionCommand(jdbc,"extra-test","changed-test-password").run(new DefaultApplicationArguments()))
+        assertThatThrownBy(()->new AccountProvisionCommand(jdbc,"extra-test","changed-test-password","USER").run(new DefaultApplicationArguments()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(accounts.loadUserByUsername("extra-test").getPassword()).isEqualTo(created.getPassword());
         SecurityContextHolder.clearContext();
         mvc.perform(post("/admin/users").with(csrf()).param("loginId","public-signup").param("password","public-test-password"))
                 .andExpect(redirectedUrlPattern("**/login"));
+    }
+    @Test void operatorCanExplicitlyCreateAdminButCannotPromoteExistingUser() {
+        new AccountProvisionCommand(jdbc,"admin-test","admin-test-password","ADMIN").run(new DefaultApplicationArguments());
+        var admin=accounts.loadUserByUsername("admin-test");
+        assertThat(admin.getAuthorities()).extracting(Object::toString).containsExactly("ROLE_ADMIN");
+        assertThat(PasswordEncoderFactories.createDelegatingPasswordEncoder().matches("admin-test-password",admin.getPassword())).isTrue();
+        var previous=accounts.loadUserByUsername("owner");
+        assertThatThrownBy(()->new AccountProvisionCommand(jdbc,"owner","changed-password","ADMIN").run(new DefaultApplicationArguments()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(accounts.loadUserByUsername("owner").getAuthorities()).isEqualTo(previous.getAuthorities());
+        assertThat(accounts.loadUserByUsername("owner").getPassword()).isEqualTo(previous.getPassword());
+        assertThatThrownBy(()->new AccountProvisionCommand(jdbc,"invalid-role","test-password","ROOT").run(new DefaultApplicationArguments()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM app_user WHERE login_id='invalid-role'",Integer.class)).isZero();
     }
     @Test void ownerIsPartOfMybatisCacheKeyWithinSameTransaction() {
         long id=inventory.create(form("캐시도 비공개"));

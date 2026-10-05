@@ -18,7 +18,10 @@ public class AccessController {
 
     @RequestMapping("/access-denied")
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    String denied(Model model) {
+    String denied(Model model, jakarta.servlet.http.HttpServletRequest request) {
+        Object error = request.getAttribute(org.springframework.security.web.WebAttributes.ACCESS_DENIED_403);
+        model.addAttribute("permissionDenied", error instanceof org.springframework.security.access.AccessDeniedException
+                && !(error instanceof org.springframework.security.web.csrf.CsrfException));
         model.addAttribute("requestRejected", true);
         return "error";
     }

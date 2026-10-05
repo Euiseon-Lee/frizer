@@ -13,4 +13,9 @@ public class AccessModelAdvice {
     boolean accessEnabled() { return enabled; }
     @ModelAttribute("signedIn")
     boolean signedIn(Principal principal) { return principal != null; }
+    @ModelAttribute("isAdmin")
+    boolean isAdmin() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
 }

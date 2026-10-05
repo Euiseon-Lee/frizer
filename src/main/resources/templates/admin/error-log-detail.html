@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" data-bs-theme="light" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('오류 상세')}"></head>
+<body><div class="page"><aside th:replace="~{admin/layout :: sidebar}"></aside><div class="page-wrapper">
+<header th:replace="~{admin/layout :: header}"></header>
+<main class="page-body"><div class="container-xl">
+  <div class="d-flex align-items-center justify-content-between mb-4"><div><div class="page-pretitle">ERROR DETAIL</div><h1 class="page-title" th:text="'오류 #' + ${entry.id}"></h1></div><a class="btn" th:href="${backUrl}">목록으로</a></div>
+  <section class="card mb-4"><div class="card-header"><h2 class="card-title">기본 정보</h2></div><div class="card-body">
+    <dl class="admin-detail-grid mb-0">
+      <dt>발생 시각</dt><dd th:text="${#temporals.format(entry.occurredAt.atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm:ss')} + ' KST'"></dd>
+      <dt>오류 유형</dt><dd th:text="${entry.errorCode}"></dd>
+      <dt>HTTP 상태</dt><dd th:text="${entry.httpStatus}"></dd>
+      <dt>요청</dt><dd><code th:text="${entry.httpMethod + ' ' + entry.requestPath}"></code></dd>
+      <dt>사용자 ID</dt><dd th:text="${entry.userLabel()}"></dd>
+      <dt>내부 사용자 번호</dt><dd th:text="${entry.userId ?: '미확인'}"></dd>
+      <dt>세션 상태</dt><dd th:text="${entry.sessionState}"></dd>
+      <dt>앱 버전</dt><dd><code th:text="${entry.appVersion}"></code></dd>
+      <dt>요청 식별자</dt><dd><code th:text="${entry.requestId}"></code></dd>
+      <dt>예외 클래스</dt><dd th:text="${entry.exceptionClass ?: '없음'}"></dd>
+    </dl>
+  </div></section>
+  <section class="card mb-4"><div class="card-header"><h2 class="card-title">오류 설명</h2></div><div class="card-body" th:text="${entry.message}"></div></section>
+  <section class="card mb-4"><div class="card-header"><h2 class="card-title">진단 정보</h2></div><div class="card-body"><pre class="admin-stack mb-0" th:text="${entry.diagnosticContext}"></pre></div></section>
+  <section class="card"><div class="card-header"><h2 class="card-title">호출 위치</h2></div><div class="card-body"><p class="text-secondary">민감정보 보호를 위해 예외 원문과 요청 본문은 저장하지 않고, 허용된 진단 항목만 기록합니다.</p><pre class="admin-stack mb-0" tabindex="0" aria-label="예외 호출 위치" th:text="${entry.stackTrace ?: '저장된 호출 정보가 없습니다.'}"></pre></div></section>
+</div></main></div></div></body></html>

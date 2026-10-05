@@ -28,7 +28,7 @@ dependencies {
     // Boot 3.5 manages Flyway 11.7, which predates PostgreSQL 18 (Neon prod); pin a PG18-aware release.
     implementation 'org.flywaydb:flyway-core:11.20.3'
     runtimeOnly 'org.flywaydb:flyway-database-postgresql:11.20.3'
-    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

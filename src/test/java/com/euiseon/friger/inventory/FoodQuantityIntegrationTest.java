@@ -49,6 +49,20 @@ class FoodQuantityIntegrationTest {
     long finish(long id) {return quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),null);}
     String registrationQuantity(long id) {return jdbc.queryForObject("SELECT quantity_text FROM food_history WHERE food_id=? AND action_type='CREATE' ORDER BY history_id LIMIT 1",String.class,id);}
     long cancel(long id,long history) {return quantities.apply(id,CANCEL,quantities.preview(id).version(),history,UUID.randomUUID(),null);}
+    @Test void homeSummariesUseRecordedZeroQuantityAndKeepHistoryDetails() throws Exception {
+        long id=create();
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(containsString("수량: 2.5모 → 2모")));
+        long consumed=finish(id);
+        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(containsString("모두 다 소비했어")));
+        cancel(id,consumed);
+        // Current stock is restored, but the earlier full-consumption summary is historical.
+        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(containsString("모두 다 소비했어")));
+        quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),null);
+        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(containsString("모두 다 폐기했어")));
+        String detail=mvc.perform(get("/history")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(detail).contains("2모", "0모", "history-change-arrow").doesNotContain("모두 다 소비했어", "모두 다 폐기했어");
+    }
     @Test void wholeConsumptionAndCancellationPreserveIdentityAndPurchaseSnapshot() throws Exception {
         long id=create(),master=masters.masterId(id);
         var original=jdbc.queryForMap("SELECT * FROM food_history WHERE food_id=?",id);

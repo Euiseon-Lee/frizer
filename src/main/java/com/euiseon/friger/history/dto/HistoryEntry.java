@@ -8,7 +8,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
         String quantityText, OffsetDateTime createdAt, String changesText,
         Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName,
-        Integer mergedItemCount, Boolean itemMoved) {
+        Integer mergedItemCount, Boolean itemMoved, java.math.BigDecimal afterQuantityAmount, Long mergedTargetId) {
     public boolean isMerge() { return mergedFromName != null; }
     public String currentLocationNote() {
         if (currentFoodName == null) return isMerge() ? "현재 음식은 전체 목록에서 확인해줘." : null;
@@ -23,7 +23,17 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         return actionType.label();
     }
     public String homeSummary() {
+        if (isMerge()) return "→ " + mergedIntoName + " (#" + mergedTargetId + ")";
+        if ((actionType == FoodActionType.CONSUME || actionType == FoodActionType.DISCARD)
+                && afterQuantityAmount != null && afterQuantityAmount.signum() == 0)
+            return "모두 다 " + actionLabel() + "했어";
         if (actionType == FoodActionType.CREATE || changesText == null || changesText.isBlank()) return actionLabel() + "했어";
+        if (actionType == FoodActionType.UPDATE && changesText.startsWith("경고 알림 제외 종료일: ")
+                && changesText.lines().count() == 1) {
+            int arrow = changesText.indexOf(" → ");
+            if (arrow >= 0) return changesText.substring(arrow + 3).strip().equals("-")
+                    ? "경고 알림 설정했어" : "경고 알림 제외 설정했어";
+        }
         if (actionType == FoodActionType.UPDATE && detailFields().size() >= 2) return "수정한 정보 " + detailFields().size() + "건";
         return changesText.replaceAll("\\R+", " · ");
     }
@@ -66,7 +76,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         } else if (changesText != null && !changesText.isBlank()) {
             for (String line : changesText.split("\\R", -1)) {
                 int colon = line.indexOf(": ");
-                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉일", "메모", "새 항목").contains(line.substring(0, colon))) {
+                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉 상태", "개봉 상태 확인일", "개봉일", "경고 알림 제외 종료일", "메모", "새 항목").contains(line.substring(0, colon))) {
                     result.add(new DetailField(line.substring(0, colon), line.substring(colon + 2)));
                 } else if (!result.isEmpty()) {
                     var previous = result.remove(result.size() - 1);
@@ -80,7 +90,15 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
                             : locationLabel(newStorageType)));
             if (quantityText != null) result.add(new DetailField("수량", quantityText));
         }
-        return result;
+        return result.stream().map(field -> {
+            if (field.label().equals("냉동 보관 시작일")) return new DetailField("냉동 보관일", field.value());
+            if (field.label().equals("개봉 상태 확인일")) return new DetailField("개봉 확인일", field.value());
+            if (!field.label().equals("경고 알림 제외 종료일")) return field;
+            String value = java.util.Arrays.stream(field.value().split(" → ", -1))
+                    .map(part -> part.equals("-") ? "해제" : part)
+                    .collect(java.util.stream.Collectors.joining(" → "));
+            return new DetailField("경고 알림", value);
+        }).toList();
     }
 
     public String locationLabel(StorageType storage) {

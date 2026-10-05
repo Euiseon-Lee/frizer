@@ -229,7 +229,7 @@ class FoodMergeIntegrationTest {
             assertThat(entry.actionLabel()).isEqualTo("병합");
             assertThat(entry.displayFoodName()).isEqualTo("치킨");
             assertThat(entry.currentMasterId()).isEqualTo(target);
-            assertThat(entry.homeSummary()).contains("치킨").contains("두부");
+            assertThat(entry.homeSummary()).isEqualTo("→ 두부 (#"+target+")");
         });
         mvc.perform(get("/history")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("치킨")))
@@ -244,6 +244,7 @@ class FoodMergeIntegrationTest {
         assertThat(merge.displayFoodName()).isEqualTo("옛 음식");
         assertThat(merge.changesText()).isEqualTo("음식명: 옛 음식 (#99999) → 당시 두부 (#"+target+")");
         assertThat(merge.actionLabel()).isEqualTo("병합");
+        assertThat(merge.homeSummary()).isEqualTo("→ 당시 두부 (#"+target+")");
         assertThat(merge.mergedItemCount()).isEqualTo(7);assertThat(merge.currentFoodName()).isEqualTo("두부");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(1);
     }

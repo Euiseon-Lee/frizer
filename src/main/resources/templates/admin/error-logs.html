@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" data-bs-theme="light" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('오류 로그')}"></head>
+<body><div class="page">
+<aside th:replace="~{admin/layout :: sidebar}"></aside>
+<div class="page-wrapper">
+<header th:replace="~{admin/layout :: header}"></header>
+<main class="page-body"><div class="container-xl">
+  <div class="mb-4"><h1 class="page-title">오류 로그</h1><p class="text-secondary mt-2 mb-0">서버 오류와 로그인 및 보안 요청 실패를 확인합니다. 모든 시각은 한국 시간입니다.</p></div>
+  <div th:if="${filterError}" class="alert alert-danger" role="alert" th:text="${filterError}"></div>
+  <section class="card mb-4" aria-label="로그 검색"><div class="card-body">
+    <form method="get" th:action="@{/admin/error-logs}" class="row g-3">
+      <div class="col-md-6 col-xl-3"><label class="form-label" for="start">시작 시각 (포함)</label><input class="form-control" id="start" name="start" type="datetime-local" required th:value="${query.start}"></div>
+      <div class="col-md-6 col-xl-3"><label class="form-label" for="end">종료 시각 (미포함)</label><input class="form-control" id="end" name="end" type="datetime-local" required th:value="${query.end}"></div>
+      <div class="col-md-6 col-xl-2"><label class="form-label" for="code">오류 유형</label><select class="form-select" id="code" name="code"><option value="">전체</option><option th:each="code : ${codes}" th:value="${code}" th:text="${code}" th:selected="${code == query.code}"></option></select></div>
+      <div class="col-md-3 col-xl-2"><label class="form-label" for="status">HTTP</label><input class="form-control" id="status" name="status" type="number" min="100" max="599" placeholder="전체" th:value="${query.status}"></div>
+      <div class="col-md-3 col-xl-2"><label class="form-label" for="loginId">사용자 ID</label><input class="form-control" id="loginId" name="loginId" type="text" maxlength="100" placeholder="아이디 일부 입력" th:value="${query.loginId}"></div>
+      <div class="col-md-8"><label class="form-label" for="path">요청 경로</label><input class="form-control" id="path" name="path" maxlength="512" placeholder="예: /login" th:value="${query.path}"></div>
+      <div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-primary" type="submit">조회</button><a class="btn" th:href="@{/admin/error-logs}">최근 24시간</a></div>
+    </form>
+  </div></section>
+  <section class="card" aria-label="오류 목록">
+    <div class="card-header"><h2 class="card-title">조회 결과 <span class="text-secondary ms-2" th:text="${result.total} + '건'">0건</span></h2><span class="ms-auto text-secondary small">최신순 · 페이지당 50건</span></div>
+    <div class="table-responsive admin-log-scroll" data-visible-rows="10" tabindex="0" aria-label="오류 목록 스크롤" th:if="${!result.rows.isEmpty()}"><table class="table table-vcenter card-table admin-log-table">
+      <thead><tr><th>발생 시각</th><th>오류 유형</th><th>상태</th><th>요청</th><th>사용자 ID</th><th>상세</th></tr></thead>
+      <tbody><tr th:each="row : ${result.rows}">
+        <td class="text-nowrap" th:text="${#temporals.format(row.occurredAt.atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm:ss')}"></td>
+        <td><span class="badge" th:classappend="${row.httpStatus >= 500 ? 'bg-danger-lt' : 'bg-warning-lt'}" th:text="${row.errorCode}"></span></td>
+        <td th:text="${row.httpStatus}"></td>
+        <td><span class="text-secondary me-2" th:text="${row.httpMethod}"></span><code th:text="${row.requestPath}"></code></td>
+        <td th:text="${row.userLabel()}"></td>
+        <td><a class="btn btn-sm" th:href="${query.url('/admin/error-logs/' + row.id, query.page)}" th:aria-label="'오류 ' + ${row.id} + ' 상세 보기'">보기</a></td>
+      </tr></tbody>
+    </table></div>
+    <div class="empty" th:if="${result.rows.isEmpty()}"><p class="empty-title">조회된 오류가 없습니다</p><p class="empty-subtitle text-secondary">기간이나 검색 조건을 변경해 확인해주세요.</p></div>
+    <div class="card-footer d-flex align-items-center justify-content-between"><span class="text-secondary" th:text="${query.page + 1} + ' 페이지'"></span><nav aria-label="목록 페이지" class="d-flex gap-2"><a th:if="${previousUrl}" class="btn btn-sm" th:href="${previousUrl}">이전</a><a th:if="${nextUrl}" class="btn btn-sm" th:href="${nextUrl}">다음</a></nav></div>
+  </section>
+</div></main>
+</div></div></body></html>

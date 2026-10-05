@@ -46,6 +46,7 @@ class ErrorLogIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired AccountService accounts;
     @Autowired ErrorLogStore store;
+    @Autowired ErrorLogReadService reads;
     @Autowired PlatformTransactionManager transactions;
     @Autowired TestRestTemplate http;
 
@@ -60,6 +61,22 @@ class ErrorLogIntegrationTest {
     @BeforeEach void clear() {
         jdbc.update("DELETE FROM application_error_log");
         jdbc.update("UPDATE app_user SET role='ADMIN' WHERE login_id='owner'");
+    }
+
+    @Test void loginLandsOnRoleHomeInsteadOfSavedRequest() throws Exception {
+        var session = new org.springframework.mock.web.MockHttpSession();
+        mvc.perform(get("/inventory").session(session)).andExpect(redirectedUrlPattern("**/login"));
+        mvc.perform(post("/login").session(session).with(csrf()).param("username", "owner")
+                .param("password", "test-only-strong-password")).andExpect(redirectedUrl("/admin"));
+        assertThat(session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")).isNull();
+        mvc.perform(get("/admin").session(session)).andExpect(redirectedUrl("/admin/error-logs"));
+
+        jdbc.update("UPDATE app_user SET role='USER' WHERE login_id='owner'");
+        var userSession = new org.springframework.mock.web.MockHttpSession();
+        mvc.perform(get("/admin").session(userSession)).andExpect(redirectedUrlPattern("**/login"));
+        mvc.perform(post("/login").session(userSession).with(csrf()).param("username", "owner")
+                .param("password", "test-only-strong-password")).andExpect(redirectedUrl("/"));
+        assertThat(userSession.getAttribute("SPRING_SECURITY_SAVED_REQUEST")).isNull();
     }
 
     @Test void capturesCsrfAndAuthenticationFailuresWithoutChangingResponses() throws Exception {
@@ -93,6 +110,55 @@ class ErrorLogIntegrationTest {
         var response = http.postForEntity("/login", new org.springframework.util.LinkedMultiValueMap<String, String>(), String.class);
         assertThat(response.getStatusCode().value()).isEqualTo(403);
         assertThat(jdbc.queryForObject("SELECT request_path FROM application_error_log WHERE error_code='CSRF_MISSING'", String.class)).isEqualTo("/login");
+    }
+
+    @Test void adminOnlyAndEscapedDetailWithSearchNavigation() throws Exception {
+        long id = seed(OffsetDateTime.now(), "SERVER_ERROR", "/inventory/{id}", 500, 1L, "<script>alert('x')</script>");
+        mvc.perform(get("/admin/error-logs")).andExpect(redirectedUrlPattern("**/login"));
+        // Real principal so AccountSessionFilter accepts this user.
+        var owner = accounts.loadUserByUsername("owner");
+        assertThat(reads.find(id).orElseThrow().loginId()).isEqualTo("owner");
+        var list = mvc.perform(get("/admin/error-logs").with(user(owner)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("SERVER_ERROR"))).andReturn();
+        var detail = mvc.perform(get("/admin/error-logs/" + id).param("path", "/inventory").with(user(owner)))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("&lt;script&gt;")))
+                .andExpect(content().string(containsString("path=/inventory"))).andReturn();
+        assertThat(detail.getResponse().getContentAsString()).doesNotContain("<script>alert");
+        assertThat(detail.getResponse().getContentAsString()).contains("<dd>owner</dd>");
+        assertThat(list.getResponse().getContentAsString()).contains("<td>owner</td>");
+        mvc.perform(get("/admin/error-logs").param("loginId", "x".repeat(101)).with(user(owner)))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("검색 조건을 확인해주세요")));
+        mvc.perform(get("/admin/error-logs/9223372036854775807").with(user(owner))).andExpect(status().isNotFound());
+        // Change role only for this test and restore even on assertion failure.
+        jdbc.update("UPDATE app_user SET role='USER' WHERE login_id='owner'");
+        try {
+            mvc.perform(get("/admin/error-logs").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
+            mvc.perform(get("/admin/error-logs/" + id).with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
+        } finally { jdbc.update("UPDATE app_user SET role='ADMIN' WHERE login_id='owner'"); }
+    }
+
+    @Test void searchUsesSeoulTimeAndPagesWithoutFetchingStack() {
+        var time = OffsetDateTime.parse("2026-10-05T01:00:00+09:00");
+        for (int i = 0; i < 51; i++) seed(time, "SERVER_ERROR", "/inventory", 500, 1L, "private-stack");
+        seed(time.minusDays(1), "SERVER_ERROR", "/inventory", 500, 1L, "old");
+        long orphanId = seed(time, "SERVER_ERROR", "/inventory", 500, 7L, "orphan");
+        assertThat(reads.find(orphanId).orElseThrow().userLabel()).isEqualTo("계정 없음 (#7)");
+        var params = new java.util.HashMap<>(Map.of("start", "2026-10-05T00:00", "end", "2026-10-06T00:00", "loginId", "owner", "status", "500", "code", "SERVER_ERROR", "path", "/inventory"));
+        var first = reads.search(ErrorLogQuery.parse(params));
+        assertThat(first.total()).isEqualTo(51);
+        assertThat(first.rows()).hasSize(50).allMatch(row -> row.stackTrace() == null);
+        assertThat(first.rows()).allMatch(row -> row.userLabel().equals("owner"));
+        assertThat(ErrorLogQuery.parse(params).url("/admin/error-logs", 1)).contains("loginId=owner");
+        params.put("page", "1");
+        assertThat(reads.search(ErrorLogQuery.parse(params)).rows()).hasSize(1);
+        params.put("loginId", "own");
+        assertThat(reads.search(ErrorLogQuery.parse(params)).total()).isEqualTo(51);
+        params.put("loginId", "%");
+        assertThat(reads.search(ErrorLogQuery.parse(params)).total()).isZero();
+        params.put("loginId", "owner");
+        params.put("path", "%' OR 1=1 --");
+        assertThat(reads.search(ErrorLogQuery.parse(params)).total()).isZero();
     }
 
     @Test void independentTransactionAndRetentionBoundary() {

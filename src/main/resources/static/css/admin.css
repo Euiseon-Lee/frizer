@@ -1,0 +1,25 @@
+:root,[data-bs-theme=light]{--admin-header-height:56px;--tblr-primary:#7057c8;--tblr-primary-rgb:112,87,200;--tblr-link-color:#7057c8;--tblr-link-hover-color:#5943a5;--tblr-font-sans-serif:"Apple SD Gothic Neo","Malgun Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.admin-brand{color:var(--tblr-primary);font-weight:800;letter-spacing:-.04em}
+.navbar-vertical.navbar-expand-lg .admin-brand{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin:0;padding:0;text-align:left}
+.admin-brand-icon{width:24px;height:24px;object-fit:contain;flex-shrink:0}
+.admin-header{min-height:var(--admin-header-height)}
+.admin-menu{gap:4px}
+@media(min-width:992px){
+  .navbar-vertical.navbar-expand-lg{padding:0}
+  .navbar-vertical.navbar-expand-lg>.container-fluid{padding:0;gap:0}
+  .admin-sidebar-header{display:flex;align-items:center;justify-content:flex-start;width:100%;height:var(--admin-header-height);flex-shrink:0;padding:0 16px;border-bottom:1px solid var(--tblr-border-color)}
+  .admin-header{height:var(--admin-header-height);padding:0}
+  .navbar-vertical .admin-menu{padding:8px 12px}
+}
+.navbar-vertical .nav-link.active{background:#f0ecfa;color:var(--tblr-primary);border-radius:6px}
+.admin-log-table{min-width:900px}
+.admin-log-scroll{overflow:auto}
+.admin-log-scroll:focus-visible{outline:2px solid var(--tblr-primary);outline-offset:-2px}
+.admin-log-table thead th{position:sticky;top:0;z-index:1;background:var(--tblr-bg-surface-secondary,#f6f7f9)}
+.admin-log-table th,.admin-log-table td{text-align:center}
+.admin-log-table code{overflow-wrap:anywhere}
+.admin-detail-grid{display:grid;grid-template-columns:140px minmax(0,1fr);gap:1rem 1.5rem}
+.admin-detail-grid dt{color:var(--tblr-secondary);font-weight:500}
+.admin-detail-grid dd{margin:0;overflow-wrap:anywhere}
+.admin-stack{max-height:600px;overflow:auto;font-size:12px;line-height:1.7;background:#f6f7f9;color:#30313d;border:1px solid var(--tblr-border-color);padding:1rem}
+@media(max-width:991.98px){.navbar-vertical .container-fluid{gap:.75rem}.navbar-vertical .navbar-nav{width:auto!important}.admin-detail-grid{grid-template-columns:100px minmax(0,1fr);gap:.75rem}}

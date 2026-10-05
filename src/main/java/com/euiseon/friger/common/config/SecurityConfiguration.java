@@ -35,7 +35,7 @@ public class SecurityConfiguration {
                     .requestMatchers("/login", "/health", "/css/**", "/assets/**", "/favicon.ico", "/apple-touch-icon.png", "/js/choco-selector.js", "/js/choco.js", "/js/notices.js", "/error", "/access-denied").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
-                .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/", true)
+                .formLogin(login -> login.loginPage("/login").successHandler(new RoleBasedLoginSuccessHandler())
                     .failureHandler((request, response, error) -> {
                         errorLogs.mark(request, "AUTHENTICATION_FAILED", 302, error);
                         loginFailure.onAuthenticationFailure(request, response, error);

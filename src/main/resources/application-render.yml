@@ -11,6 +11,10 @@ server:
         same-site: lax
 
 frizer:
+  error-log:
+    cleanup-enabled: true
+    retention-days: 30
+    app-version: ${RENDER_GIT_COMMIT:unknown}
   security:
     enabled: true
 

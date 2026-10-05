@@ -3,6 +3,6 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 내 프로필</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page"><section th:replace="~{fragments/shell :: accessHeading('안녕? 나는 멋쟁이 왕쪼코야.', '내 프로필', '아직 구현되지 않았어🤫', false)}"></section><div class="tab-sheet"><section>
 
-<p th:if="${isAdmin}"><a class="text-link" th:href="@{/admin/error-logs}">관리자 · 오류 로그</a></p>
+<p class="account-admin-link" th:if="${isAdmin}"><a class="text-link" th:href="@{/admin/error-logs}">관리자 페이지로 이동</a></p>
 <form th:if="${accessEnabled}" method="post" th:action="@{/logout}"><div class="form-actions"><button class="button" type="submit">로그아웃</button></div></form>
 </section></div></main><nav th:replace="~{fragments/shell :: nav('')}"></nav></body></html>

@@ -106,7 +106,7 @@ class SecurityIntegrationTest {
         mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
         mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner"))).with(csrf().useInvalidToken())).andExpect(status().isForbidden());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(before);
-        mvc.perform(post("/login").param("username", "owner").param("password", "test-only-strong-password")).andExpect(status().isForbidden());
+        mvc.perform(post("/login").param("username", "owner").param("password", "test-only-strong-password")).andExpect(redirectedUrl("/login?expired"));
     }
     @Test void renderedFormTokenAllowsRegistrationAndInvalidPostDoesNot() throws Exception {
         var page = mvc.perform(get("/inventory/new").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isOk()).andReturn();

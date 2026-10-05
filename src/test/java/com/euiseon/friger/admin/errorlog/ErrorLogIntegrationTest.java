@@ -84,16 +84,16 @@ class ErrorLogIntegrationTest {
         assertThat(userSession.getAttribute("SPRING_SECURITY_SAVED_REQUEST")).isNull();
     }
 
-    @Test void capturesCsrfAndAuthenticationFailuresWithoutChangingResponses() throws Exception {
+    @Test void capturesCsrfAndAuthenticationFailuresWithLoginRecovery() throws Exception {
         mvc.perform(post("/login").param("username", "owner").param("password", "secret"))
-                .andExpect(status().isForbidden());
+                .andExpect(redirectedUrl("/login?expired"));
         assertThat(jdbc.queryForObject("SELECT error_code FROM application_error_log", String.class)).isEqualTo("CSRF_MISSING");
-        mvc.perform(post("/login").with(csrf().useInvalidToken())).andExpect(status().isForbidden());
+        mvc.perform(post("/login").with(csrf().useInvalidToken())).andExpect(redirectedUrl("/login?expired"));
         mvc.perform(post("/login").with(csrf()).param("username", "owner").param("password", "wrong"))
                 .andExpect(redirectedUrl("/login?error"));
         assertThat(jdbc.queryForList("SELECT error_code FROM application_error_log", String.class))
                 .containsExactlyInAnyOrder("CSRF_MISSING", "CSRF_INVALID", "AUTHENTICATION_FAILED");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM application_error_log WHERE http_status = 302", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM application_error_log WHERE http_status = 302", Integer.class)).isEqualTo(3);
         assertThat(jdbc.queryForObject("SELECT diagnostic_context->>'authenticationFailure' FROM application_error_log WHERE error_code='AUTHENTICATION_FAILED'", String.class))
                 .isEqualTo("BAD_CREDENTIALS");
     }
@@ -121,12 +121,15 @@ class ErrorLogIntegrationTest {
                 .contains("FailureEndpoint.fail").doesNotContain("never-store-this");
     }
 
-    @Test void resolvedServerExceptionRetainsCauseAndCsrfForwardRetainsOriginalPath() {
+    @Test void resolvedServerExceptionRetainsCauseAndCsrfRecoveryRetainsOriginalPath() {
         assertThat(http.getForEntity("/css/test-resolved", String.class).getStatusCode().value()).isEqualTo(503);
         assertThat(jdbc.queryForObject("SELECT stack_trace FROM application_error_log", String.class))
                 .contains("ResponseStatusException").doesNotContain("private-message");
         var response = http.postForEntity("/login", new org.springframework.util.LinkedMultiValueMap<String, String>(), String.class);
-        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        // The HTTP client follows the redirect; the original response remains in the log.
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).contains("로그인 화면이 갱신됐어.");
+        assertThat(jdbc.queryForObject("SELECT http_status FROM application_error_log WHERE error_code='CSRF_MISSING'", Integer.class)).isEqualTo(302);
         assertThat(jdbc.queryForObject("SELECT request_path FROM application_error_log WHERE error_code='CSRF_MISSING'", String.class)).isEqualTo("/login");
     }
 
@@ -200,5 +203,37 @@ class ErrorLogIntegrationTest {
         store.save(new ErrorLogEntry(0, time, requestId, userId, "GET", path, status, code,
                 "java.lang.IllegalStateException", "테스트 오류", stack, "INVALID", "test-build", "{}"));
         return jdbc.queryForObject("SELECT id FROM application_error_log WHERE request_id=?", Long.class, requestId);
+    }
+
+    @Test void freshTokenRecoversOldLoginFormAfterAuthenticationAndSessionLoss() throws Exception {
+        var first = mvc.perform(get("/login")).andExpect(status().isOk()).andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession) first.getRequest().getSession(false);
+        var pattern = java.util.regex.Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"");
+        var matcher = pattern.matcher(first.getResponse().getContentAsString());
+        assertThat(matcher.find()).isTrue();
+        String oldToken = matcher.group(1);
+        mvc.perform(post("/login").session(session).param("_csrf", oldToken)
+                .param("username", "owner").param("password", "test-only-strong-password"))
+                .andExpect(redirectedUrl("/admin"));
+        mvc.perform(get("/admin/error-logs").session(session)).andExpect(status().isOk());
+        mvc.perform(post("/login").session(session).param("_csrf", oldToken)
+                .param("username", "owner").param("password", "test-only-strong-password"))
+                .andExpect(redirectedUrl("/login?expired"));
+        assertThat(jdbc.queryForObject("SELECT error_code FROM application_error_log", String.class)).isEqualTo("CSRF_INVALID");
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        var refresh = mvc.perform(get("/login/csrf").session(session))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", containsString("no-store"))).andReturn();
+        String token = json.readTree(refresh.getResponse().getContentAsString()).get("token").asText();
+        mvc.perform(post("/login").session(session).param("_csrf", token)
+                .param("username", "owner").param("password", "test-only-strong-password"))
+                .andExpect(redirectedUrl("/admin"));
+
+        session.invalidate(); // A server restart or expired session loses the old token too.
+        var newSession = mvc.perform(get("/login/csrf")).andExpect(status().isOk()).andReturn();
+        token = json.readTree(newSession.getResponse().getContentAsString()).get("token").asText();
+        mvc.perform(post("/login").session((org.springframework.mock.web.MockHttpSession) newSession.getRequest().getSession(false))
+                .param("_csrf", token).param("username", "owner").param("password", "test-only-strong-password"))
+                .andExpect(redirectedUrl("/admin"));
+        mvc.perform(get("/login?expired")).andExpect(content().string(containsString("로그인 화면이 갱신됐어.")));
     }
 }

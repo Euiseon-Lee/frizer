@@ -32,7 +32,7 @@ public class SecurityConfiguration {
                     }
                 }, org.springframework.security.web.access.intercept.AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login", "/health", "/css/**", "/assets/**", "/favicon.ico", "/apple-touch-icon.png", "/js/choco-selector.js", "/js/choco.js", "/js/notices.js", "/error", "/access-denied").permitAll()
+                    .requestMatchers("/login", "/login/csrf", "/health", "/css/**", "/assets/**", "/favicon.ico", "/apple-touch-icon.png", "/js/choco-selector.js", "/js/choco.js", "/js/notices.js", "/js/login.js", "/error", "/access-denied").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
                 .formLogin(login -> login.loginPage("/login").successHandler(new RoleBasedLoginSuccessHandler())
@@ -44,8 +44,15 @@ public class SecurityConfiguration {
                 .exceptionHandling(errors -> errors.accessDeniedHandler((request, response, error) -> {
                     String code = error instanceof org.springframework.security.web.csrf.MissingCsrfTokenException ? "CSRF_MISSING"
                             : error instanceof org.springframework.security.web.csrf.InvalidCsrfTokenException ? "CSRF_INVALID" : "ACCESS_DENIED";
-                    errorLogs.mark(request, code, 403, error);
-                    denied.handle(request, response, error);
+                    if (error instanceof org.springframework.security.web.csrf.CsrfException
+                            && "POST".equals(request.getMethod())
+                            && (request.getContextPath() + "/login").equals(request.getRequestURI())) {
+                        errorLogs.mark(request, code, 302, error);
+                        response.sendRedirect(request.getContextPath() + "/login?expired");
+                    } else {
+                        errorLogs.mark(request, code, 403, error);
+                        denied.handle(request, response, error);
+                    }
                 }));
         }
         return http.build();

@@ -13,6 +13,14 @@ public class AccessController {
     @GetMapping("/login")
     String login() { return "login"; }
 
+    @GetMapping("/login/csrf")
+    @ResponseBody
+    org.springframework.http.ResponseEntity<org.springframework.security.web.csrf.CsrfToken> loginCsrf(
+            org.springframework.security.web.csrf.CsrfToken token) {
+        return org.springframework.http.ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.noStore()).body(token);
+    }
+
     @GetMapping("/account")
     String account() { return "account"; }
 

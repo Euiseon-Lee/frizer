@@ -519,6 +519,8 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .warning-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
 .warning-dialog-actions>button:first-child{background:var(--subtle-hover-bg);color:var(--ink);border:1px solid var(--line)}
 .warning-resume{display:block;width:fit-content;max-width:100%;margin:8px 0 0 auto;font-size:13px;text-align:right;color:var(--muted)}
+.account-admin-link{text-align:right}
+.account-admin-link .text-link:hover{text-decoration:underline}
 .warning-resume+.warning-dialog-actions{margin-top:8px}
 
 /* Opening state and date remain aligned, including disabled dates. */

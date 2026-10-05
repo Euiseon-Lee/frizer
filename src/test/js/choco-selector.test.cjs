@@ -14,9 +14,12 @@ function valid(regions,result,complete=true){
 const originalGroups={PROFILE:['happy-closeup'],WAITING:['puppy-sit','empty-curious','extra-chin-on-paw','extra-puppy-gaze'],REST:['cozy-curl','extra-curled-smile','leaf-hat-front','leaf-hat-side','rest','sniff'],NEUTRAL:['proud-sit','puppy-tilt','puppy-ready','look-aside'],HAPPY:['come-running','extra-sunny-sit','extra-tongue-step','happy-lounge','happy-sit','puppy-front-paws']};
 const expected={PROFILE:[...originalGroups.PROFILE,'back-view-harness'],WAITING:[...originalGroups.WAITING,'pink-coat-look-back'],REST:[...originalGroups.REST,'flower-sniff','side-rest','belly-up-lounge','flower-collar-sit','plastic-flower-hat','striped-socks-puppy','snack-ring-tilt','upside-down-gaze','chin-scratch-closeup','lying-blank-gaze','relaxed-smile-portrait'],NEUTRAL:[...originalGroups.NEUTRAL,'calm-closeup','red-collar-puppy','puppy-paw-reach','puppy-look-down','leash-hold'],HAPPY:[...originalGroups.HAPPY,'happy-run-front','belly-up-play','breeze-sly-smile','breeze-happy-smile','side-smile-stand']};
 const batch=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260914-batch.json','utf8')).images;
+const recent=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20261005.json','utf8')).images;
+assert.equal(recent.length,8);
+for(const row of recent)expected[row.emotion_group].push(row.key);
 assert.equal(batch.length,33);
 for(const row of batch)expected[row.emotion_group].push(row.key);
-assert.deepEqual(groups,expected);assert.equal(Object.keys(assets).length,77);
+assert.deepEqual(groups,expected);assert.equal(Object.keys(assets).length,85);
 // Historical import accounting remains intact; approved retouches have explicit replacement hashes.
 const addition=JSON.parse(fs.readFileSync('src/test/resources/choco/addition-results.json','utf8'));
 assert.equal(addition.images.length,20);assert.equal(addition.added,15);assert.equal(addition.reused,5);assert.equal(addition.missing,0);
@@ -25,6 +28,17 @@ const sourceRows=fs.readFileSync('src/test/resources/choco/image-mapping.csv','u
 assert.equal(sourceRows.length,20);
 for(const line of sourceRows){const [original,zip]=line.split(',');assert.ok(addition.images.some(r=>r.original_filename===original&&r.zip_filename===zip));}
 const digest=name=>crypto.createHash('sha256').update(fs.readFileSync('src-assets/choco/'+name)).digest('hex');
+for(const row of recent){
+ const bytes=fs.readFileSync('src-assets/choco/'+row.filename);
+ assert.equal(row.project_sha256,row.source_sha256,'new original must match supplied ZIP');
+ assert.equal(digest(row.filename),row.source_sha256);
+ assert.deepEqual([bytes.readUInt32BE(16),bytes.readUInt32BE(20)],row.size);
+ assert.equal(bytes[25],6,'new original retains RGBA');
+ assert.equal(assets[row.key].renderMode,row.render_mode);
+ assert.equal(core.isEligible(row.key,'error'),false);
+ const web=fs.readFileSync('src/main/resources/static/assets/choco/web/v1/'+row.key+'.webp');
+ assert.equal(crypto.createHash('sha256').update(web).digest('hex'),row.web_sha256);
+}
 const current=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260914.json','utf8'));
 const replacements=JSON.parse(fs.readFileSync('src/test/resources/choco/choco-20260915-replacements.json','utf8')).images;
 assert.equal(replacements.length,14);
@@ -89,7 +103,7 @@ for(const a of Object.values(assets)){
 }
 assert.deepEqual(fs.readdirSync('src-assets/choco').filter(f=>f.endsWith('.png')).sort(),Object.keys(assets).map(k=>k+'.png').sort(),'unregistered or missing PNG');
 for(const [role,p] of Object.entries(policies))if(p.header){
- assert.equal(core.candidatesFor(role).length,62);
+ assert.equal(core.candidatesFor(role).length,69);
  assert.equal(core.isEligible('puppy-tilt',role),false);
  for(const key of expected.WAITING)assert.equal(core.isEligible(key,role),false);
  for(const key of [...originalGroups.REST,...originalGroups.NEUTRAL,...originalGroups.HAPPY].filter(k=>k!=='puppy-tilt'))assert.ok(core.isEligible(key,role));
@@ -195,7 +209,19 @@ assert.deepEqual([...upgradedSeen].sort(),[...scopes.HEADER].sort());
 for(const key of newKeys)assert.ok(upgradedSeen.has(key));
 const exploreSeen=new Set();
 for(let i=0;i<scopes.EXPLORE.length;i++)exploreSeen.add(upgraded.createPage().sync([region('all')]).get('all'));
-for(const row of batch)assert.ok(exploreSeen.has(row.key),'new photo unreachable: '+row.key);
+for(const row of [...batch,...recent])assert.ok(exploreSeen.has(row.key),'new photo unreachable: '+row.key);
+// A session from the 77-image release must pick up every new eligible photo.
+const beforeOctober=storage();
+beforeOctober.setItem(storageKey,JSON.stringify({version:4,profile:'back-view-harness',bags:Object.fromEntries(Object.entries(scopes).map(([scope,keys])=>[scope,{remaining:keys.filter(k=>!recent.some(r=>r.key===k)),used:[],last:null}]))}));
+const octoberSelector=createSelector(beforeOctober,rng(77)),octoberSeen=new Set();
+for(let i=0;i<scopes.HEADER.length;i++){
+ const result=octoberSelector.createPage().sync([profile,region('list-header')]);
+ assert.equal(result.get('profile'),'back-view-harness');
+ assert.ok(!octoberSeen.has(result.get('list-header')));
+ octoberSeen.add(result.get('list-header'));
+}
+assert.deepEqual([...octoberSeen].sort(),[...scopes.HEADER].sort());
+assert.equal(octoberSeen.has('side-stand-yawn'),false,'wide photo excluded from header');
 const oldNames=storage();
 const priorKey=key=>batch.find(r=>r.key===key)?.source_filename.replace(/\.png$/,'')||key;
 oldNames.setItem(storageKey,JSON.stringify({version:4,profile:'back-view-harness',bags:Object.fromEntries(Object.entries(scopes).map(([scope,keys])=>[scope,{remaining:keys.map(priorKey),used:[],last:null}]))}));
@@ -237,4 +263,4 @@ for(const key of ['handsome-profile-lounge','threshold-lounge','puppy-proud-sit'
  assert.equal(target.src,'http://localhost/assets/choco/web/v1/'+encodeURIComponent(key+'.webp'));
  assert.ok(fs.existsSync('src/main/resources/static/assets/choco/web/v1/'+key+'.webp'));
 }
-console.log('PASS: 77 live assets; 41 added PNGs; approved retouch hashes and 14 committed replacements; 62-image headers; independent shuffle bags; 360 home allocations; old-session migration; normalized filenames and asset URLs; DOM stability and BFCache');
+console.log('PASS: 85 live assets; 8 October additions; preserved approved hashes; 69-image headers; independent shuffle bags; 360 home allocations; old-session migration; normalized filenames and asset URLs; DOM stability and BFCache');

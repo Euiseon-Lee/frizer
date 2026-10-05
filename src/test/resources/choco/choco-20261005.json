@@ -1,0 +1,133 @@
+{
+  "source_archive": "choco-icons-20261005.zip",
+  "images": [
+    {
+      "key": "side-stand-yawn",
+      "filename": "side-stand-yawn.png",
+      "source_filename": "KakaoTalk_20261005_163245050.jpg",
+      "description": "옆으로 서서 하품하는 전신",
+      "size": [
+        1696,
+        1324
+      ],
+      "emotion_group": "REST",
+      "pose_group": "yawning-standing",
+      "render_mode": "wide",
+      "source_sha256": "d1609a2b7a806e7bf5ef78df1504b32d7c9a3ca68339acc2e08d35550ea52581",
+      "project_sha256": "d1609a2b7a806e7bf5ef78df1504b32d7c9a3ca68339acc2e08d35550ea52581",
+      "web_sha256": "cb45d7df6ce7fb2e1b0a543ba8fcbb5fe203814b8e5950911ae23891f25dd9f5"
+    },
+    {
+      "key": "rainbow-toy-sit",
+      "filename": "rainbow-toy-sit.png",
+      "source_filename": "KakaoTalk_20261005_163245050_01.jpg",
+      "description": "무지개 공 장식을 달고 눈을 감은 채 앉은 모습",
+      "size": [
+        1236,
+        2048
+      ],
+      "emotion_group": "REST",
+      "pose_group": "decorated-sit",
+      "render_mode": "portrait",
+      "source_sha256": "90f4f2fcb48271d88c2df4bae4af5bf061f23b9fed246da74bc1641bd377f86f",
+      "project_sha256": "90f4f2fcb48271d88c2df4bae4af5bf061f23b9fed246da74bc1641bd377f86f",
+      "web_sha256": "193c94bee9e689c042d7cdaba059505bad3b5d7c050c84f251ce1e1d713ff74a"
+    },
+    {
+      "key": "object-hold-sit",
+      "filename": "object-hold-sit.png",
+      "source_filename": "KakaoTalk_20261005_163245050_02.png",
+      "description": "물건을 입에 물고 앉은 모습",
+      "size": [
+        995,
+        2048
+      ],
+      "emotion_group": "NEUTRAL",
+      "pose_group": "adult-sit",
+      "render_mode": "portrait",
+      "source_sha256": "4305f244f7f8de1cc947d3d8fe31fde6eed0e4a576fd651a4ae3bda72414d1df",
+      "project_sha256": "4305f244f7f8de1cc947d3d8fe31fde6eed0e4a576fd651a4ae3bda72414d1df",
+      "web_sha256": "2faa4d61ba8f19c5fed45604e28dc127badb550952d7372952f118a8c9e9cf2c"
+    },
+    {
+      "key": "sleepy-rest",
+      "filename": "sleepy-rest.png",
+      "source_filename": "KakaoTalk_20261005_163245050_03.jpg",
+      "description": "눈을 감고 누워 쉬는 모습",
+      "size": [
+        1318,
+        1292
+      ],
+      "emotion_group": "REST",
+      "pose_group": "curled",
+      "render_mode": "contain",
+      "source_sha256": "1be92bb00273eba176aa1058f13634c9eaa0591d2f71bf659951bb900b51a920",
+      "project_sha256": "1be92bb00273eba176aa1058f13634c9eaa0591d2f71bf659951bb900b51a920",
+      "web_sha256": "b370c4be8780c7cfdd780597e2496d4e627ac6cbb36c68dbbc651036cb6d8f17"
+    },
+    {
+      "key": "tongue-out-closeup",
+      "filename": "tongue-out-closeup.png",
+      "source_filename": "KakaoTalk_20261005_163245050_04.jpg",
+      "description": "혀를 길게 내민 얼굴",
+      "size": [
+        1708,
+        2048
+      ],
+      "emotion_group": "HAPPY",
+      "pose_group": "front-portrait",
+      "render_mode": "portrait",
+      "source_sha256": "cc5b4cd8c79ed39a6357f047422d179a2c043c483a6720412460dcd65f1597b1",
+      "project_sha256": "cc5b4cd8c79ed39a6357f047422d179a2c043c483a6720412460dcd65f1597b1",
+      "web_sha256": "41e32f07f41ee96823ac01cacaa9a8c6a187a58e8b0f7cca07219be247ac2256"
+    },
+    {
+      "key": "tongue-out-side-profile",
+      "filename": "tongue-out-side-profile.png",
+      "source_filename": "KakaoTalk_20261005_163245050_05.jpg",
+      "description": "혀를 내밀고 왼쪽을 보는 옆얼굴",
+      "size": [
+        1820,
+        2048
+      ],
+      "emotion_group": "HAPPY",
+      "pose_group": "side-portrait",
+      "render_mode": "portrait",
+      "source_sha256": "481a8d920827e3f4f19d857c2915970833db002b8951f9ce18df6e25bc407df2",
+      "project_sha256": "481a8d920827e3f4f19d857c2915970833db002b8951f9ce18df6e25bc407df2",
+      "web_sha256": "49f0ccf8ec79c5931214497b47e15ef8dccb37081916bbcb5b107cfc687e9149"
+    },
+    {
+      "key": "closed-mouth-gaze",
+      "filename": "closed-mouth-gaze.png",
+      "source_filename": "KakaoTalk_20261005_163245050_06.jpg",
+      "description": "입을 다물고 바라보는 얼굴",
+      "size": [
+        1317,
+        2047
+      ],
+      "emotion_group": "NEUTRAL",
+      "pose_group": "front-portrait",
+      "render_mode": "portrait",
+      "source_sha256": "bb18d2ef3b8fd56e2872ce341850a94ea83d339a41ffbe7d13ef909864f7de51",
+      "project_sha256": "bb18d2ef3b8fd56e2872ce341850a94ea83d339a41ffbe7d13ef909864f7de51",
+      "web_sha256": "beb630f293e49d33d5d3f7aa1ecae636845566efb35c9634a563226105655cb7"
+    },
+    {
+      "key": "open-mouth-gaze",
+      "filename": "open-mouth-gaze.png",
+      "source_filename": "KakaoTalk_20261005_163245050_07.jpg",
+      "description": "입을 벌리고 바라보는 얼굴",
+      "size": [
+        1733,
+        2048
+      ],
+      "emotion_group": "HAPPY",
+      "pose_group": "front-portrait",
+      "render_mode": "portrait",
+      "source_sha256": "40cad49243d9dcac4ced528d843bba3042889e5f932dc4d7d9c8bbf8b48c7533",
+      "project_sha256": "40cad49243d9dcac4ced528d843bba3042889e5f932dc4d7d9c8bbf8b48c7533",
+      "web_sha256": "b420461bf9b1217ee1710b47741f88d43d54c1f933533377b3c4997f21678144"
+    }
+  ]
+}

@@ -996,7 +996,7 @@ class InventoryIntegrationTest {
         assertThat(recent).doesNotContain("<time", "냉장실", "1개");
         var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
                 FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "3모", null,
-                "수량: 1 → 3\n개봉일: 2026-06-08 → 2026-06-09", null, null, null, null, null, null);
+                "수량: 1 → 3\n개봉일: 2026-06-08 → 2026-06-09", null, null, null, null, null, null, null, null);
         assertThat(entry.homeSummary()).isEqualTo("수정한 정보 2건");
     }
 
@@ -1014,7 +1014,7 @@ class InventoryIntegrationTest {
                 .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(html).contains("처음 이름", "<dt>수량</dt><dd><span>1개</span></dd>", "<dt>용량</dt><dd><span>200g</span></dd>",
                 "<dt>출처 메모</dt><dd><span>처음 출처</span></dd>",
-                "첫째 줄\n둘째 줄 </span><span class=\"history-change-arrow\">→</span><span> 유지</span>", "최근 기록 최대 100개");
+                "첫째 줄\n둘째 줄 </span><span class=\"history-change-arrow\">→</span><span> 유지</span>");
         assertThat(html).contains("href=\"/inventory/" + id + "\">처음 이름</a>", "이름이 바뀌어서 이제는 ‘변경 이름’로 이동할 거야.");
         assertThat(html).doesNotContain("900g", "바뀐 메모", "한국 시간", "이전 등록 기록");
     }
@@ -1023,7 +1023,7 @@ class InventoryIntegrationTest {
     void historyFieldsSeparateLabelsAndKeepMultilineChanges() {
         var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
                 FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "3모", null,
-                "용량: - → 200g\n출처 메모: - → 선물\n메모: 첫 줄\n둘째 줄 → 새 내용", null, null, null, null, null, null);
+                "용량: - → 200g\n출처 메모: - → 선물\n메모: 첫 줄\n둘째 줄 → 새 내용", null, null, null, null, null, null, null, null);
         assertThat(entry.detailFields()).extracting(com.euiseon.friger.history.dto.HistoryEntry.DetailField::label)
                 .containsExactly("용량", "출처 메모", "메모");
         assertThat(entry.detailFields().getLast().value()).isEqualTo("첫 줄\n둘째 줄 → 새 내용");
@@ -1033,7 +1033,7 @@ class InventoryIntegrationTest {
     void singleMultilineChangeKeepsBeforeAndAfterSummary() {
         var entry = new com.euiseon.friger.history.dto.HistoryEntry(1L, 1L, "두부",
                 FoodActionType.UPDATE, StorageType.FRIDGE, StorageType.FRIDGE, "1모", null,
-                "메모: 첫째 줄\n둘째 줄 → 새 메모", null, null, null, null, null, null);
+                "메모: 첫째 줄\n둘째 줄 → 새 메모", null, null, null, null, null, null, null, null);
         assertThat(entry.detailFields()).hasSize(1);
         assertThat(entry.homeSummary()).isEqualTo("메모: 첫째 줄 · 둘째 줄 → 새 메모");
     }

@@ -1,11 +1,50 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 히스토리</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 히스토리</title><link rel="stylesheet" th:href="@{/css/app.css}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/history-period.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page history-page">
     <section class="heading character-heading tab-heading history-heading"><div><p class="eyebrow">우리 집에 있던 음식들</p><h1>어떻게 됐을까?</h1><p class="muted">쪼코가 다 기록했으니 안심해.</p></div><img class="choco" width="95" height="95" alt="쪼코" data-choco-region="history-header" data-choco-role="history-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
 
-    <p class="small muted history-limit">최근 기록 최대 100개</p>
-    <section class="empty-state" th:if="${entries.isEmpty()}"><img class="choco" width="120" height="130" alt="" data-choco-region="history-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"><h2>아직 남긴 기록이 없어</h2><p class="muted">음식 하나부터 등록해볼까?</p><a class="button action-create" th:href="@{/inventory/new}">음식 등록하기</a></section>
+    <noscript><style>.history-period-panel[hidden]{display:block!important}.history-period-toggle,.history-period-presets{display:none}</style></noscript>
+    <form class="history-search" method="get" th:action="@{/history}" role="search" aria-label="히스토리 검색">
+      <section class="history-period" th:with="searchOpen=${dateError != null or (param.searchOpen != null and param.searchOpen[0] == 'true')}">
+        <input type="hidden" name="searchOpen" th:value="${searchOpen}">
+        <div class="history-period-heading" th:classappend="${filtered and dateError == null} ? 'is-filtered'"><button type="button" class="history-period-toggle" aria-label="검색 조건 펼치기/접기" th:attr="aria-label=${filtered and dateError == null ? '검색 조건 펼치기/접기, 검색 적용 중' : '검색 조건 펼치기/접기'},aria-expanded=${searchOpen}" aria-expanded="false" aria-controls="historyPeriodPanel"><svg class="history-period-outline" viewBox="0 0 92 24" aria-hidden="true"><path class="history-period-tab-fill" d="M0 23.5 H10 Q13 23.5 14.5 20.5 L23 3.5 Q24.5 .5 28 .5 H64 Q67.5 .5 69 3.5 L77.5 20.5 Q79 23.5 82 23.5 H92 V26 H0 Z"/><path d="M0 23.5 H10 Q13 23.5 14.5 20.5 L23 3.5 Q24.5 .5 28 .5 H64 Q67.5 .5 69 3.5 L77.5 20.5 Q79 23.5 82 23.5 H92"/></svg><svg class="history-period-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>
+        <div id="historyPeriodPanel" class="history-period-panel" th:hidden="${!searchOpen}">
+      <div class="history-toolbar">
+        <label class="sr-only" for="historyLimit">표시 개수</label>
+        <select id="historyLimit" name="limit">
+            <option value="all" th:selected="${selectedLimit == 'all'}">전체</option>
+            <option value="50" th:selected="${selectedLimit == '50'}">50개</option>
+            <option value="100" th:selected="${selectedLimit == '100'}">100개</option>
+            <option value="300" th:selected="${selectedLimit == '300'}">300개</option>
+            <option value="500" th:selected="${selectedLimit == '500'}">500개</option>
+        </select>
+        <label class="sr-only" for="historyQuery">음식명 검색</label>
+        <input id="historyQuery" name="q" type="search" maxlength="100" placeholder="음식명 검색" th:value="${query}" autocomplete="off">
+      </div>
+        <input type="hidden" id="historyPeriod" name="period" th:value="${selectedPeriod}" disabled>
+        <noscript><div class="field"><label for="historyPeriodFallback">기간</label><select id="historyPeriodFallback" name="period">
+          <option value="all" th:selected="${selectedPeriod == 'all'}">전체 기간</option>
+          <option value="7" th:selected="${selectedPeriod == '7'}">최근 7일</option>
+          <option value="30" th:selected="${selectedPeriod == '30'}">최근 30일</option>
+          <option value="custom" th:selected="${selectedPeriod == 'custom'}">직접 지정</option>
+        </select><p class="help">직접 지정 선택 후 검색 적용을 누르면 날짜를 입력할 수 있어.</p></div></noscript>
+        <div class="history-period-presets">
+          <button type="button" value="all" th:attr="aria-pressed=${selectedPeriod == 'all'}">전체 기간</button>
+          <button type="button" value="7" th:attr="aria-pressed=${selectedPeriod == '7'},data-start=${historyToday.minusDays(6)},data-end=${historyToday}">최근 7일</button>
+          <button type="button" value="30" th:attr="aria-pressed=${selectedPeriod == '30'},data-start=${historyToday.minusDays(29)},data-end=${historyToday}">최근 30일</button>
+          <button type="button" value="custom" th:attr="aria-pressed=${selectedPeriod == 'custom'}">직접 지정</button>
+        </div>
+        <div class="history-period-dates">
+          <div class="field"><label for="historyStart">시작일</label><input type="date" th:disabled="${selectedPeriod == 'all'}" id="historyStart" name="start" th:value="${start}" min="0001-01-01" max="9999-12-31" aria-describedby="historyDateError"></div>
+          <span aria-hidden="true">~</span>
+          <div class="field"><label for="historyEnd">종료일</label><input type="date" th:disabled="${selectedPeriod == 'all'}" id="historyEnd" name="end" th:value="${end}" min="0001-01-01" max="9999-12-31" aria-describedby="historyDateError"></div>
+        </div>
+        <p id="historyDateError" class="field-error" role="alert" th:if="${dateError != null}" th:text="${dateError}"></p>
+        <div class="history-period-actions"><button type="submit" class="search-button">검색 적용</button></div>
+      </div></section>
+    </form>
+    <section class="empty-state" th:if="${entries.isEmpty() and dateError == null}"><img class="choco" width="120" height="130" alt="" data-choco-region="history-empty" data-choco-role="empty" th:attr="data-choco-base=@{/assets/choco/}" hidden data-choco="empty"><h2 th:text="${!filtered ? '아직 남긴 기록이 없어' : (query.isEmpty() ? '선택한 기간의 기록이 없어' : '검색한 음식의 기록이 없어')}">아직 남긴 기록이 없어</h2><p class="muted" th:text="${!filtered ? '음식 하나부터 등록해볼까?' : '이름이나 기간을 바꿔서 찾아줘.'}"></p><a th:if="${!filtered}" class="button action-create" th:href="@{/inventory/new}">음식 등록하기</a><a th:if="${filtered}" class="text-link cancel-link" th:href="@{/history(limit=${selectedLimit})}">검색 초기화</a></section>
     <div th:replace="~{fragments/shell :: historyRows(${entries})}"></div>
     </div>
 </main><nav th:replace="~{fragments/shell :: nav('history')}"></nav></body></html>

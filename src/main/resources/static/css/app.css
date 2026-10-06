@@ -166,13 +166,38 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .history-rows .history-row:hover,.history-rows .history-row:focus-within{background:#f7f7fb}
 .history-rows .history-row time{display:block;text-align:right;margin-top:8px;font-variant-numeric:tabular-nums}
 .history-rows .history-row{position:relative;padding-inline:8px;cursor:pointer}
-.history-page .history-rows>.history-row:first-child{border-top:1px solid var(--line)}
 .history-rows .history-row>div>a::after{content:"";position:absolute;inset:0}
 .history-rows .history-row:has(a:focus-visible){outline:2px solid var(--primary);outline-offset:2px}
-.history-limit{text-align:right;padding-right:16px;font-size:11px}
+.history-toolbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.history-toolbar :is(select,input){min-height:44px;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font-size:16px}
+.history-toolbar select{width:100px;flex:none;appearance:none;padding:9px 30px 9px 12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m1 4 5 5 5-5' fill='none' stroke='%2330313d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:12px}
+.history-toolbar input[type=search]{flex:1;min-width:0;width:0;padding:9px 8px}
+.history-period{padding:0;margin-bottom:12px;background:white}
+.history-period-heading{--history-filter-line:var(--line);--history-filter-arrow:var(--muted);position:relative;min-height:24px;padding:0}
+.history-period-heading.is-filtered{--history-filter-line:var(--primary);--history-filter-arrow:var(--primary)}
+.history-period-toggle{position:absolute;z-index:1;left:50%;bottom:-1px;transform:translateX(-50%);display:grid;place-items:center;width:92px;height:44px;min-height:44px;padding:0 0 2px;border:0;border-radius:0;background:transparent;color:var(--history-filter-arrow)}
+.history-period-heading:has([aria-expanded=false]){border-bottom:1px solid var(--history-filter-line)}
+.history-period-toggle .history-period-outline{position:absolute;inset:auto 0 0;width:92px;height:24px;overflow:visible;fill:none;stroke:var(--history-filter-line);stroke-width:1}
+.history-period-outline .history-period-tab-fill{fill:white;stroke:none}
+.history-period-toggle .history-period-chevron{position:relative;z-index:1;align-self:end;margin-bottom:2px;width:20px;height:20px;stroke-width:2.5}
+.history-period-toggle[aria-expanded=true] .history-period-chevron{transform:rotate(180deg)}
+.history-period-panel{padding:12px;border:1px solid var(--line);border-radius:10px}
+.history-period-heading.is-filtered+.history-period-panel{border-color:var(--primary)}
+.history-period-presets{display:flex;gap:6px;margin:12px 0 14px}
+.history-period-presets button{flex:1;min-height:44px;padding:8px 6px;background:white;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12px}
+.history-period-presets button[aria-pressed=true]{color:var(--ink)}
+.history-period-dates{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:end}
+.history-period-dates .field{margin:0;min-width:0}
+.history-period-dates>span{align-self:end;padding-bottom:12px;color:var(--muted)}
+.history-period-dates input[type=date]{width:100%;min-width:0;padding-inline:6px}
+.history-period-dates input[type=date]:disabled{background:var(--subtle-hover-bg);color:var(--muted);opacity:1;cursor:not-allowed}
+.history-period-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px}
+.history-period-actions .search-button{min-height:44px;font-size:12px;background:var(--primary);border-color:var(--primary);color:white}
+.history-period-actions .search-button:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+@media(max-width:360px){.history-period-dates{grid-template-columns:minmax(0,1fr);gap:12px}.history-period-dates>span{display:none}}
 .history-fields{margin:0;font-size:12px;color:var(--muted)}
-.history-fields>div{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:8px;margin:4px 0;line-height:1.7}
-.history-fields dt{overflow-wrap:anywhere}
+.history-fields>div{display:grid;grid-template-columns:6em minmax(0,1fr);gap:8px;margin:4px 0;line-height:1.7}
+.history-fields dt{white-space:nowrap}
 .history-fields dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
 .history-change-arrow{display:inline-block;margin-inline:3px;color:var(--ink);font-size:16px;font-weight:800;line-height:1;vertical-align:baseline;white-space:pre}
 .purchase-primary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
@@ -272,7 +297,7 @@ label.merge-target-heading{font-size:18px;font-weight:700;margin:0 0 20px}
 .merge-target-options button strong{font-weight:650;overflow-wrap:anywhere}
 .merge-target-count{margin-left:4px;color:var(--muted)}
 .merge-target-options button:hover{background:var(--subtle-hover-bg)}
-.merge-target-options button.is-selected{background:#ececf2}
+.merge-target-options button.is-selected,.history-period-presets button[aria-pressed=true]{background:#ececf2}
 .merge-target-empty{margin:0;padding:4px 2px}
 .food-card.master-item-card{padding:14px;gap:0}
 .stock-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}

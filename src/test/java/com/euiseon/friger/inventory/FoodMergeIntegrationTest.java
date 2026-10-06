@@ -229,7 +229,7 @@ class FoodMergeIntegrationTest {
             assertThat(entry.actionLabel()).isEqualTo("병합");
             assertThat(entry.displayFoodName()).isEqualTo("치킨");
             assertThat(entry.currentMasterId()).isEqualTo(target);
-            assertThat(entry.homeSummary()).contains("치킨").contains("두부");
+            assertThat(entry.homeSummary()).isEqualTo("→ 두부 (#"+target+")");
         });
         mvc.perform(get("/history")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("치킨")))
@@ -244,6 +244,7 @@ class FoodMergeIntegrationTest {
         assertThat(merge.displayFoodName()).isEqualTo("옛 음식");
         assertThat(merge.changesText()).isEqualTo("음식명: 옛 음식 (#99999) → 당시 두부 (#"+target+")");
         assertThat(merge.actionLabel()).isEqualTo("병합");
+        assertThat(merge.homeSummary()).isEqualTo("→ 당시 두부 (#"+target+")");
         assertThat(merge.mergedItemCount()).isEqualTo(7);assertThat(merge.currentFoodName()).isEqualTo("두부");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(1);
     }
@@ -276,6 +277,87 @@ class FoodMergeIntegrationTest {
         assertThat(first.getFirst().actionType()).isNull();
         assertThat(histories.findRecent(2)).isEqualTo(first);
         assertThat(histories.findRecent(0)).isEmpty();
+    }
+    @Test void historyFiltersAllEventsBeforeApplyingTheSelectedLimit() throws Exception {
+        long master=create("Kurly 100%_두부","모","FRIDGE");
+        long item=masters.items(master).getFirst().foodId();
+        jdbc.update("""
+            INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,recorded_food_name,created_at)
+            SELECT 1,?,'UPDATE','FRIDGE','FRIDGE','다른 음식', now()+n*interval '1 second'
+            FROM generate_series(1,505) n
+            """,item);
+        assertThat(histories.findEntries(null, "")).hasSize(506);
+        for (int limit : new int[]{50, 100, 300, 500})
+            assertThat(histories.findEntries(limit, "")).hasSize(limit);
+        assertThat(histories.findRecent(100)).hasSize(100);
+        // Current name also matches old records; renaming lets us target the historical name alone.
+        dao.update(master,"현재 이름",null);
+        assertThat(histories.findEntries(100,"kurly")).hasSize(1);
+        assertThat(histories.findEntries(null,"%_")).hasSize(1);
+        assertThat(histories.findEntries(null,"없는 음식")).isEmpty();
+        assertThat(histories.findEntries(null,"현재 이름")).hasSize(506);
+        var all=histories.findEntries(null,"");
+        assertThat(all).extracting(e->e.createdAt()).isSortedAccordingTo(Comparator.reverseOrder());
+        var result=mvc.perform(get("/history").param("limit","all").param("q"," kurly "))
+                .andExpect(status().isOk()).andExpect(model().attribute("selectedLimit","all"))
+                .andExpect(model().attribute("query","kurly")).andReturn();
+        assertThat((List<?>)result.getModelAndView().getModel().get("entries")).hasSize(1);
+        mvc.perform(get("/history").param("limit","500")).andExpect(status().isOk())
+                .andExpect(model().attribute("selectedLimit","500"));
+        mvc.perform(get("/history").param("limit","-1")).andExpect(status().isOk())
+                .andExpect(model().attribute("selectedLimit","100"));
+        mvc.perform(get("/history").param("q","없는 음식")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("검색한 음식의 기록이 없어")));
+    }
+    @Test void historySearchFindsBothNamesOnMergeReceipts() throws Exception {
+        long a=create("원래 이름","개","FRIDGE"),b=create("대상 → 이름","개","ROOM");
+        wholeMove(a,b,UUID.randomUUID());
+        var merge=histories.findEntries(null,"원래").stream().filter(e->e.isMerge()).findFirst().orElseThrow();
+        assertThat(histories.findEntries(null,"대상")).contains(merge);
+        assertThat(merge.homeSummary()).isEqualTo("→ 대상 → 이름 (#"+b+")");
+        assertThat(merge.detailFields().getFirst().value()).isEqualTo("원래 이름 (#"+a+") → 대상 → 이름 (#"+b+")");
+    }
+    @Test void historySearchPreservesExpandedStateAndPeriodSelection() throws Exception {
+        var initial=mvc.perform(get("/history")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(initial).contains("aria-expanded=\"false\"")
+                .containsPattern("<input(?=[^>]*id=\"historyStart\")(?=[^>]*disabled)[^>]*>");
+        for (String period : List.of("all", "7", "30", "custom")) {
+            var html=mvc.perform(get("/history").param("period",period).param("searchOpen","true"))
+                    .andExpect(status().isOk()).andExpect(model().attribute("selectedPeriod",period))
+                    .andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("aria-expanded=\"true\"")
+                    .doesNotContainPattern("<div(?=[^>]*id=\"historyPeriodPanel\")(?=[^>]*hidden)[^>]*>")
+                    .containsPattern("<button(?=[^>]*value=\""+period+"\")(?=[^>]*aria-pressed=\"true\")[^>]*>");
+            if (!period.equals("all")) assertThat(html)
+                    .doesNotContainPattern("<input(?=[^>]*id=\"historyStart\")(?=[^>]*disabled)[^>]*>");
+        }
+    }
+    @Test void historyDateRangeIncludesWholeSeoulDaysAndCombinesWithSearch() throws Exception {
+        long a=create("기간 원본","개","FRIDGE"),b=create("기간 대상","개","ROOM");
+        wholeMove(a,b,UUID.randomUUID());
+        var items=masters.items(b);
+        jdbc.update("UPDATE food_history SET created_at='2026-10-04T14:59:59Z'");
+        jdbc.update("UPDATE food_item_move_receipt SET created_at='2026-10-04T15:00:00Z'");
+        jdbc.update("""
+            INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,recorded_food_name,created_at)
+            VALUES(1,?,'UPDATE','FRIDGE','FRIDGE','기간 끝','2026-10-05T14:59:59.999999Z'),
+                  (1,?,'UPDATE','FRIDGE','FRIDGE','다음 날','2026-10-05T15:00:00Z')
+            """,items.getFirst().foodId(),items.getFirst().foodId());
+        var result=mvc.perform(get("/history").param("limit","all").param("q","기간")
+                .param("start","2026-10-05").param("end","2026-10-05"))
+                .andExpect(status().isOk()).andReturn();
+        @SuppressWarnings("unchecked")
+        var entries=(List<com.euiseon.friger.history.dto.HistoryEntry>)result.getModelAndView().getModel().get("entries");
+        assertThat(entries).hasSize(2);
+        assertThat(entries.getFirst().foodName()).isEqualTo("기간 끝");
+        assertThat(entries.getLast().isMerge()).isTrue();
+        mvc.perform(get("/history").param("start","2026-10-06").param("end","2026-10-05"))
+                .andExpect(status().isOk()).andExpect(model().attribute("dateError","시작일은 종료일보다 늦을 수 없어."))
+                .andExpect(model().attribute("entries",List.of()));
+        mvc.perform(get("/history").param("start","bad-date"))
+                .andExpect(status().isOk()).andExpect(model().attribute("dateError","날짜를 올바르게 입력해줘."));
+        mvc.perform(get("/history").param("start","2020-01-01").param("end","2020-01-02"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("선택한 기간의 기록이 없어")));
     }
     @Test void moveHistoryEscapesNamesAndLegacyMergeWithoutTargetFallsBackToList() throws Exception {
         long a=create("<b>A</b>","개","FRIDGE"),b=create("<b>B</b>","개","ROOM");

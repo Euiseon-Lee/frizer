@@ -25,14 +25,19 @@ public class InventoryService {
     private final Clock clock;
     private final Validator validator;
     private final com.euiseon.friger.inventory.dao.FoodMasterDao masters;
+    private final FoodCategoryService categories;
+    private final com.euiseon.friger.inventory.dao.FoodCategoryHistoryDao categoryHistory;
 
     public InventoryService(InventoryDao inventory, HistoryDao history, Clock clock, Validator validator,
-                            com.euiseon.friger.inventory.dao.FoodMasterDao masters) {
+                            com.euiseon.friger.inventory.dao.FoodMasterDao masters, FoodCategoryService categories,
+                            com.euiseon.friger.inventory.dao.FoodCategoryHistoryDao categoryHistory) {
         this.inventory = inventory;
         this.history = history;
         this.clock = clock;
         this.validator = validator;
         this.masters = masters;
+        this.categories = categories;
+        this.categoryHistory = categoryHistory;
     }
 
     @Transactional(readOnly = true)
@@ -52,15 +57,44 @@ public class InventoryService {
 
     @Transactional
     public long create(FoodCreateForm form, Long masterId, Long expectedVersion) {
+        return createInternal(form, masterId, expectedVersion, null, null, false);
+    }
+
+    /** Structured write contract; enabled by the form integration in the next stage. */
+    @Transactional
+    public long createCategorized(FoodCreateForm form, Long masterId, Long expectedVersion,
+                                 String majorCode, String minorCode) {
+        return createInternal(form, masterId, expectedVersion, majorCode, minorCode, true);
+    }
+
+    private long createInternal(FoodCreateForm form, Long masterId, Long expectedVersion,
+                                String majorCode, String minorCode, boolean categorized) {
+        com.euiseon.friger.inventory.entity.FoodMaster before = null;
+        FoodCategoryService.Selection selection = null;
         if (masterId != null) {
             var master = masters.lock(masterId);
             if (master == null || expectedVersion == null || master.versionNo() != expectedVersion)
                 throw new InvalidFoodException(Map.of("", "선택한 음식이 변경되었어. 기존 음식을 다시 선택해줘."));
             form = form.withIdentity(master.foodName(), master.category());
+            before = master;
+        }
+        // Existing structured groups inherit their stored choice, even when retired.
+        // Posted category codes must never overwrite a selected group's identity.
+        if (categorized && (before == null || before.categoryMajorCode() == null)) {
+            selection = categories.requireSelection(majorCode, minorCode);
+            form = form.withIdentity(form.foodName(), selection.displayLabel());
         }
         OffsetDateTime now = OffsetDateTime.now(clock);
         FoodItem food = normalized(form, null, now, now);
         long id = masterId == null ? inventory.insert(food) : inventory.insertForMaster(food, masterId);
+        if (selection != null) {
+            long categoryMasterId = masterId == null ? masters.masterIdForItem(id) : masterId;
+            assignCategory(categoryMasterId, selection);
+            if (before != null) {
+                recordCategoryChange(before, selection);
+                masters.invalidateOtherItems(masterId, id);
+            }
+        }
         if (masterId != null) masters.touch(masterId);
         int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
                 food.storageType(), food.quantityText(), now, registrationSnapshot(food)));
@@ -70,10 +104,17 @@ public class InventoryService {
 
     @Transactional
     public boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt) {
-        return update(id,form,expectedUpdatedAt,false);
+        return update(id,form,expectedUpdatedAt,false,null,null,false);
     }
 
-    private boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt, boolean warningOnly) {
+    @Transactional
+    public boolean updateCategorized(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt,
+                                    String majorCode, String minorCode) {
+        return update(id,form,expectedUpdatedAt,false,majorCode,minorCode,true);
+    }
+
+    private boolean update(long id, FoodCreateForm form, OffsetDateTime expectedUpdatedAt, boolean warningOnly,
+                           String majorCode, String minorCode, boolean categorized) {
         Long masterId = masters.masterIdForItem(id);
         if (masterId == null) throw new FoodNotFoundException(id);
         var master = masters.lock(masterId);
@@ -85,6 +126,19 @@ public class InventoryService {
         if (expectedUpdatedAt == null || !before.updatedAt().isEqual(expectedUpdatedAt)) {
             throw new InvalidFoodException(Map.of("", "다른 화면에서 음식 정보가 바뀌었어. 상세를 다시 열어 최신 내용을 확인해줘."));
         }
+        FoodCategoryService.Selection selection = null;
+        if (categorized) {
+            // Keeping an existing retired choice is valid; a changed choice must be active.
+            boolean unchanged = master.categoryMajorCode() != null
+                    && java.util.Objects.equals(master.categoryMajorCode(), cleanCode(majorCode))
+                    && java.util.Objects.equals(master.categoryMinorCode(), cleanCode(minorCode));
+            if (!unchanged) selection = categories.requireSelection(majorCode, minorCode);
+            form = form.withIdentity(form.foodName(), unchanged ? master.category() : selection.displayLabel());
+        } else if (!warningOnly && master.categoryMajorCode() != null) {
+            // Legacy callers cannot make the display label disagree with persisted codes.
+            form = form.withIdentity(form.foodName(), master.category());
+        }
+        boolean categoryChanged = selection != null;
         OffsetDateTime now = OffsetDateTime.now(clock).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         if (!now.isAfter(before.updatedAt())) now = before.updatedAt().plusNanos(1000);
         FoodItem after = warningOnly
@@ -98,14 +152,24 @@ public class InventoryService {
                 || before.storageType() != after.storageType()) after = after.withWarningPausedUntil(null);
         Map<String, String> oldValues = values(before);
         Map<String, String> newValues = values(after);
+        // A legacy label can equal the catalog label without having a category code.
+        // Keep that transition in the existing category field, not an extra pseudo-field.
+        if (categoryChanged && master.categoryMajorCode() == null && before.category() != null) {
+            oldValues.put("분류", before.category() + " (직접 입력)");
+        }
         String changes = newValues.entrySet().stream()
-                .filter(entry -> !java.util.Objects.equals(oldValues.get(entry.getKey()), entry.getValue()))
+                .filter(entry -> (categoryChanged && entry.getKey().equals("분류"))
+                        || !java.util.Objects.equals(oldValues.get(entry.getKey()), entry.getValue()))
                 .map(entry -> entry.getKey() + ": " + display(oldValues.get(entry.getKey())) + " → " + display(entry.getValue()))
                 .collect(java.util.stream.Collectors.joining("\n"));
         if (changes.isEmpty()) return false;
         if (!java.util.Objects.equals(before.foodName(), after.foodName())
-                || !java.util.Objects.equals(before.category(), after.category())) {
+                || !java.util.Objects.equals(before.category(), after.category()) || categoryChanged) {
             masters.update(masterId, after.foodName(), after.category());
+            if (categoryChanged) {
+                assignCategory(masterId, selection);
+                recordCategoryChange(master, selection);
+            }
             masters.invalidateOtherItems(masterId, id);
         } else masters.touch(masterId);
         if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
@@ -115,6 +179,19 @@ public class InventoryService {
         }
         return true;
     }
+
+    private void assignCategory(long masterId, FoodCategoryService.Selection selection) {
+        if (masters.assignCategory(masterId, selection.majorCode(), selection.minorCode(), selection.displayLabel()) != 1)
+            throw new IllegalStateException("분류를 저장하지 못했습니다.");
+    }
+
+    private void recordCategoryChange(com.euiseon.friger.inventory.entity.FoodMaster before,
+                                      FoodCategoryService.Selection selection) {
+        if (categoryHistory.insert(before, selection.majorCode(), selection.minorCode(), selection.displayLabel()) != 1)
+            throw new IllegalStateException("분류 변경 이력을 저장하지 못했습니다.");
+    }
+
+    private static String cleanCode(String value) { return value == null || value.isBlank() ? null : value.strip(); }
 
     private static String registrationSnapshot(FoodItem food) {
         try {
@@ -217,7 +294,7 @@ public class InventoryService {
         var f=FoodCreateForm.from(before);
         update(id,new FoodCreateForm(f.foodName(),f.storageType(),f.category(),f.quantityAmount(),f.expiredAt(),
             f.purchasedAt(),f.openedAt(),f.frozenAt(),f.sourceType(),f.freezeType(),false,f.memo(),
-            f.capacityText(),f.sourceMemo(),f.sellByAt(),f.quantityUnit(),!resume,until,forever),expected,true);
+            f.capacityText(),f.sourceMemo(),f.sellByAt(),f.quantityUnit(),!resume,until,forever),expected,true,null,null,false);
     }
 
     private static String optional(String value) {

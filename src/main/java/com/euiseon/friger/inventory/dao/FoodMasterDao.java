@@ -7,22 +7,27 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface FoodMasterDao {
     record RegistrationChoice(long masterId, String foodName, String category, long versionNo,
-                              String defaultQuantityUnit, int itemCount) {}
+                              String defaultQuantityUnit, int itemCount,
+                              String categoryMajorCode, String categoryMinorCode) {}
     @Select("SELECT m.master_id,m.food_name,m.category,m.version_no,m.default_quantity_unit," +
-            "(SELECT count(*) FROM food_item i WHERE i.master_id=m.master_id AND i.status='ACTIVE') AS item_count " +
+            "(SELECT count(*) FROM food_item i WHERE i.master_id=m.master_id AND i.status='ACTIVE') AS item_count," +
+            "m.category_major_code,m.category_minor_code " +
             "FROM food_master m WHERE m.user_id=#{_userId,jdbcType=BIGINT} ORDER BY m.food_name,m.master_id")
     List<RegistrationChoice> registrationChoices();
-    @Select("SELECT master_id,food_name,category,version_no FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
+    @Select("SELECT master_id,food_name,category,version_no,category_major_code,category_minor_code FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     FoodMaster find(long id);
     @Select("SELECT master_id FROM food_item WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id}")
     Long masterIdForItem(long id);
-    @Select("SELECT master_id,food_name,category,version_no FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} ORDER BY food_name,master_id")
+    @Select("SELECT master_id,food_name,category,version_no,category_major_code,category_minor_code FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} ORDER BY food_name,master_id")
     List<FoodMaster> all();
-    @Select("SELECT master_id,food_name,category,version_no FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id} FOR UPDATE")
+    @Select("SELECT master_id,food_name,category,version_no,category_major_code,category_minor_code FROM food_master WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id} FOR UPDATE")
     @Options(flushCache=Options.FlushCachePolicy.TRUE)
     FoodMaster lock(long id);
     @Update("UPDATE food_master SET food_name=#{name},category=#{category},version_no=version_no+1,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     int update(long id, String name, String category);
+    // The caller holds the group lock and advances its version once through update/touch.
+    @Update("UPDATE food_master SET category=#{label},category_major_code=#{major},category_minor_code=#{minor,jdbcType=VARCHAR} WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
+    int assignCategory(long id, String major, String minor, String label);
     @Update("UPDATE food_master SET version_no=version_no+1,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     int touch(long id);
     @Update("UPDATE food_item SET updated_at=GREATEST(clock_timestamp(),updated_at+interval '1 microsecond') WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id} AND food_id<>#{exceptId}")

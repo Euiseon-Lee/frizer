@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.*;
 
-/** Uses only a throwaway container, including a real V24 -> V25 upgrade with data. */
+/** Uses only a throwaway container, including a real V24 -> latest upgrade with data. */
 @Testcontainers
 class FoodCategoryMigrationTest {
     @Container

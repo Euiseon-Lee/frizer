@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="content" id="categoryPicker" class="field category-picker"
+     th:classappend="${editId != null ? 'category-edit' : ''}"
+     th:attr="data-inherited=${categoryInherited},data-refresh=${categoryRefresh}">
+    <label id="categoryLabel" for="categoryMajorCode">분류 <span class="required">필수</span></label>
+    <button id="categoryToggle" class="category-toggle" type="button" aria-labelledby="categoryLabel categorySummary"
+            aria-expanded="false" aria-controls="categoryPanel" hidden><span id="categorySummary">분류 선택하기</span></button>
+    <p id="categoryInherited" class="category-inherited" th:hidden="${!categoryInherited}" th:text="${categoryInheritedLabel}"></p>
+    <p id="categoryLegacy" class="help" th:hidden="${#strings.isEmpty(categoryLegacyLabel)}"
+       th:text="${#strings.isEmpty(categoryLegacyLabel) ? '' : '기존 분류: ' + categoryLegacyLabel}"></p>
+    <div id="categoryPanel" class="category-panel" th:hidden="${categoryInherited}">
+        <div class="field">
+            <label for="categoryMajorCode">대분류</label>
+            <select id="categoryMajorCode" name="categoryMajorCode" required th:disabled="${categoryInherited}"
+                    th:classappend="${categoryErrors.containsKey('categoryMajorCode') ? 'invalid' : ''}"
+                    th:attr="aria-invalid=${categoryErrors.containsKey('categoryMajorCode')}" aria-describedby="categoryExample categoryMajorError">
+                <option value="" disabled th:selected="${#strings.isEmpty(categoryMajorCode)}">대분류를 골라줘</option>
+                <option th:if="${categoryUnknownMajor}" th:value="${categoryMajorCode}" selected>선택할 수 없는 대분류</option>
+                <option th:each="choice : ${categoryChoices}" th:value="${choice.code()}" th:text="${choice.label()}"
+                        th:selected="${choice.code() == categoryMajorCode}"></option>
+            </select>
+            <p id="categoryMajorError" class="field-error" th:hidden="${!categoryErrors.containsKey('categoryMajorCode')}" th:text="${categoryErrors.get('categoryMajorCode')}"></p>
+            <button class="category-refresh" type="submit" name="categoryAction" value="refresh" formnovalidate>중분류 목록 갱신</button>
+        </div>
+        <div id="categoryMinorField" class="field" th:hidden="${!categoryNeedsMinor}">
+            <label for="categoryMinorCode">중분류</label>
+            <select id="categoryMinorCode" name="categoryMinorCode" th:required="${categoryNeedsMinor}" th:disabled="${categoryInherited or !categoryNeedsMinor}"
+                    th:classappend="${categoryErrors.containsKey('categoryMinorCode') ? 'invalid' : ''}"
+                    th:attr="aria-invalid=${categoryErrors.containsKey('categoryMinorCode')}" aria-describedby="categoryExample categoryMinorError">
+                <option value="" disabled th:selected="${#strings.isEmpty(categoryMinorCode)}">중분류를 골라줘</option>
+                <option th:if="${categoryUnknownMinor}" th:value="${categoryMinorCode}" selected>대분류에 맞는 중분류를 다시 골라줘</option>
+                <option th:each="choice : ${categoryMinors}" th:value="${choice.code()}" th:text="${choice.label()}"
+                        th:selected="${choice.code() == categoryMinorCode}"></option>
+            </select>
+        </div>
+        <p id="categoryMinorError" class="field-error" th:hidden="${!categoryErrors.containsKey('categoryMinorCode')}" th:text="${categoryErrors.get('categoryMinorCode')}"></p>
+        <p id="categoryExample" class="help category-example" th:hidden="${#strings.isEmpty(categoryExample)}" th:text="${categoryExample}"></p>
+        <p id="categoryPending" class="field-error" role="alert" hidden></p>
+        <div id="categoryActions" class="category-actions" hidden>
+            <button id="categoryCancel" type="button" class="cancel-link">취소</button>
+            <button id="categoryConfirm" type="button" class="button">선택 완료</button>
+        </div>
+    </div>
+    <p id="sharedCategoryHelp" class="help" th:hidden="${registrationMode != 'existing'}"
+       th:text="${categoryInherited ? '기존 음식의 분류를 그대로 사용해.' : '선택한 분류는 등록할 때 같은 음식의 다른 항목에도 함께 적용돼.'}"></p>
+    <script id="foodCategoryCatalog" type="application/json" th:inline="javascript">/*[[${categoryChoices}]]*/ []</script>
+</div>
+</body></html>

@@ -73,7 +73,7 @@ class WarningSettingsIntegrationTest {
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("개봉일 불확실")));
         var edit=mvc.perform(get("/inventory/"+id+"/edit")).andExpect(status().isOk()).andReturn().getResponse();
         snapshot("opening-edit",edit.getContentAsString());
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())
             .param("foodName","개봉 폼").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개")
             .param("openingStatus","OPENED")).andExpect(status().is3xxRedirection());
         assertThat(service.findActive()).filteredOn(x->x.foodName().equals("개봉 폼")).allMatch(x->TODAY.equals(x.openingConfirmedAt()));
@@ -102,7 +102,7 @@ class WarningSettingsIntegrationTest {
         assertThat(changed.openedOverdue(TODAY)).isFalse();assertThat(changed.openingReference()).isNull();
         assertThat(changed.useByOverdue(TODAY)).isTrue();assertThat(changed.needsReview(TODAY)).isTrue();
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("해당 없음")));
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())
             .param("foodName","해당 없음 폼").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개")
             .param("openingStatus","NOT_APPLICABLE")).andExpect(status().is3xxRedirection());
         assertThat(service.findActive()).filteredOn(x->x.foodName().equals("해당 없음 폼"))
@@ -149,7 +149,7 @@ class WarningSettingsIntegrationTest {
         assertThat(service.findById(id).needsReview(TODAY)).isTrue();
     }
     @Test void formCheckboxesBindAndPersist() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())
             .param("foodName","폼 바인딩").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개")
             .param("warningPaused","true").param("warningForever","true"))
             .andExpect(status().is3xxRedirection());

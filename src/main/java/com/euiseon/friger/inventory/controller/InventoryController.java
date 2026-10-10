@@ -10,7 +10,6 @@ import com.euiseon.friger.common.type.*;
 import com.euiseon.friger.inventory.dto.FoodCreateForm;
 import com.euiseon.friger.inventory.service.InventoryService;
 import com.euiseon.friger.inventory.exception.InvalidFoodException;
-import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -25,17 +24,20 @@ public class InventoryController {
     private final com.euiseon.friger.inventory.service.FoodMasterService masters;
     private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
     private final com.euiseon.friger.inventory.service.FoodQuantityService quantities;
+    private final com.euiseon.friger.inventory.service.FoodCategoryService categories;
 
     public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
                                jakarta.validation.Validator validator,
                                com.euiseon.friger.inventory.service.FoodRegistrationService registrations,
-                               com.euiseon.friger.inventory.service.FoodQuantityService quantities) {
+                               com.euiseon.friger.inventory.service.FoodQuantityService quantities,
+                               com.euiseon.friger.inventory.service.FoodCategoryService categories) {
         this.service = service;
         this.clock = clock;
         this.masters = masters;
         this.validator = validator;
         this.registrations = registrations;
         this.quantities = quantities;
+        this.categories = categories;
     }
 
     @ModelAttribute
@@ -44,6 +46,7 @@ public class InventoryController {
         model.addAttribute("storageLabels", labels(new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER}, "실온", "냉장실", "냉동실"));
         model.addAttribute("sourceLabels", labels(FoodSourceType.values(), "장보기", "배달 잔반", "직접 조리", "부모님의 은혜", "기타"));
         model.addAttribute("today", LocalDate.now(clock));
+        model.addAttribute("categoryErrors", new LinkedHashMap<String,String>());
     }
 
     private static <E extends Enum<E>> Map<E, String> labels(E[] values, String... labels) {
@@ -80,14 +83,16 @@ public class InventoryController {
     String newFood(@RequestParam(required = false) Long masterId, @RequestParam(defaultValue = "new") String registrationMode, Model model) {
         var form = FoodCreateForm.empty();
         Long version = null;
-        if (masterId != null) {
-            var master = masters.find(masterId);
+        var master = masterId == null ? null : masters.find(masterId);
+        if (master != null) {
             form = form.withIdentity(master.foodName(), master.category());
             version = master.versionNo();
         }
         model.addAttribute("foodForm", form);
         model.addAttribute("registrationRequestId", java.util.UUID.randomUUID());
         registrationContext(masterId != null || "existing".equals(registrationMode) ? "existing" : "new", masterId, version, model);
+        categoryContext(master == null ? null : master.categoryMajorCode(), master == null ? null : master.categoryMinorCode(),
+                master, master != null && master.categoryMajorCode() != null, false, model);
         return "inventory/new";
     }
 
@@ -130,27 +135,34 @@ public class InventoryController {
         }
         model.addAttribute("foodForm", FoodCreateForm.from(food, LocalDate.now(clock)));
         editContext(id, food.updatedAt(), model);
+        var master = masters.find(masters.masterId(id));
+        categoryContext(master.categoryMajorCode(), master.categoryMinorCode(), master, false, false, model);
         return "inventory/new";
     }
 
     @PostMapping("/inventory/{id}/edit")
-    String updateFood(@PathVariable long id, @Valid @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+    String updateFood(@PathVariable long id, @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+            @RequestParam(required = false) String categoryMajorCode, @RequestParam(required = false) String categoryMinorCode,
+            @RequestParam(defaultValue = "save") String categoryAction,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
             @RequestParam(required = false) StorageType storage,
             @RequestParam(defaultValue = "false") boolean warning, @RequestParam(defaultValue = "false") boolean ended,
             Model model, RedirectAttributes redirect) {
         editFilters(storage, warning, ended, model);
         editContext(id, expectedUpdatedAt, model);
+        var master = masters.find(masters.masterId(id));
+        categoryContext(categoryMajorCode, categoryMinorCode, master, false, "refresh".equals(categoryAction), model);
+        if ("refresh".equals(categoryAction)) return "inventory/new";
         collectValidationErrors(form, errors);
-        if (errors.hasErrors()) return "inventory/new";
+        if (errors.hasErrors()) {
+            categoryValidation(categoryMajorCode, categoryMinorCode, master, false, model);
+            return "inventory/new";
+        }
         try {
-            boolean changed = service.update(id, form, expectedUpdatedAt);
+            boolean changed = service.updateCategorized(id, form, expectedUpdatedAt, categoryMajorCode, categoryMinorCode);
             redirect.addFlashAttribute("successMessage", changed ? "수정했어!" : "변경한 내용이 없어.");
         } catch (InvalidFoodException invalid) {
-            invalid.errors().forEach((field, message) -> {
-                if (field.isEmpty()) errors.reject("updateConflict", message);
-                else errors.rejectValue(field, "invalid", message);
-            });
+            rejectInvalid(invalid, errors, model);
             return "inventory/new";
         }
         return FoodQuantityController.url("/foods/" + masters.masterId(id), storage, warning, ended);
@@ -209,6 +221,8 @@ public class InventoryController {
     }
     @PostMapping("/inventory")
     String create(@ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+            @RequestParam(required = false) String categoryMajorCode, @RequestParam(required = false) String categoryMinorCode,
+            @RequestParam(defaultValue = "save") String categoryAction,
             @RequestParam(defaultValue = "new") String registrationMode,
             @RequestParam(required = false) Long masterId,
             @RequestParam(required = false) Long masterVersion,
@@ -217,25 +231,43 @@ public class InventoryController {
         boolean existing = "existing".equals(registrationMode);
         registrationContext(existing ? "existing" : "new", masterId, masterVersion, model);
         model.addAttribute("registrationRequestId", registrationRequestId == null ? java.util.UUID.randomUUID() : registrationRequestId);
-        if (!existing && registrationRequestId == null)
+        @SuppressWarnings("unchecked")
+        var registrationFoods = (java.util.List<com.euiseon.friger.inventory.dao.FoodMasterDao.RegistrationChoice>) model.getAttribute("registrationFoods");
+        var selectedMaster = existing && masterId != null
+                ? registrationFoods.stream().filter(m -> m.masterId() == masterId).findFirst().orElse(null) : null;
+        var master = selectedMaster == null ? null : masters.find(masterId);
+        boolean inherited = master != null && master.categoryMajorCode() != null;
+        categoryContext(categoryMajorCode, categoryMinorCode, master, inherited, "refresh".equals(categoryAction), model);
+        if ("refresh".equals(categoryAction)) return "inventory/new";
+        if ((existing || "new".equals(registrationMode)) && !errors.hasErrors()
+                && registrations.completedCategorizedRequest(form, existing ? masterId : null, existing ? masterVersion : null,
+                    categoryMajorCode, categoryMinorCode, registrationRequestId)) {
+            redirect.addFlashAttribute("successMessage", "이미 등록한 내용이야.");
+            return existing && master != null ? "redirect:/foods/" + masterId : "redirect:/inventory";
+        }
+        if (!existing && "new".equals(registrationMode) && !errors.hasErrors()
+                && registrations.completedLegacyRequest(form, registrationRequestId)) {
+            redirect.addFlashAttribute("successMessage", "이미 등록한 내용이야.");
+            return "redirect:/inventory";
+        }
+        if (registrationRequestId == null)
             errors.reject("missingRequestId", "등록 요청을 확인하지 못했어. 입력 내용을 확인하고 다시 등록해줘.");
         if (!existing && !"new".equals(registrationMode)) errors.reject("invalidMode", "등록 방식을 다시 선택해줘.");
         var validatedForm = form;
         if (existing) {
-            var selected = masters.registrationChoices().stream().filter(m -> java.util.Objects.equals(m.masterId(), masterId)).findFirst();
-            if (selected.isEmpty()) errors.reject("missingMaster", "추가할 기존 음식을 선택해줘.");
-            else validatedForm = form.withIdentity(selected.get().foodName(), selected.get().category());
+            if (master == null) errors.reject("missingMaster", "추가할 기존 음식을 선택해줘.");
+            else validatedForm = form.withIdentity(master.foodName(), master.category());
         }
         collectValidationErrors(validatedForm, errors);
-        if (errors.hasErrors()) return "inventory/new";
+        if (errors.hasErrors()) {
+            categoryValidation(categoryMajorCode, categoryMinorCode, master, inherited, model);
+            return "inventory/new";
+        }
         try {
-            if (existing) service.create(validatedForm, masterId, masterVersion);
-            else registrations.create(validatedForm, registrationRequestId);
+            registrations.createCategorized(form, existing ? masterId : null, existing ? masterVersion : null,
+                    categoryMajorCode, categoryMinorCode, registrationRequestId);
         } catch (InvalidFoodException invalid) {
-            invalid.errors().forEach((field, message) -> {
-                if (field.isEmpty()) errors.reject("registrationConflict", message);
-                else errors.rejectValue(field, "invalid", message);
-            });
+            rejectInvalid(invalid, errors, model);
             return "inventory/new";
         }
         redirect.addFlashAttribute("successMessage", existing ? "구매 항목을 추가했어!" : "등록했어!");
@@ -246,5 +278,57 @@ public class InventoryController {
         model.addAttribute("selectedMasterId", masterId);
         model.addAttribute("masterVersion", version);
         model.addAttribute("registrationFoods", masters.registrationChoices());
+    }
+
+    private void categoryContext(String major, String minor, com.euiseon.friger.inventory.entity.FoodMaster current,
+                                 boolean inherited, boolean refresh, Model model) {
+        boolean edit = model.containsAttribute("editId") && current != null;
+        var choices = categories.choicesWithCurrent(edit ? current.categoryMajorCode() : null,
+                edit ? current.categoryMinorCode() : null);
+        String selectedMajor = major == null ? "" : major.strip();
+        String selectedMinor = minor == null ? "" : minor.strip();
+        var selected = choices.stream().filter(c -> c.code().equals(selectedMajor)).findFirst().orElse(null);
+        if (refresh && (selected == null || selected.minors().stream().noneMatch(m -> m.code().equals(minor)))) selectedMinor = "";
+        model.addAttribute("categoryMajorCode", selectedMajor);
+        model.addAttribute("categoryMinorCode", selectedMinor);
+        model.addAttribute("categoryChoices", choices);
+        model.addAttribute("categoryMinors", selected == null ? java.util.List.of() : selected.minors());
+        model.addAttribute("categoryNeedsMinor", selected == null || selected.requiresMinor());
+        model.addAttribute("categoryInherited", inherited);
+        model.addAttribute("categoryInheritedLabel", inherited ? current.category() : "");
+        model.addAttribute("categoryLegacyLabel", current != null && current.categoryMajorCode() == null ? current.category() : null);
+        model.addAttribute("categoryRefresh", refresh);
+        model.addAttribute("categoryUnknownMajor", !selectedMajor.isEmpty() && selected == null);
+        String minorValue = selectedMinor;
+        var child = selected == null ? null : selected.minors().stream().filter(m -> m.code().equals(minorValue)).findFirst().orElse(null);
+        model.addAttribute("categoryUnknownMinor", !selectedMinor.isEmpty() && child == null);
+        model.addAttribute("categoryExample", child != null ? categoryExample(child.label(), child.example())
+                : selected != null && !selected.requiresMinor() ? categoryExample(selected.label(), selected.example()) : "");
+    }
+
+    private static String categoryExample(String label, String example) {
+        return "예) " + java.util.Arrays.stream((label + ", " + example).replaceFirst("\\s+등$", "").split("[·,]"))
+                .map(String::strip).filter(value -> !value.isEmpty()).distinct()
+                .collect(java.util.stream.Collectors.joining(", ")) + " 등";
+    }
+
+    @SuppressWarnings("unchecked")
+    private void rejectInvalid(InvalidFoodException invalid, BindingResult errors, Model model) {
+        var categoryErrors = (Map<String,String>) model.getAttribute("categoryErrors");
+        invalid.errors().forEach((field, message) -> {
+            if (field.equals("categoryMajorCode") || field.equals("categoryMinorCode")) categoryErrors.put(field, message);
+            else if (field.isEmpty()) errors.reject("conflict", message);
+            else errors.rejectValue(field, "invalid", message);
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private void categoryValidation(String major, String minor, com.euiseon.friger.inventory.entity.FoodMaster current,
+                                    boolean inherited, Model model) {
+        if (inherited || (current != null && current.categoryMajorCode() != null
+                && java.util.Objects.equals(current.categoryMajorCode(), major)
+                && java.util.Objects.equals(current.categoryMinorCode(), minor == null || minor.isBlank() ? null : minor))) return;
+        try { categories.requireSelection(major, minor); }
+        catch (InvalidFoodException invalid) { ((Map<String,String>) model.getAttribute("categoryErrors")).putAll(invalid.errors()); }
     }
 }

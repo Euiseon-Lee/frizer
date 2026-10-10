@@ -60,7 +60,7 @@ public class InventoryService {
         return createInternal(form, masterId, expectedVersion, null, null, false);
     }
 
-    /** Structured write contract; enabled by the form integration in the next stage. */
+    /** Structured write contract for new and additional purchases. */
     @Transactional
     public long createCategorized(FoodCreateForm form, Long masterId, Long expectedVersion,
                                  String majorCode, String minorCode) {

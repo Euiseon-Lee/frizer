@@ -4,14 +4,14 @@
     const masterId = document.getElementById('masterId');
     const version = document.getElementById('masterVersion');
     const name = document.getElementById('foodName');
-    const category = document.getElementById('category');
+
     const unit = document.getElementById('quantityUnit');
     const search = document.getElementById('foodSearch');
     const candidates = [...document.querySelectorAll('#foodCandidates button')];
     const summary = document.getElementById('selectedFoodSummary');
     const mode = () => picker.querySelector('[name="registrationMode"]:checked').value;
     let newName = mode() === 'new' ? name.value : '';
-    let newCategory = mode() === 'new' ? category.value : '';
+
     let selected = candidates.find(button => button.dataset.masterId === masterId.value);
     let searchedQuery = null;
     let submitting = false;
@@ -34,7 +34,7 @@
         filterCandidates();
         if (!searchedQuery) search.focus();
     }
-    function render() {
+    function render(resetCategory = false) {
         const bulk = mode() === 'bulk';
         document.getElementById('singleRegistrationFields').hidden = bulk;
         document.getElementById('bulkRegistrationPanel').hidden = !bulk;
@@ -42,14 +42,10 @@
         document.getElementById('existingFoodPicker').hidden = !existing;
         document.getElementById('foodNameField').hidden = existing;
         name.readOnly = existing;
-        category.readOnly = existing;
         name.disabled = existing;
-        category.disabled = existing;
-        document.getElementById('sharedCategoryHelp').hidden = !existing;
         masterId.disabled = version.disabled = !existing;
         name.value = existing ? (selected?.dataset.name || '') : newName;
-        category.value = existing ? (selected?.dataset.category || '') : newCategory;
-        category.closest('.field').hidden = existing && (!selected || !category.value.trim());
+
         summary.hidden = !selected;
         search.closest('.field').hidden = !!selected;
         if (selected) {
@@ -61,17 +57,18 @@
         submit.disabled = submitting || (existing && !selected);
         document.getElementById('registrationCancel').href = existing && selected
             ? selected.dataset.detailUrl : picker.dataset.listUrl;
+        window.frizerCategoryPicker?.switchContext(mode(), selected, resetCategory === true);
         filterCandidates();
     }
     picker.querySelectorAll('[name="registrationMode"]').forEach(input => input.addEventListener('change', render));
     name.addEventListener('input', () => { if (mode() === 'new') newName = name.value; });
-    category.addEventListener('input', () => { if (mode() === 'new') newCategory = category.value; });
+
     candidates.forEach(button => button.addEventListener('click', () => {
         selected = button;
         masterId.value = button.dataset.masterId;
         version.value = button.dataset.version;
         if (button.dataset.unit) unit.value = button.dataset.unit;
-        render();
+        render(true);
         document.getElementById('quantityAmount').focus();
     }));
     document.getElementById('changeSelectedFood').addEventListener('click', () => {
@@ -94,6 +91,7 @@
     });
     if (selected && !unit.value && selected.dataset.unit) unit.value = selected.dataset.unit;
     picker.closest('form').addEventListener('submit', event => {
+        if (event.defaultPrevented || event.submitter?.value === 'refresh') return;
         if (mode() === 'bulk' || submitting || (mode() === 'existing' && !selected)) {
             event.preventDefault();
             return;
@@ -112,7 +110,6 @@
         // Browsers can restore form values after script initialization without input events.
         if (mode() === 'new') {
             newName = name.value;
-            newCategory = category.value;
         }
         render();
     });

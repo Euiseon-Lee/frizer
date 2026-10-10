@@ -89,7 +89,7 @@ class Step3ScenarioIntegrationTest {
         values.set("foodName","신규 음식"); values.set("quantityAmount","1"); values.set("quantityUnit","개");
         values.set("storageType","ROOM"); values.set("sourceType","ETC"); values.set(field,"가".repeat(length));
         boolean shared = mode.equals("existing") && (field.equals("foodName") || field.equals("category"));
-        var result = mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).params(values));
+        var result = mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).params(values));
         if (allowed || shared) {
             result.andExpect(status().is3xxRedirection());
             assertThat(inventory.findActive()).hasSize(2);
@@ -103,7 +103,7 @@ class Step3ScenarioIntegrationTest {
     @ParameterizedTest @ValueSource(strings={"0","-1","0.001","1.234","1000000000","NaN","1e999",""})
     void invalidAdditionalQuantityNeverChangesMasterOrHistory(String amount) throws Exception {
         long master=food("두부"); var before=snapshot();
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode","existing").param("masterId",""+master)
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode","existing").param("masterId",""+master)
                 .param("masterVersion","0").param("quantityAmount",amount).param("quantityUnit","모")
                 .param("storageType","FRIDGE"))
                 .andExpect(status().isOk()).andExpect(model().hasErrors());
@@ -112,7 +112,7 @@ class Step3ScenarioIntegrationTest {
     @ParameterizedTest @ValueSource(strings={"bogus","EXISTING"," new "})
     void unknownRegistrationModeDoesNotSilentlyCreate(String mode) throws Exception {
         var before=snapshot();
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode",mode).param("foodName","두부")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode",mode).param("foodName","두부")
                 .param("quantityAmount","1").param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(status().isOk()).andExpect(model().hasErrors());
         assertThat(snapshot()).isEqualTo(before);
@@ -363,7 +363,7 @@ class Step3ScenarioIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item_move_receipt",Integer.class)).isEqualTo(applied);
     }
     @Test void newRegistrationWithDifferentTokensKeepsSameNamedFoodsSeparate() throws Exception {
-        for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","동일 요청")
+        for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","동일 요청")
                 .param("quantityAmount","1").param("quantityUnit","개").param("storageType","FRIDGE"))
                 .andExpect(redirectedUrl("/inventory"));
         assertThat(masters.groups(null,false)).hasSize(2);assertThat(inventory.findActive()).hasSize(2);
@@ -371,7 +371,7 @@ class Step3ScenarioIntegrationTest {
     }
     @Test void registrationPostRetryReturnsSuccessWithoutAnotherFoodOrHistory() throws Exception {
         UUID token=UUID.randomUUID();
-        for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("registrationRequestId",token.toString())
+        for(int i=0;i<2;i++) mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",token.toString())
                 .param("foodName","두부").param("quantityAmount","1").param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(redirectedUrl("/inventory"));
         assertThat(masters.groups(null,false)).hasSize(1);assertThat(inventory.findActive()).hasSize(1);
@@ -421,23 +421,23 @@ class Step3ScenarioIntegrationTest {
     }
     @Test void registrationValidationErrorPreservesTokenForCorrectedSubmission() throws Exception {
         UUID token=UUID.randomUUID();
-        mvc.perform(post("/inventory").param("registrationRequestId",token.toString()).param("foodName","두부")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",token.toString()).param("foodName","두부")
                 .param("quantityAmount","0").param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(status().isOk()).andExpect(model().attribute("registrationRequestId",token));
         assertThat(inventory.findActive()).isEmpty();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_registration_receipt",Integer.class)).isZero();
-        mvc.perform(post("/inventory").param("registrationRequestId",token.toString()).param("foodName","두부")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",token.toString()).param("foodName","두부")
                 .param("quantityAmount","1").param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(redirectedUrl("/inventory"));
         assertThat(inventory.findActive()).hasSize(1);
     }
     @Test void registrationWithoutTokenCannotWriteAndFormProvidesRecoveryToken() throws Exception {
-        mvc.perform(post("/inventory").param("foodName","두부").param("quantityAmount","1")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("foodName","두부").param("quantityAmount","1")
                 .param("quantityUnit","모").param("storageType","FRIDGE"))
                 .andExpect(status().isOk()).andExpect(model().hasErrors())
                 .andExpect(model().attributeExists("registrationRequestId"));
         assertThat(inventory.findActive()).isEmpty();
-        mvc.perform(post("/inventory").param("registrationRequestId","invalid").param("foodName","두부"))
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId","invalid").param("foodName","두부"))
                 .andExpect(status().isBadRequest());
     }
     @Test void newRegistrationPagesHaveIndependentTokens() throws Exception {

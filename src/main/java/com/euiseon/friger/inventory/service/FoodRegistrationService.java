@@ -30,6 +30,29 @@ public class FoodRegistrationService {
     private record CategorizedRequest(String contract, FoodCreateForm food, Long masterId, Long masterVersion,
                                       String majorCode, String minorCode) {}
 
+    /** Replays an already completed old page; never accepts a fresh uncategorized write. */
+    @Transactional(readOnly = true)
+    public boolean completedLegacyRequest(FoodCreateForm form, UUID token) {
+        return completedRequest(form, token);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean completedCategorizedRequest(FoodCreateForm form, Long masterId, Long masterVersion,
+                                               String majorCode, String minorCode, UUID token) {
+        return completedRequest(new CategorizedRequest("category-v1", form, masterId, masterVersion, majorCode, minorCode), token);
+    }
+
+    private boolean completedRequest(Object request, UUID token) {
+        if (token == null) return false;
+        var receipt = requests.find(token);
+        if (receipt == null || receipt.foodId() == null) return false;
+        try {
+            return receipt.requestPayload().equals(json.writeValueAsString(request));
+        } catch (JsonProcessingException failure) {
+            throw new IllegalStateException("등록 요청을 확인하지 못했습니다.", failure);
+        }
+    }
+
     /** Raw request fingerprint remains stable after the target group has changed or been merged. */
     @Transactional
     public long createCategorized(FoodCreateForm form, Long masterId, Long masterVersion,

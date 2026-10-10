@@ -43,7 +43,7 @@ class FoodSplitIntegrationTest {
         jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");jdbc.update("DELETE FROM food_master");
     }
     long create() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString())
             .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
             .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("memo","원래 메모")
             .param("capacityText","300g").param("purchasedAt","2026-09-01").param("expiredAt","2026-12-01").param("openedAt","2026-09-10"))

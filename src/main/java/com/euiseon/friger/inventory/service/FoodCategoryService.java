@@ -29,11 +29,18 @@ public class FoodCategoryService {
     }
 
     public List<Choice> choices() {
+        return choicesWithCurrent(null, null);
+    }
+
+    /** Adds only the persisted choice when it has been retired, so an edit can keep it. */
+    public List<Choice> choicesWithCurrent(String majorCode, String minorCode) {
         var majors = categories.majors();
         var minors = categories.minors();
-        return majors.stream().filter(FoodCategoryDao.Major::active)
+        return majors.stream().filter(major -> major.active() || major.code().equals(majorCode))
                 .map(major -> new Choice(major.code(), major.label(), major.example(), major.requiresMinor(),
-                        minors.stream().filter(minor -> minor.active() && minor.majorCode().equals(major.code()))
+                        minors.stream().filter(minor -> minor.majorCode().equals(major.code())
+                                && ((major.active() && minor.active())
+                                || (major.code().equals(majorCode) && minor.code().equals(minorCode))))
                                 .toList()))
                 .filter(choice -> !choice.requiresMinor() || !choice.minors().isEmpty())
                 .toList();

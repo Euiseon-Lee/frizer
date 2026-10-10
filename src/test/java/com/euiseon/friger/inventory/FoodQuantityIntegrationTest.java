@@ -40,7 +40,7 @@ class FoodQuantityIntegrationTest {
         jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");jdbc.update("DELETE FROM food_master");
     }
     long create() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString())
             .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
             .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("memo","원래 메모"))
             .andExpect(status().is3xxRedirection());
@@ -169,7 +169,7 @@ class FoodQuantityIntegrationTest {
     @Test void exhaustedGroupCanReceiveNewStockWithoutRevivingOldItem() throws Exception {
         long id=create(),master=masters.masterId(id);finish(id);
         assertThat(masters.registrationChoices()).extracting(FoodMasterDao.RegistrationChoice::masterId).contains(master);
-        mvc.perform(post("/inventory").param("registrationMode","existing").param("masterId",Long.toString(master))
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString()).param("registrationMode","existing").param("masterId",Long.toString(master))
             .param("masterVersion",Long.toString(dao.find(master).versionNo())).param("quantityAmount","3").param("quantityUnit","모").param("storageType","FRIDGE"))
             .andExpect(status().is3xxRedirection());
         assertThat(masters.items(master)).hasSize(2);assertThat(inventory.findById(id).status()).isEqualTo(FoodStatus.DEPLETED);
@@ -373,7 +373,7 @@ class FoodQuantityIntegrationTest {
     }
 
     private void correct(long id,String amount,String unit,String memo) throws Exception {
-        mvc.perform(post("/inventory/"+id+"/edit").param("foodName","두부").param("storageType","FRIDGE")
+        mvc.perform(post("/inventory/"+id+"/edit").param("categoryMajorCode", "kimchi").param("foodName","두부").param("storageType","FRIDGE")
             .param("quantityAmount",amount).param("quantityUnit",unit).param("sourceType","PURCHASE").param("memo",memo)
             .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString()))
             .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));

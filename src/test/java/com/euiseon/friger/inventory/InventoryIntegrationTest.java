@@ -90,7 +90,7 @@ class InventoryIntegrationTest {
             "NULL,NULL,2026-06-12,true", "NULL,NULL,2026-06-13,false",
             "NULL,NULL,NULL,false", "2026-09-14,NULL,NULL,false"}, nullValues="NULL")
     void warningFilterUsesExactlyHomeReviewScope(String useBy, String sellBy, String opened, boolean included) throws Exception {
-        var request=post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+        var request=post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())
                 .param("foodName","필터 확인").param("quantityAmount","1").param("quantityUnit","개").param("storageType","FRIDGE");
         if(useBy!=null)request.param("expiredAt",useBy);
         if(sellBy!=null)request.param("sellByAt",sellBy);
@@ -107,7 +107,7 @@ class InventoryIntegrationTest {
     @Test
     void warningFilterKeepsMasterIdentityCountsAndReturnContext() throws Exception {
         for(int i=0;i<3;i++) {
-            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())
                     .param("foodName","같은 이름").param("quantityAmount","1").param("quantityUnit","개")
                     .param("storageType","FRIDGE").param("expiredAt",i==1?"2026-09-20":"2026-09-13"))
                     .andExpect(status().is3xxRedirection());
@@ -131,11 +131,11 @@ class InventoryIntegrationTest {
 
     @Test
     void homeSeparatesExpiredTodayAndUnknownDatesAndFiltersStorage() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "경과 음식").param("quantityAmount", "1").param("quantityUnit", "개")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "경과 음식").param("quantityAmount", "1").param("quantityUnit", "개")
                 .param("storageType", "ROOM").param("expiredAt", "2026-09-12")).andExpect(status().is3xxRedirection());
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "오늘 음식").param("quantityAmount", "2").param("quantityUnit", "팩")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "오늘 음식").param("quantityAmount", "2").param("quantityUnit", "팩")
                 .param("storageType", "FRIDGE").param("expiredAt", "2026-09-13")).andExpect(status().is3xxRedirection());
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "기한 미입력").param("quantityAmount", "1").param("quantityUnit", "병")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "기한 미입력").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sellByAt", "2026-09-01")).andExpect(status().is3xxRedirection());
         var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
         assertThat((java.util.List<FoodItem>) home.get("attentionFoods")).extracting(FoodItem::foodName).containsExactlyInAnyOrder("경과 음식", "기한 미입력");
@@ -151,7 +151,7 @@ class InventoryIntegrationTest {
 
     @Test
     void registrationPersistsFoodAndSingleCreateHistoryAndRedirects() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", " 두부 ").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", " 두부 ").param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "모")).andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/inventory")).andExpect(flash().attributeExists("successMessage"));
         FoodItem saved = service.findActive().getFirst();
@@ -211,7 +211,7 @@ class InventoryIntegrationTest {
     @Test
     void futureDatesAreRejectedByServerAndInputIsPreserved() throws Exception {
         for (String field : new String[]{"purchasedAt", "openedAt", "frozenAt"}) {
-            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "냉동 만두").param("storageType", "FREEZER")
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "냉동 만두").param("storageType", "FREEZER")
                     .param("quantityAmount", "1").param("quantityUnit", "팩").param(field, "2026-09-14")).andExpect(status().isOk())
                     .andExpect(model().attributeHasFieldErrors("foodForm", field))
                     .andExpect(content().string(containsString("냉동 만두")));
@@ -221,9 +221,9 @@ class InventoryIntegrationTest {
 
     @Test
     void malformedEnumAndDatesBecomeFormErrors() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "두부").param("storageType", "INVALID"))
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "두부").param("storageType", "INVALID"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "storageType"));
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "두부").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "두부").param("storageType", "FRIDGE")
                 .param("expiredAt", "not-a-date"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "expiredAt"));
         assertThat(service.findActive()).isEmpty();
@@ -231,7 +231,7 @@ class InventoryIntegrationTest {
 
     @Test
     void expiredFoodIsAllowedWithCautionAndNamesAreEscaped() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "<script>alert(1)</script>")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "<script>alert(1)</script>")
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개").param("expiredAt", "2026-09-01"))
                 .andExpect(status().is3xxRedirection());
         mvc.perform(get("/inventory")).andExpect(status().isOk())
@@ -272,7 +272,7 @@ class InventoryIntegrationTest {
     @Test
     void quantityIsRequiredButCapacityIsOptional() throws Exception {
         for (String quantity : new String[]{"", "   "}) {
-            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "밀키트").param("storageType", "FRIDGE")
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "밀키트").param("storageType", "FRIDGE")
                     .param("quantityAmount", quantity).param("quantityUnit", "팩")).andExpect(status().isOk())
                     .andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount"));
         }
@@ -283,7 +283,7 @@ class InventoryIntegrationTest {
 
     @Test
     void capacityAndParentsSourceRoundTripToDetail() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "부모님 반찬").param("quantityAmount", "2").param("quantityUnit", "통")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "부모님 반찬").param("quantityAmount", "2").param("quantityUnit", "통")
                 .param("capacityText", "300g").param("sourceType", "PARENTS").param("storageType", "FRIDGE")
                 .param("category", "반찬").param("memo", "일요일에 받음").param("purchasedAt", "2026-09-12")
                 .param("openedAt", "2026-09-13")).andExpect(status().is3xxRedirection());
@@ -309,7 +309,7 @@ class InventoryIntegrationTest {
 
     @Test
     void otherSourceMemoIsStoredSeparatelyAndEscapedInDetail() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "선물 소스").param("quantityAmount", "1").param("quantityUnit", "병")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "선물 소스").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sourceType", "ETC")
                 .param("sourceMemo", " <b>지인 선물</b> ").param("memo", "일반 메모"))
                 .andExpect(status().is3xxRedirection());
@@ -323,7 +323,7 @@ class InventoryIntegrationTest {
     @Test
     void sourceMemoIsIgnoredUnlessOtherSourceWasExplicitlySelected() throws Exception {
         for (String source : new String[]{"", "PURCHASE"}) {
-            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
                     .param("storageType", "FRIDGE").param("sourceType", source)
                     .param("sourceMemo", "이전 입력"))
                     .andExpect(status().is3xxRedirection());
@@ -333,7 +333,7 @@ class InventoryIntegrationTest {
 
     @Test
     void sourceMemoLengthIsValidatedAndInputPreserved() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sourceType", "ETC").param("sourceMemo", "가".repeat(201)))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "sourceMemo"));
         assertThat(service.findActive()).isEmpty();
@@ -359,7 +359,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @CsvSource(value = {"2026-09-20,NULL", "NULL,2026-09-21", "2026-09-20,2026-09-21", "NULL,NULL"}, nullValues = "NULL")
     void packageDatesAreIndependentlyOptional(String sellBy, String useBy) throws Exception {
-        var request = post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "날짜 확인 식품")
+        var request = post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "날짜 확인 식품")
                 .param("quantityAmount", "1").param("quantityUnit", "개").param("storageType", "FRIDGE");
         if (sellBy != null) request.param("sellByAt", sellBy);
         if (useBy != null) request.param("expiredAt", useBy);
@@ -374,7 +374,7 @@ class InventoryIntegrationTest {
 
     @Test
     void pastSellByDoesNotBecomeExpiredUseBy() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sellByAt", "2026-09-01"))
                 .andExpect(status().is3xxRedirection());
         FoodItem saved = service.findActive().getFirst();
@@ -386,7 +386,7 @@ class InventoryIntegrationTest {
 
     @Test
     void invalidSellByReturnsAnErrorWithoutLosingUseBy() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "소스").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sellByAt", "not-a-date").param("expiredAt", "2026-09-21"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "sellByAt"))
                 .andExpect(content().string(containsString("2026-09-21")));
@@ -395,7 +395,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "0.001", "6.343345", "1000000000", "1.2345", "반 봉지", "NaN"})
     void rejectsInvalidNumericQuantityWithoutWriting(String amount) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "만두").param("storageType", "FREEZER")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "만두").param("storageType", "FREEZER")
                 .param("quantityAmount", amount).param("quantityUnit", "봉지"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount"))
                 .andExpect(content().string(containsString("만두")))
@@ -407,7 +407,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "   ", "가나다라마바사아자차카"})
     void rejectsMissingOrLongUnit(String unit) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "만두").param("storageType", "FREEZER")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "만두").param("storageType", "FREEZER")
                 .param("quantityAmount", "0.5").param("quantityUnit", unit))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityUnit"));
         assertThat(service.findActive()).isEmpty();
@@ -416,7 +416,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @CsvSource({"0.50,봉지,0.5봉지", "0.01,g,0.01g", "999999999.99,mL,999999999.99mL", "2.00,팩,2팩"})
     void structuredQuantityRoundTripsWithoutRounding(String amount, String unit, String display) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "수량 확인").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "수량 확인").param("storageType", "FRIDGE")
                 .param("quantityAmount", amount).param("quantityUnit", "  " + unit + "  "))
                 .andExpect(status().is3xxRedirection());
         FoodItem saved = service.findById(service.findActive().getFirst().foodId());
@@ -441,7 +441,7 @@ class InventoryIntegrationTest {
 
     @Test
     void customUnitIsEscapedAndLegacyTextStillRenders() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "사용자 단위").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "사용자 단위").param("storageType", "FRIDGE")
                 .param("quantityAmount", "2").param("quantityUnit", "<b>팩"))
                 .andExpect(status().is3xxRedirection());
         long id = service.findActive().getFirst().foodId();
@@ -474,13 +474,13 @@ class InventoryIntegrationTest {
     }
     @Test
     void addPurchaseUsesSharedIdentityAndPreservesOriginal() throws Exception {
-        long id = service.create(form(StorageType.FRIDGE, null, FreezeType.NONE, null, false));
+        long id = service.createCategorized(form(StorageType.FRIDGE, null, FreezeType.NONE, null, false), null, null, "kimchi", null);
         var original = service.findById(id);
         long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
         var history = jdbc.queryForMap("SELECT * FROM food_history WHERE food_id=?", id);
         mvc.perform(get("/inventory/new").param("masterId", "" + master)).andExpect(status().isOk())
                 .andExpect(model().attribute("registrationMode", "existing"));
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("masterId", "" + master)
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("masterId", "" + master)
                 .param("masterVersion", "0").param("foodName", "잘못 보낸 이름").param("category", "다른 분류")
                 .param("storageType", "ROOM").param("quantityAmount", "3").param("quantityUnit", "팩")
                 .param("sourceType", "ETC").param("sourceMemo", "선물").param("memo", "이번 구매")
@@ -520,13 +520,13 @@ class InventoryIntegrationTest {
     void addPurchaseValidationKeepsSelectionAndDoesNotWrite() throws Exception {
         long id = service.create(form(StorageType.FRIDGE, null, FreezeType.NONE, null, false));
         long master = jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id);
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("masterId", "" + master)
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("masterId", "" + master)
                 .param("masterVersion", "0").param("storageType", "FRIDGE").param("quantityAmount", "0")
                 .param("quantityUnit", "모").param("memo", "입력 유지"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount"))
                 .andExpect(model().attribute("selectedMasterId", master))
                 .andExpect(content().string(containsString("입력 유지")));
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("foodName", "음식")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("registrationMode", "existing").param("foodName", "음식")
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개"))
                 .andExpect(status().isOk()).andExpect(model().hasErrors());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(1);
@@ -537,7 +537,7 @@ class InventoryIntegrationTest {
     void unspecifiedSourceCanBeRestoredAfterExplicitEtc() throws Exception {
         long id = service.create(form(StorageType.FRIDGE, FoodSourceType.ETC, FreezeType.NONE, null, false));
         var food = service.findById(id);
-        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", food.updatedAt().toString())
+        mvc.perform(post("/inventory/" + id + "/edit").param("categoryMajorCode", "kimchi").param("expectedUpdatedAt", food.updatedAt().toString())
                 .param("foodName", food.foodName()).param("storageType", "FRIDGE").param("sourceType", "")
                 .param("sourceMemo", "이전 메모").param("quantityAmount", "1").param("quantityUnit", "모"))
                 .andExpect(status().is3xxRedirection());
@@ -549,7 +549,7 @@ class InventoryIntegrationTest {
     }
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder editRequest(FoodItem food) {
-        return post("/inventory/" + food.foodId() + "/edit")
+        return post("/inventory/" + food.foodId() + "/edit").param("categoryMajorCode", "kimchi")
                 .param("expectedUpdatedAt", food.updatedAt().toString()).param("foodName", food.foodName())
                 .param("storageType", food.storageType().name()).param("sourceType", food.sourceType() == null ? "" : food.sourceType().name())
                 .param("quantityAmount", food.quantityAmount() == null ? "1" : food.quantityAmount().stripTrailingZeros().toPlainString())
@@ -558,7 +558,7 @@ class InventoryIntegrationTest {
 
     @Test
     void editFormLoadsAllFieldsAndUsesDetailForCancel() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "수정할 음식").param("storageType", "FREEZER")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "수정할 음식").param("storageType", "FREEZER")
                 .param("sourceType", "ETC").param("sourceMemo", "지인").param("quantityAmount", "0.5").param("quantityUnit", "봉지")
                 .param("capacityText", "300g").param("category", "간편식").param("memo", "남겨둔 메모")
                 .param("freezeType", "COMMERCIAL_FROZEN").param("frozenAt", "2026-09-10")
@@ -587,7 +587,7 @@ class InventoryIntegrationTest {
                 .andExpect(model().attribute("savedWarning", true))
                 .andExpect(content().string(containsString("name=\"storage\" value=\"FRIDGE\"")))
                 .andExpect(content().string(containsString("/inventory/" + id + "?storage=FRIDGE&amp;warning=true")));
-        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+        mvc.perform(post("/inventory/" + id + "/edit").param("categoryMajorCode", "kimchi").param("expectedUpdatedAt", before.updatedAt().toString())
                 .param("storage", "FRIDGE").param("warning", "true").param("ended", "true"))
                 .andExpect(status().isOk()).andExpect(model().hasErrors())
                 .andExpect(model().attribute("selectedStorage", StorageType.FRIDGE))
@@ -605,7 +605,7 @@ class InventoryIntegrationTest {
         FoodItem before = service.findById(id);
         var request = editRequest(before);
         request.param("foodName", "ignored"); // replace values below, rather than submit duplicate values
-        request = post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+        request = post("/inventory/" + id + "/edit").param("categoryMajorCode", "kimchi").param("expectedUpdatedAt", before.updatedAt().toString())
                 .param("foodName", "새 이름").param("quantityAmount", "2.5").param("quantityUnit", "팩")
                 .param("storageType", "FREEZER").param("sourceType", "ETC").param("sourceMemo", "선물")
                 .param("freezeType", "HOME_FROZEN").param("frozenAt", "2026-09-12")
@@ -631,7 +631,7 @@ class InventoryIntegrationTest {
 
     @Test
     void unchangedSaveDoesNotWriteOrDisplayModifiedTimestamp() throws Exception {
-        long id = service.create(form(StorageType.FRIDGE, null, null, null, false));
+        long id = service.createCategorized(form(StorageType.FRIDGE, null, null, null, false), null, null, "kimchi", null);
         FoodItem before = service.findById(id);
         mvc.perform(editRequest(before)).andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMessage", "변경한 내용이 없어."));
@@ -665,7 +665,7 @@ class InventoryIntegrationTest {
         FoodItem before = service.findById(id);
         mvc.perform(get("/inventory/" + id + "/edit")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("기존 수량: 반 봉지")));
-        mvc.perform(post("/inventory/" + id + "/edit").param("expectedUpdatedAt", before.updatedAt().toString())
+        mvc.perform(post("/inventory/" + id + "/edit").param("categoryMajorCode", "kimchi").param("expectedUpdatedAt", before.updatedAt().toString())
                 .param("foodName", "기존 음식").param("storageType", "FRIDGE"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm", "quantityAmount", "quantityUnit"));
         assertThat(service.findById(id)).isEqualTo(before);
@@ -715,14 +715,14 @@ class InventoryIntegrationTest {
 
     @Test
     void missingStorageUsesNewMessageWithoutRedundantHelp() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","두부").param("quantityAmount","1").param("quantityUnit","모"))
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","두부").param("quantityAmount","1").param("quantityUnit","모"))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("아앗 필수 정보라구!")));
         String html = mvc.perform(get("/inventory/new")).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(html).doesNotContain("보관할 장소를 골라줘.");
     }
     @Test
     void blankRegistrationShowsRequiredErrorsOnlyInline() throws Exception {
-        var result = mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString())).andExpect(status().isOk())
+        var result = mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString())).andExpect(status().isOk())
                 .andExpect(model().attributeHasFieldErrors("foodForm", "foodName", "quantityAmount", "quantityUnit", "storageType"))
                 .andReturn();
         String html = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
@@ -737,7 +737,7 @@ class InventoryIntegrationTest {
 
     @Test
     void fieldAndBusinessErrorsAreReportedTogetherWithoutDuplicates() throws Exception {
-        var result = mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("quantityAmount","0").param("quantityUnit","팩")
+        var result = mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("quantityAmount","0").param("quantityUnit","팩")
                 .param("purchasedAt","2026-09-14")).andExpect(status().isOk())
                 .andExpect(model().attributeHasFieldErrors("foodForm","foodName","quantityAmount","storageType","purchasedAt"))
                 .andReturn();
@@ -750,7 +750,7 @@ class InventoryIntegrationTest {
 
     @Test
     void deliveryStorageDefaultStillWorksWithOtherValidationErrors() throws Exception {
-        var result = mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("sourceType","DELIVERY_LEFTOVER"))
+        var result = mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("sourceType","DELIVERY_LEFTOVER"))
                 .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm","foodName"))
                 .andReturn();
         var binding = (org.springframework.validation.BindingResult) result.getModelAndView().getModel().get("org.springframework.validation.BindingResult.foodForm");
@@ -759,7 +759,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @CsvSource(value={"2026-09-01,2026-09-20,0", "2026-09-01,2026-09-13,0", "2026-09-01,2026-09-12,1", "2026-09-01,NULL,1", "NULL,2026-09-12,1", "2026-09-20,NULL,0", "NULL,NULL,0"},nullValues="NULL")
     void useByTakesPriorityOverSellByWarnings(String sellBy,String useBy,int warningCount) throws Exception {
-        var request=post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","기한 확인").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개");
+        var request=post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","기한 확인").param("storageType","FRIDGE").param("quantityAmount","1").param("quantityUnit","개");
         if(sellBy!=null)request.param("sellByAt",sellBy);
         if(useBy!=null)request.param("expiredAt",useBy);
         mvc.perform(request).andExpect(status().is3xxRedirection());
@@ -791,7 +791,7 @@ class InventoryIntegrationTest {
     }, nullValues = "NULL")
     void openingWarningsAgreeAcrossHomeListAndDetail(String opened, String sellBy, String useBy,
                                                       int warnings) throws Exception {
-        var request = post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "개봉 확인")
+        var request = post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "개봉 확인")
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개");
         if (opened != null) request.param("openedAt", opened);
         if (sellBy != null) request.param("sellByAt", sellBy);
@@ -840,7 +840,7 @@ class InventoryIntegrationTest {
 
     @Test
     void overviewCoversAllDateCombinationsWithoutContradictoryEmptyCard() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "분기 검증 음식")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "분기 검증 음식")
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개"))
                 .andExpect(status().is3xxRedirection());
         long id = service.findActive().getFirst().foodId();
@@ -883,7 +883,7 @@ class InventoryIntegrationTest {
     @Test
     void warningPresentationHandlesDuplicateNamesTodayAndUnknownDates() throws Exception {
         String longName = "어제 먹다 남은 치킨에 이것저것 섞고 야채까지 넣어서 보관한 아주 긴 이름의 음식";
-        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString())
                 .param("foodName", longName).param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "개").param("expiredAt", "2026-09-10"))
                 .andExpect(status().is3xxRedirection());
@@ -891,14 +891,14 @@ class InventoryIntegrationTest {
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(single).contains("소비기한 +<span>3</span>일").doesNotContain("class=\"overview-food-context\"");
         for (String storage : new String[]{"ROOM", "FRIDGE"}) {
-            mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString())
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString())
                     .param("foodName", longName).param("storageType", storage)
                     .param("quantityAmount", "1").param("quantityUnit", "개")
                     .param("purchasedAt", "ROOM".equals(storage) ? "2026-01-01" : "")
                     .param("openedAt", "2026-01-15"))
                     .andExpect(status().is3xxRedirection());
         }
-        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString())
                 .param("foodName", "오늘 확인할 음식").param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "개")
                 .param("expiredAt", "2026-09-13").param("openedAt", "2026-09-13"))
@@ -930,7 +930,7 @@ class InventoryIntegrationTest {
     void homeWarningLimitsRowsWithoutTruncatingTargets(int count) throws Exception {
         String longName = "긴 음식 이름과 여러 사유가 있는 항목도 한 줄에서 전체 내용을 보존하는지 확인할 음식";
         for (int i = 0; i < count; i++) {
-            mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString())
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString())
                     .param("foodName", longName + i).param("storageType", "FRIDGE")
                     .param("quantityAmount", "1").param("quantityUnit", "개")
                     .param("expiredAt", "2026-09-10").param("openedAt", "2026-01-15"))
@@ -959,7 +959,7 @@ class InventoryIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "2026-09-12", "2026-09-13", "2026-09-14"})
     void purchaseDateElapsedDaysHandleMissingPastTodayAndFuture(String date) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString())
                 .param("foodName", "날짜 경과 표시").param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "개"))
                 .andExpect(status().is3xxRedirection());
@@ -982,7 +982,7 @@ class InventoryIntegrationTest {
     @Test
     void homeShowsFiveLatestCompactHistoryRows() throws Exception {
         for (int i = 1; i <= 6; i++) {
-            mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "음식" + i).param("storageType", "FRIDGE")
+            mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "음식" + i).param("storageType", "FRIDGE")
                     .param("quantityAmount", "1").param("quantityUnit", "개")).andExpect(status().is3xxRedirection());
         }
         var result = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
@@ -1002,7 +1002,7 @@ class InventoryIntegrationTest {
 
     @Test
     void registrationHistoryPreservesInitialFieldsAfterCurrentFoodChanges() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "처음 이름").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "처음 이름").param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "개").param("capacityText", "200g")
                 .param("sourceType", "ETC").param("sourceMemo", "처음 출처")
                 .param("memo", "첫째 줄\n둘째 줄 → 유지"))
@@ -1046,7 +1046,7 @@ class InventoryIntegrationTest {
                 .getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         assertThat(empty).contains("data-choco-region=\"home-summary\"", "data-choco-role=\"empty\"");
         java.nio.file.Files.writeString(directory.resolve("home-empty.html"), empty);
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "검증 음식").param("storageType", "FRIDGE")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "검증 음식").param("storageType", "FRIDGE")
                 .param("quantityAmount", "1").param("quantityUnit", "개"))
                 .andExpect(status().is3xxRedirection());
         String resting = mvc.perform(get("/")).andExpect(status().isOk()).andReturn()
@@ -1057,7 +1057,7 @@ class InventoryIntegrationTest {
 
     @Test
     void singleItemGroupCollapsesIntoDetailWithGroupActions() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("foodName", "외톨이 두부")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("foodName", "외톨이 두부")
                 .param("quantityAmount", "1").param("quantityUnit", "모").param("storageType", "FRIDGE"))
                 .andExpect(status().is3xxRedirection());
         long item = service.findActive().getFirst().foodId();
@@ -1077,7 +1077,7 @@ class InventoryIntegrationTest {
         mvc.perform(get("/foods/" + master + "/delete").param("items", "" + item)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("purchase-back-link\" href=\"/inventory/" + item)));
         // 항목이 2개가 되면 접기가 풀리고 기존 층위로 돌아간다.
-        mvc.perform(post("/inventory").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("registrationMode", "existing")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId", java.util.UUID.randomUUID().toString()).param("registrationMode", "existing")
                 .param("masterId", "" + master).param("masterVersion", "0")
                 .param("quantityAmount", "2").param("quantityUnit", "모").param("storageType", "FRIDGE"))
                 .andExpect(status().is3xxRedirection());

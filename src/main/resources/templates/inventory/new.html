@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 이건 뭐야?</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-21')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script><script th:src="@{/js/warning-settings.js}" defer></script><script th:src="@{/js/opening-status.js}" defer></script><script th:src="@{/js/bulk-registration.js}" defer></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 이건 뭐야?</title><link rel="stylesheet" th:href="@{/css/app.css(v='category-27')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script><script th:src="@{/js/warning-settings.js}" defer></script><script th:src="@{/js/opening-status.js}" defer></script><script th:src="@{/js/bulk-registration.js}" defer></script></head>
 <body>
 <header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
@@ -21,7 +21,7 @@
             <div id="existingFoodPicker" th:hidden="${registrationMode != 'existing'}">
                 <div class="field"><label for="foodSearch">어떤 음식에 추가할까? <span class="required">필수</span></label><div class="food-search-row"><input id="foodSearch" type="search" placeholder="음식 이름 검색" autocomplete="off" enterkeyhint="search" aria-describedby="foodSearchStatus"><button type="button" id="searchFoods" class="search-button">검색</button></div></div>
                 <div class="registration-candidates" id="foodCandidates" hidden>
-                    <button type="button" th:each="candidate : ${registrationFoods}" th:attr="data-master-id=${candidate.masterId()},data-name=${candidate.foodName()},data-category=${candidate.category()},data-version=${candidate.versionNo()},data-unit=${candidate.defaultQuantityUnit()},data-detail-url=@{/foods/{id}(id=${candidate.masterId()})}">
+                    <button type="button" th:each="candidate : ${registrationFoods}" th:attr="data-master-id=${candidate.masterId()},data-name=${candidate.foodName()},data-category=${candidate.category()},data-major=${candidate.categoryMajorCode()},data-version=${candidate.versionNo()},data-unit=${candidate.defaultQuantityUnit()},data-detail-url=@{/foods/{id}(id=${candidate.masterId()})}">
                         <strong th:text="${candidate.foodName()}"></strong><span class="small muted" th:text="${(candidate.category() == null ? '분류 없음' : candidate.category()) + ' · 개별 구매 ' + candidate.itemCount() + '건 · #' + candidate.masterId()}"></span>
                     </button>
                 </div>
@@ -47,7 +47,7 @@
             </div>
             <div class="field"><label for="sourceType">출처 <span class="optional">선택</span></label><select th:field="*{sourceType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceType')},aria-describedby=${#fields.hasErrors('sourceType') ? 'sourceType-error' : null}"><option value="">선택 안 함</option><option th:each="entry : ${sourceLabels}" th:value="${entry.key}" th:text="${entry.value}"></option></select><p class="field-error" id="sourceType-error" th:errors="*{sourceType}"></p></div>
             <div class="field" id="sourceMemoField"><label for="sourceMemo">출처 메모 <span class="optional">선택</span></label><input th:field="*{sourceMemo}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceMemo')},aria-describedby=${#fields.hasErrors('sourceMemo') ? 'sourceMemo-error' : null}" placeholder="예: 지인에게 받음" maxlength="200"><p class="field-error" id="sourceMemo-error" th:errors="*{sourceMemo}"></p></div>
-            <div class="field" th:hidden="${registrationMode == 'existing' and (selectedMasterId == null or #strings.isEmpty(foodForm?.category()))}"><label for="category">분류 <span class="optional">선택</span></label><input th:field="*{category}" th:classappend="${editId != null ? 'shared-edit-input' : ''}" th:disabled="${registrationMode == 'existing'}" th:readonly="${registrationMode == 'existing'}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('category')},aria-describedby=${#fields.hasErrors('category') ? 'category-error' : null}" maxlength="50" placeholder="예: 반찬, 채소, 간편식"><p id="sharedCategoryHelp" class="help" hidden>기존 음식의 분류를 그대로 사용해.</p><p class="field-error" id="category-error" th:errors="*{category}"></p></div>
+            <input type="hidden" th:field="*{category}"><div th:replace="~{fragments/category-picker :: content}"></div>
         </section>
         <section class="form-section"><div class="section-label"><span>02</span><h2>어디에 보관할까? <span class="required">필수</span></h2></div>
             <p class="help section-help" id="deliveryStorageHelp" th:hidden="${foodForm?.sourceType() == null or foodForm?.sourceType().name() != 'DELIVERY_LEFTOVER' or foodForm?.storageType() != null}">배달 잔반은 보관할 곳을 고르지 않으면 냉동실로 등록할게.</p><fieldset class="storage-choices"><legend class="sr-only">보관 위치</legend><label th:each="entry : ${storageLabels}"><input type="radio" th:field="*{storageType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('storageType')},aria-describedby=${#fields.hasErrors('storageType') ? 'storageType-error' : null}" th:value="${entry.key}"><span th:text="${entry.value}"></span></label></fieldset><p class="field-error" id="storageType-error" th:errors="*{storageType}"></p>
@@ -87,6 +87,7 @@
     <footer class="page-footer">쪼코 기억력 얼마나 좋은지 보여줄게!</footer>
     </div>
 </main>
+<script th:src="@{/js/food-category.js(v='category-27')}" defer></script>
 <script th:src="@{/js/food-form.js}" defer></script>
-<script th:if="${editId == null}" th:src="@{/js/food-registration.js(v='registration-8')}" defer></script>
+<script th:if="${editId == null}" th:src="@{/js/food-registration.js(v='category-27')}" defer></script>
 <nav th:replace="~{fragments/shell :: nav(${editId != null ? 'inventory' : 'new'})}"></nav></body></html>

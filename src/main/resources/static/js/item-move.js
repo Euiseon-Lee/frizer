@@ -30,7 +30,7 @@
         if(submitting) return;
         invalidate();
         if(!mode()) return;
-        if(picker && !picker.confirmed()) {status.textContent='분류 선택을 완료해줘.';return;}
+        if(picker && !picker.isValid()) {status.textContent='분류 선택을 완료해줘.';return;}
         const query=new URLSearchParams({mode:mode()});
         for(const item of items) query.append('items',item);
         if(mode()==='EXISTING') {if(!target.value) return;query.set('targetId',target.value);}
@@ -96,7 +96,7 @@
     }));
     retry.addEventListener('click',()=>retryAction&&retryAction());
     form.addEventListener('submit',event=>{
-        if(event.defaultPrevented || submitting || !current || (picker && !picker.confirmed())){event.preventDefault();return;}
+        if(event.defaultPrevented || submitting || !current || (picker && !picker.isValid())){event.preventDefault();return;}
         if(mode()==='NEW' && !find('moveName').value.trim()) {event.preventDefault();status.textContent='음식명을 입력해줘.';find('moveName').focus();return;}
         submitting=true;
         // Form-associated controls stay enabled so their live values submit; disabling would drop them.
@@ -107,8 +107,7 @@
     window.addEventListener('pageshow',event=>{if(event.persisted) window.location.reload();});
     find('moveName').addEventListener('input',()=>{invalidate();loadPreview();});
     if(picker) {
-        for(const id of ['categoryMajorCode','categoryMinorCode']) find(id).addEventListener('change',invalidate);
-        for(const id of ['categoryConfirm','categoryCancel']) find(id).addEventListener('click',loadPreview);
+        for(const id of ['categoryMajorCode','categoryMinorCode']) find(id).addEventListener('change',loadPreview);
         categoryContext();
         const draft=JSON.parse(find('moveDraft').textContent || 'null');
         if(draft) {

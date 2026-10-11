@@ -47,7 +47,7 @@ public class ItemMoveController {
         model.addAttribute("categoryErrors",Map.of());
         model.addAttribute("categoryMinors",List.of());
         model.addAttribute("categoryMajorCode",""); model.addAttribute("categoryMinorCode","");
-        model.addAttribute("categoryInherited",false); model.addAttribute("categoryRefresh",false);
+        model.addAttribute("categoryInherited",false);
         model.addAttribute("categoryNeedsMinor",true); model.addAttribute("categoryUnknownMajor",false);
         model.addAttribute("categoryUnknownMinor",false);
         return "inventory/item-move";

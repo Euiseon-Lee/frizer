@@ -3,10 +3,12 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 function element(){return {value:'',hidden:false,disabled:false,textContent:'',children:[],dataset:{},listeners:{},addEventListener(k,f){this.listeners[k]=f},setAttribute(k,v){this[k]=v},replaceChildren(...c){this.children=c},append(c){this.children.push(c)}};}
 function option(value,name){const o=element();o.dataset={value:String(value),name};o.selected=false;o.classList={toggle(c,v){o.selected=v}};return o;}
-function setup(){
+function setup(withPicker=false){
  const ids=Object.fromEntries(['itemMove','moveStatus','itemMovePreview','moveRetry','moveTarget','itemMoveSubmit','moveFields','moveName','moveCategory','moveFilter','moveFilterEmpty','existingMove','newMove'].map(id=>[id,element()]));
  const radio=element(), otherRadio=element(), button=element(), requests=[], window=element(), results={};
  radio.value='EXISTING';
+ const categoryState={valid:false};
+ if(withPicker) window.frizerCategoryPicker={switchContext(){},isValid(){return categoryState.valid},restore(){}};
  const optionsBox=element();
  const choices=[option(2,'두부'),option(3,'콩')];
  optionsBox.querySelectorAll=()=>choices;
@@ -18,10 +20,10 @@ function setup(){
  const document={getElementById:id=>(ids[id]??=element()),createElement:()=>element()};
  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/item-move.js','utf8'),{document,window,URLSearchParams,fetch:url=>new Promise((resolve,reject)=>requests.push({url,resolve,reject}))});
  const pick=index=>ids.moveTargetOptions.listeners.click({target:{closest:()=>choices[index]}});
- return {ids,radio,button,requests,results,choices,pick};
+ return {ids,radio,button,requests,results,choices,pick,categoryState};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-const response=id=>({ok:true,json:async()=>({source:{foodName:'듀부'},items:[{foodId:11},{foodId:12}],whole:false,endedCount:1,remainingCount:1,historyCount:1,requestId:'token'+id,command:{mode:'EXISTING',targetId:id,sourceId:1,sourceVersion:0,targetVersion:0,itemIds:[11,12],whole:false}})});
+const response=id=>({ok:true,json:async()=>({source:{foodName:'듀부'},targetMajorLabel:'콩·두부',targetMinorLabel:'두부',items:[{foodId:11},{foodId:12}],whole:false,endedCount:1,remainingCount:1,historyCount:1,requestId:'token'+id,command:{mode:'EXISTING',targetId:id,sourceId:1,sourceVersion:0,targetVersion:0,itemIds:[11,12],whole:false}})});
 (async()=>{
  // 선택 응답 역전: 나중 선택의 결과만 반영한다.
  const e=setup(), {ids}=e;
@@ -71,5 +73,18 @@ const response=id=>({ok:true,json:async()=>({source:{foodName:'듀부'},items:[{
  assert.ok(change.requests[2].url.includes('newName='));
  change.requests[2].resolve(response(4));await tick();
  assert.equal(change.ids.itemMovePreview.hidden,false);
+ // 분류 변경은 별도 확인 버튼 없이 다시 조회하며 불완전한 선택은 이전 결과를 무효화한다.
+ const category=setup(true);
+ category.radio.value='NEW';category.ids.moveName.value='새 음식';
+ category.ids.categoryMajorCode.value='soy';category.ids.categoryMajorCode.listeners.change();
+ assert.equal(category.requests.length,0);assert.equal(category.ids.itemMovePreview.hidden,true);
+ category.categoryState.valid=true;category.ids.categoryMinorCode.value='soy_tofu';category.ids.categoryMinorCode.listeners.change();
+ assert.equal(category.requests.length,1);assert.ok(category.requests[0].url.includes('categoryMinorCode=soy_tofu'));
+ category.categoryState.valid=false;category.ids.categoryMajorCode.listeners.change();
+ category.requests[0].resolve(response(9));await tick();assert.equal(category.ids.itemMovePreview.hidden,true);
+ category.categoryState.valid=true;category.ids.categoryMinorCode.listeners.change();
+ category.requests[1].resolve(response(9));await tick();assert.equal(category.ids.itemMovePreview.hidden,false);
+ assert.equal(category.results['[data-result="targetMajorLabel"]'].textContent,'콩·두부');
+ assert.equal(category.results['[data-result="targetMinorLabel"]'].textContent,'두부');
  console.log('item-move: preloaded list selection, stale previews, retry, filtering, mode race and duplicate submission passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

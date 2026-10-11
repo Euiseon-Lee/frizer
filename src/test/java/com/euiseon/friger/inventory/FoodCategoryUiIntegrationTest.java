@@ -95,6 +95,25 @@ class FoodCategoryUiIntegrationTest {
         mvc.perform(create(token).param("categoryMajorCode", "kimchi")).andExpect(status().isOk()).andExpect(model().hasErrors());
     }
 
+    @Test void detailShowsSeparateStoredLabelsAndEditorHasAlwaysVisibleSelectors() throws Exception {
+        long id=legacy();long master=masters.masterId(id);
+        String unclassified=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(unclassified).contains("<dt>대분류</dt><dd>-</dd>","<dt>중분류</dt><dd>-</dd>");
+        jdbc.update("UPDATE food_master SET category_major_code='soy',category_minor_code='soy_tofu',category='오래된 표시' WHERE master_id=?",master);
+        jdbc.update("UPDATE food_category_major SET active=false WHERE code='soy'");
+        String detail=mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(detail).contains("<dt>대분류</dt><dd>콩·두부</dd>","<dt>중분류</dt><dd>두부</dd>").doesNotContain("<dt>분류</dt>");
+        assertThat(masters.registrationChoices().getFirst().category()).isEqualTo("콩·두부 › 두부");
+        String grouped=mvc.perform(get("/foods/"+master)).andReturn().getResponse().getContentAsString();
+        assertThat(grouped).contains("콩·두부 › 두부").doesNotContain("오래된 표시");
+        String inherited=mvc.perform(get("/inventory/new").param("masterId",""+master)).andReturn().getResponse().getContentAsString();
+        assertThat(inherited).contains("class=\"category-inherited-heading\">분류</p>","기존 음식의 분류를 그대로 사용할 거야.","콩·두부 › 두부");
+        String edit=mvc.perform(get("/inventory/"+id+"/edit")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(edit).contains("id=\"categoryPanel\" class=\"category-panel\">", "id=\"categoryMajorCode\"", "id=\"categoryMinorCode\"")
+            .doesNotContain("id=\"categoryToggle\"","id=\"categoryConfirm\"","id=\"categoryCancel\"","id=\"categoryLabel\"");
+        export("always-visible",mvc.perform(get("/inventory/"+id+"/edit")).andReturn());
+    }
+
     @Test void quantityErrorPreservesChosenCodes() throws Exception {
         var request = post("/inventory").param("registrationRequestId", UUID.randomUUID().toString())
                 .param("foodName", "두부").param("storageType", "FRIDGE").param("quantityAmount", "0").param("quantityUnit", "모")
@@ -104,6 +123,21 @@ class FoodCategoryUiIntegrationTest {
                 .andExpect(model().attribute("categoryMajorCode", "soy"))
                 .andExpect(model().attribute("categoryMinorCode", "soy_tofu")).andReturn();
         export("quantity-error", result);
+    }
+
+    @Test void inapplicableMinorIsClearedOnNewAndRetiredUnchangedEdit() throws Exception {
+        mvc.perform(create(UUID.randomUUID()).param("categoryMajorCode","beverage").param("categoryMinorCode","soy_tofu"))
+            .andExpect(status().is3xxRedirection());
+        var item=inventory.findActive().getFirst();
+        assertThat(masters.find(masters.masterId(item.foodId())).categoryMinorCode()).isNull();
+        jdbc.update("UPDATE food_category_major SET active=false WHERE code='beverage'");
+        mvc.perform(post("/inventory/"+item.foodId()+"/edit").param("expectedUpdatedAt",item.updatedAt().toString())
+            .param("foodName",item.foodName()).param("storageType","FRIDGE").param("quantityAmount","2").param("quantityUnit","모")
+            .param("categoryMajorCode","beverage").param("categoryMinorCode","stale"))
+            .andExpect(status().is3xxRedirection());
+        assertThat(masters.find(masters.masterId(item.foodId())).categoryMinorCode()).isNull();
+        String html=mvc.perform(get("/inventory/"+item.foodId())).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("<dt>중분류</dt><dd>중분류 없음</dd>");
     }
 
     @Test void refreshWorksWithoutJavascriptAndDoesNotConsumeToken() throws Exception {

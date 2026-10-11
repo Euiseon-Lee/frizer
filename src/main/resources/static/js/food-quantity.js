@@ -56,10 +56,29 @@
       if (!validate()) error.textContent = input.validationMessage;
     });
     validate();
+    const categoryLink = document.getElementById('quantityCategoryLink');
+    if (categoryLink) {
+      const syncCategoryLink = () => {
+        const url = new URL(categoryLink.href);
+        url.searchParams.set('returnQuantity', input.value);
+        categoryLink.href = url.toString();
+      };
+      input.addEventListener('input', syncCategoryLink);
+      categoryLink.addEventListener('click', event => {
+        if (!validate()) {
+          event.preventDefault();
+          error.textContent = input.validationMessage;
+          input.focus();
+          return;
+        }
+        syncCategoryLink();
+      });
+      syncCategoryLink();
+    }
   }
   let submitting = false;
   form.addEventListener('submit', event => {
-    if (submitting) { event.preventDefault(); return; }
+    if (submitting || form.querySelector('button[type="submit"]').disabled) { event.preventDefault(); return; }
     submitting = true;
     form.querySelector('button[type="submit"]').disabled = true;
   });

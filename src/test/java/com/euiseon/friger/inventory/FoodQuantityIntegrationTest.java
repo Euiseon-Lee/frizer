@@ -40,14 +40,90 @@ class FoodQuantityIntegrationTest {
         jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");jdbc.update("DELETE FROM food_master");
     }
     long create() throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString())
             .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
             .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("memo","원래 메모"))
             .andExpect(status().is3xxRedirection());
         return jdbc.queryForObject("SELECT max(food_id) FROM food_item",Long.class);
     }
     long finish(long id) {return quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),null);}
+    @Test void unclassifiedFoodRejectsConsumptionAndDisposalButAllowsCancellation() throws Exception {
+        long id=create();
+        long master=masters.masterId(id);
+        dao.assignCategory(master,"soy","soy_tofu","콩·두부 › 두부");
+        for(var action:List.of(CONSUME,DISCARD)) {
+            String initial=mvc.perform(get("/inventory/"+id+"/quantity").param("action",action.name()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(initial).contains("<dt>대분류</dt><dd>콩·두부</dd>","<dt>중분류</dt><dd>두부</dd>");
+            assertThat(initial.indexOf("<dt>중분류</dt>")).isLessThan(initial.indexOf("<dt>구매일</dt>"));
+        }
+        long event=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",master);
+        var before=jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",id);
+        int receipts=jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class);
+        int histories=jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class);
+        for(var action:List.of(CONSUME,DISCARD)) {
+            String html=mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name())
+                .param("version",Long.toString(quantities.preview(id).version()))
+                .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","1"))
+                .andExpect(status().isOk()).andExpect(view().name("inventory/quantity"))
+                .andExpect(model().attribute("categoryBlocked",true))
+                .andExpect(model().attribute("submittedQuantity","1"))
+                .andExpect(model().attribute("errorMessage","먼저 수정 화면에서 음식의 분류를 선택해줘."))
+                .andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("class=\"warning-alert warning-alert-overdue\" role=\"alert\"", "value=\"1\"",
+                "<dt>대분류</dt><dd>-</dd>","<dt>중분류</dt><dd>-</dd>");
+            assertThat(html.indexOf("class=\"warning-alert warning-alert-overdue\"")).isLessThan(html.indexOf("<section class=\"form-section\">"));
+            assertThat(html).containsPattern("<button[^>]*type=\"submit\"[^>]*disabled=\"disabled\"");
+            assertThat(html).contains("class=\"warning-settings-link\" href=\"/inventory/"+id+"/edit?storage=&amp;warning=&amp;ended=&amp;returnAction="+action+"&amp;returnQuantity=1\">분류 설정</a>");
+        }
+        assertThat(jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",id)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isEqualTo(receipts);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(histories);
+        cancel(id,event);
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.5");
+        dao.assignCategory(master,"kimchi",null,"김치");
+        finish(id);
+        assertThat(inventory.findById(id).quantityAmount()).isZero();
+    }
     String registrationQuantity(long id) {return jdbc.queryForObject("SELECT quantity_text FROM food_history WHERE food_id=? AND action_type='CREATE' ORDER BY history_id LIMIT 1",String.class,id);}
+    @Test void categoryEditReturnsToRequestedActionWithDraftQuantityWithoutProcessing() throws Exception {
+        long id=create();
+        for (var action:List.of(CONSUME,DISCARD)) {
+            jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",masters.masterId(id));
+            mvc.perform(get("/inventory/"+id+"/edit").param("returnAction",action.name()).param("returnQuantity","0.75"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("name=\"returnQuantity\" value=\"0.75\"")));
+            mvc.perform(post("/inventory/"+id+"/edit").param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString())
+                .param("foodName","").param("returnAction",action.name()).param("returnQuantity","0.75"))
+                .andExpect(status().isOk()).andExpect(model().attribute("returnAction",action.name()))
+                .andExpect(model().attribute("returnQuantity","0.75"));
+            var saved=mvc.perform(post("/inventory/"+id+"/edit")
+                .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString())
+                .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
+                .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("categoryMajorCode","kimchi")
+                .param("returnAction",action.name()).param("returnQuantity","0.75")
+                .param("storage","FRIDGE").param("warning","true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/inventory/"+id+"/quantity?storage=FRIDGE&warning=true&action="+action+"&draftQuantity=0.75"))
+                .andReturn();
+            String html=mvc.perform(get(saved.getResponse().getRedirectedUrl()).flashAttrs(saved.getFlashMap()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("value=\"0.75\"","<dt>대분류</dt><dd>김치</dd>")
+                .doesNotContain("disabled=\"disabled\"");
+            mvc.perform(get(saved.getResponse().getRedirectedUrl()))
+                .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity","0.75"))
+                .andExpect(content().string(containsString("value=\"0.75\"")));
+            assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.5");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
+        }
+    }
+    @Test void invalidRestoredQuantityNeverFallsBackToFullStock() throws Exception {
+        long id=create();
+        for(String draft:List.of("", "invalid", "1e2"))
+            mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME").param("draftQuantity",draft))
+                .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity",""))
+                .andExpect(content().string(containsString("value=\"\" data-maximum=\"2.5\"")));
+    }
     long cancel(long id,long history) {return quantities.apply(id,CANCEL,quantities.preview(id).version(),history,UUID.randomUUID(),null);}
     @Test void homeSummariesUseRecordedZeroQuantityAndKeepHistoryDetails() throws Exception {
         long id=create();
@@ -169,7 +245,7 @@ class FoodQuantityIntegrationTest {
     @Test void exhaustedGroupCanReceiveNewStockWithoutRevivingOldItem() throws Exception {
         long id=create(),master=masters.masterId(id);finish(id);
         assertThat(masters.registrationChoices()).extracting(FoodMasterDao.RegistrationChoice::masterId).contains(master);
-        mvc.perform(post("/inventory").param("registrationMode","existing").param("masterId",Long.toString(master))
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString()).param("registrationMode","existing").param("masterId",Long.toString(master))
             .param("masterVersion",Long.toString(dao.find(master).versionNo())).param("quantityAmount","3").param("quantityUnit","모").param("storageType","FRIDGE"))
             .andExpect(status().is3xxRedirection());
         assertThat(masters.items(master)).hasSize(2);assertThat(inventory.findById(id).status()).isEqualTo(FoodStatus.DEPLETED);
@@ -187,6 +263,25 @@ class FoodQuantityIntegrationTest {
             .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","2.5").param("storage","FRIDGE").param("warning","true"))
             .andExpect(redirectedUrl("/foods/"+masters.masterId(id)+"?storage=FRIDGE&warning=true"));
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("처리 취소")));
+    }
+    @Test void partialActionsStayOnItemAndFullActionsStayOnListEvenWithOneSibling() throws Exception {
+        for(var action:List.of(CONSUME,DISCARD)) {
+            long id=create(),master=masters.masterId(id);
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name()).param("version",Long.toString(quantities.preview(id).version()))
+                    .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.5").param("storage","FRIDGE").param("warning","true"))
+                    .andExpect(redirectedUrl("/inventory/"+id+"?storage=FRIDGE&warning=true"));
+            mvc.perform(get("/inventory/"+id).flashAttr("processedItemId",id).flashAttr("successMessage","처리했어."))
+                    .andExpect(content().string(containsString("class=\"purchase-undo\"")));
+            inventory.create(com.euiseon.friger.inventory.dto.FoodCreateForm.from(inventory.findById(id),java.time.LocalDate.now()),master,dao.find(master).versionNo());
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name()).param("version",Long.toString(quantities.preview(id).version()))
+                    .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","2").param("ended","true"))
+                    .andExpect(redirectedUrl("/foods/"+master));
+            mvc.perform(get("/foods/"+master)).andExpect(status().isOk()).andExpect(view().name("inventory/master"));
+            var ended=quantities.preview(id);
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action","CANCEL").param("version",Long.toString(ended.version()))
+                    .param("historyId",Long.toString(ended.event().historyId())).param("requestId",UUID.randomUUID().toString()).param("ended","true"))
+                    .andExpect(redirectedUrl("/inventory/"+id));
+        }
     }
     @Test void partialConsumptionKeepsRemainingStockAndCancellationRestoresOnlyProcessedQuantity() throws Exception {
         long id=create();
@@ -237,7 +332,7 @@ class FoodQuantityIntegrationTest {
             .andExpect(content().string(containsString("응, 좋아!"))).andExpect(content().string(containsString("quantity-consume")));
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME").param("version",Long.toString(version))
             .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.12"))
-            .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
+            .andExpect(redirectedUrl("/inventory/"+id));
         assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.38");
     }
 
@@ -373,10 +468,10 @@ class FoodQuantityIntegrationTest {
     }
 
     private void correct(long id,String amount,String unit,String memo) throws Exception {
-        mvc.perform(post("/inventory/"+id+"/edit").param("foodName","두부").param("storageType","FRIDGE")
+        mvc.perform(post("/inventory/"+id+"/edit").param("categoryMajorCode", "kimchi").param("foodName","두부").param("storageType","FRIDGE")
             .param("quantityAmount",amount).param("quantityUnit",unit).param("sourceType","PURCHASE").param("memo",memo)
             .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString()))
-            .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
+            .andExpect(redirectedUrl("/inventory/"+id));
     }
     @Test void quantityCorrectionsUseStoredDeltasAndDoNotBecomePurchases() throws Exception {
         long id=create();

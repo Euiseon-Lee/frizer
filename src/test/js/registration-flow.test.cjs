@@ -25,7 +25,8 @@ function registration({mode='new',selected='',version='',unit='',candidates=true
     b.querySelector=()=>({textContent:`분류 ${i} · #${i+1}`});return b;
   }):[];
   ids.registrationPicker.querySelector=()=>({value:current});ids.registrationPicker.querySelectorAll=()=>radios;
-  const window=element();
+  const window=element(); window.categoryContexts=[];
+  window.frizerCategoryPicker={switchContext(...args){window.categoryContexts.push(args)}};
   run('food-registration',{getElementById:id=>ids[id],querySelectorAll:()=>choices},window);
   return {ids,choices,window,form:ids.registrationPicker.closest(),mode(value){current=value;radios.find(r=>r.value===value).emit('change')},
     search(value,enter=false){ids.foodSearch.value=value;ids.foodSearch.emit('input');
@@ -52,7 +53,7 @@ test('registration: Enter during Korean composition does not search or submit',(
 test('registration: selection locks shared identity, proposes unit, clearing prevents submission',()=>{
   const e=registration();e.mode('existing');assert.equal(e.ids.registrationSubmit.disabled,true);
   e.choices[0].emit('click');assert.equal(e.ids.masterId.value,'1');assert.equal(e.ids.masterVersion.value,'7');
-  assert.equal(e.ids.foodName.disabled,true);assert.equal(e.ids.category.readOnly,true);assert.equal(e.ids.quantityUnit.value,'모');
+  assert.equal(e.ids.foodName.disabled,true);assert.equal(e.window.categoryContexts.at(-1)[0],'existing');assert.equal(e.ids.quantityUnit.value,'모');
   assert.equal(e.ids.quantityAmount.focused,true);assert.equal(e.ids.registrationSubmit.disabled,false);
   e.ids.changeSelectedFood.emit('click');assert.equal(e.ids.masterId.value,'');assert.equal(e.ids.masterVersion.value,'');
   assert.equal(e.ids.registrationSubmit.disabled,true);assert.equal(e.ids.foodCandidates.hidden,true);
@@ -64,9 +65,9 @@ test('registration: switching modes preserves new identity and changes submitted
   assert.equal(e.ids.foodName.disabled,false);assert.equal(e.ids.masterId.disabled,true);
   e.mode('existing');assert.equal(e.ids.foodName.value,'두부');assert.equal(e.ids.masterId.disabled,false);
 });
-test('registration: category without value hides; absent default unit does not erase input',()=>{
+test('registration: unclassified selection reaches category picker; absent default unit preserves input',()=>{
   const e=registration({unit:'팩'});e.mode('existing');e.choices[1].emit('click');
-  assert.equal(e.ids.category.closest().hidden,true);assert.equal(e.ids.quantityUnit.value,'팩');
+  assert.deepEqual(e.window.categoryContexts.at(-1),['existing',e.choices[1],true]);assert.equal(e.ids.quantityUnit.value,'팩');
 });
 test('registration: validation redisplay preserves stale version and submitted custom unit',()=>{
   const e=registration({mode:'existing',selected:'1',version:'3',unit:'사용자단위'});

@@ -39,7 +39,7 @@ class ItemMoveIntegrationTest {
         jdbc.update("DELETE FROM food_history");jdbc.update("DELETE FROM food_item");jdbc.update("DELETE FROM food_master");
     }
     long create(String name) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",UUID.randomUUID().toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",UUID.randomUUID().toString())
                 .param("foodName",name).param("quantityAmount","2").param("quantityUnit","개")
                 .param("storageType","FRIDGE").param("memo","보존할 메모"))
                 .andExpect(status().is3xxRedirection());
@@ -169,7 +169,7 @@ class ItemMoveIntegrationTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.whole").value(true)).andExpect(jsonPath("$.remainingCount").value(0));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item_move_receipt",Integer.class)).isZero();
         var p=existing(List.of(a),b);var c=p.command();
-        mvc.perform(post("/foods/"+source+"/move").param("mode","EXISTING").param("targetId",""+c.targetId())
+        mvc.perform(post("/foods/"+source+"/move").param("categoryContract","v1").param("mode","EXISTING").param("targetId",""+c.targetId())
             .param("sourceId",""+c.sourceId()).param("sourceVersion",""+c.sourceVersion()).param("targetVersion",""+c.targetVersion())
             .param("itemIds",""+a).param("whole","true").param("requestId",p.requestId().toString()))
             .andExpect(redirectedUrl("/foods/"+target));
@@ -180,7 +180,7 @@ class ItemMoveIntegrationTest {
         long a=create("듀부"),extra=create("듀부"),b=create("두부");
         long source=masters.masterId(a);adopt(extra,source);
         var p=existing(List.of(a),b);var c=p.command();
-        mvc.perform(post("/foods/"+source+"/move").param("mode","EXISTING").param("targetId",""+c.targetId())
+        mvc.perform(post("/foods/"+source+"/move").param("categoryContract","v1").param("mode","EXISTING").param("targetId",""+c.targetId())
             .param("sourceId",""+c.sourceId()).param("sourceVersion",""+c.sourceVersion()).param("targetVersion",""+c.targetVersion())
             .param("itemIds",""+a).param("requestId",p.requestId().toString()))
             .andExpect(redirectedUrl("/foods/"+source));

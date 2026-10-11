@@ -2,6 +2,15 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
+test('server-blocked confirmation cannot be resubmitted with Enter',()=>{
+  const handlers={},button={disabled:true};let prevented=0;
+  const form={addEventListener:(name,fn)=>handlers[name]=fn,querySelector:()=>button};
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    document:{querySelector:()=>form,getElementById:()=>null},window:{addEventListener:()=>{}}
+  });
+  handlers.submit({preventDefault:()=>prevented++});
+  assert.equal(prevented,1);assert.equal(button.disabled,true);
+});
 test('click and Enter submissions are locked; history restore rechecks server state',()=>{
   const handlers={},button={disabled:false};let reloads=0,prevented=0;
   const form={addEventListener:(name,fn)=>handlers[name]=fn,querySelector:()=>button};
@@ -30,4 +39,23 @@ test('numeric input rejects negatives, text, exponents, excess precision and amo
   input.value='1.23456';handlers.input();assert.equal(input.value,'1.23');assert.equal(error.textContent,'');
   input.value='3';handlers.input();assert.equal(input.value,'1.23');assert.equal(error.textContent,'음수나 기준 수량을 넘는 값은 입력할 수 없어.');
   input.value='';handlers.input();handlers.blur();assert.notEqual(error.textContent,'');
+});
+
+test('category link carries current quantity and blocks an invalid draft',()=>{
+  const handlers={},linkHandlers={},question={},error={};
+  const link={href:'http://localhost/inventory/94/edit?returnAction=DISCARD&returnQuantity=1&storage=FRIDGE',addEventListener:(key,fn)=>linkHandlers[key]=fn};
+  const input={value:'1',dataset:{maximum:'3',unit:'개',action:'DISCARD'},
+    addEventListener:(key,fn)=>{(handlers[key]??=[]).push(fn)},
+    setCustomValidity(message){this.validationMessage=message},focus(){this.focused=true}};
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    URL,document:{querySelector:()=>({addEventListener(){}}),getElementById:id=>({quantityAmount:input,quantityQuestion:question,quantityInputError:error,quantityCategoryLink:link})[id]},window:{addEventListener(){}}
+  });
+  input.value='0.75';for(const fn of handlers.input)fn();
+  assert.equal(new URL(link.href).searchParams.get('returnQuantity'),'0.75');
+  input.value='0.5';linkHandlers.click({preventDefault(){assert.fail('valid quantity blocked')}});
+  assert.equal(new URL(link.href).searchParams.get('returnQuantity'),'0.5');
+  assert.equal(new URL(link.href).searchParams.get('returnAction'),'DISCARD');
+  assert.equal(new URL(link.href).searchParams.get('storage'),'FRIDGE');
+  input.value='';let prevented=false;linkHandlers.click({preventDefault(){prevented=true}});
+  assert.equal(prevented,true);assert.equal(input.focused,true);
 });

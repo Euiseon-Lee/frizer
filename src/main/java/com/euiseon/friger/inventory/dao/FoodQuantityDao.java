@@ -13,7 +13,7 @@ public interface FoodQuantityDao {
         public String quantity() { return processedQuantityAmount.stripTrailingZeros().toPlainString()+quantityUnit; }
     }
     record Receipt(String requestPayload, Long historyId) {}
-    @Select("SELECT i.version_no,i.stock_revision,(to_jsonb(i)||jsonb_build_object('food_name',m.food_name,'category',m.category))::text AS snapshot FROM food_item i JOIN food_master m USING(master_id) WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id}")
+    @Select("SELECT i.version_no,i.stock_revision,(to_jsonb(i)||jsonb_build_object('food_name',m.food_name,'category',m.category,'category_major_code',m.category_major_code,'category_minor_code',m.category_minor_code))::text AS snapshot FROM food_item i JOIN food_master m USING(master_id) WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id}")
     State state(long id);
     @Select("SELECT h.history_id,h.action_type,h.processed_quantity_amount,h.quantity_unit,h.after_stock_revision,h.created_at,EXISTS(SELECT 1 FROM food_history c WHERE c.reversal_of_history_id=h.history_id) AS reversed FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND h.action_type IN ('CONSUME','DISCARD') AND h.operation_id IS NOT NULL ORDER BY h.history_id DESC LIMIT 1")
     Event latest(long id);

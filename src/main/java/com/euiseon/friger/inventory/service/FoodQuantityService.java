@@ -66,8 +66,11 @@ public class FoodQuantityService {
         }
         Long masterId=masters.masterIdForItem(id);
         if(masterId==null) throw new FoodNotFoundException(id);
-        if(masters.lock(masterId)==null || !masterId.equals(masters.masterIdForItem(id)))
+        var master=masters.lock(masterId);
+        if(master==null || !masterId.equals(masters.masterIdForItem(id)))
             throw invalid("음식이 이동되었어. 상세를 다시 확인해줘.");
+        if(action!=Action.CANCEL && master.categoryMajorCode()==null)
+            throw new InvalidFoodException(Map.of("categoryMajorCode","먼저 수정 화면에서 음식의 분류를 선택해줘."));
         var item=inventory.findByIdForUpdate(id);
         var before=quantities.state(id);
         if(before.versionNo()!=version) throw invalid("음식 정보가 바뀌었어. 상세에서 최신 내용을 다시 확인해줘.");

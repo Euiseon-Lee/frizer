@@ -45,7 +45,7 @@ class FoodMergeIntegrationTest {
         jdbc.update("DELETE FROM food_item_move_receipt");
     }
     private long create(String name,String unit,String storage) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName",name).param("quantityAmount","2")
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName",name).param("quantityAmount","2")
                 .param("quantityUnit",unit).param("storageType",storage))
                 .andExpect(status().is3xxRedirection());
         return masters.masterId(inventory.findActive().getFirst().foodId());
@@ -106,7 +106,7 @@ class FoodMergeIntegrationTest {
         mvc.perform(get("/foods/"+source+"/move").param("items",""+item)).andExpect(status().isOk());
         assertThat(dao.find(source)).isNotNull();
         UUID token=UUID.randomUUID();
-        for(int i=0;i<2;i++) mvc.perform(post("/foods/"+source+"/move").param("mode","EXISTING")
+        for(int i=0;i<2;i++) mvc.perform(post("/foods/"+source+"/move").param("categoryContract","v1").param("mode","EXISTING")
                 .param("targetId",""+target).param("sourceId",""+source)
                 .param("sourceVersion","0").param("targetVersion","0")
                 .param("itemIds",""+item).param("whole","true").param("requestId",token.toString()))
@@ -132,7 +132,7 @@ class FoodMergeIntegrationTest {
                 .andExpect(content().string(containsString("data-value=\""+target+"\"")));
         assertThat(sameName).isNotEqualTo(target);
         dao.touch(target);
-        mvc.perform(post("/foods/"+source+"/move").param("mode","EXISTING")
+        mvc.perform(post("/foods/"+source+"/move").param("categoryContract","v1").param("mode","EXISTING")
                 .param("targetId",""+target).param("sourceId",""+source)
                 .param("sourceVersion","0").param("targetVersion","0")
                 .param("itemIds",""+item).param("whole","true").param("requestId",UUID.randomUUID().toString()))
@@ -163,7 +163,7 @@ class FoodMergeIntegrationTest {
         wholeMove(source,target,UUID.randomUUID());
         var before=inventory.findById(sourceItem.foodId());
         var sibling=masters.items(target).stream().filter(i->!i.foodId().equals(before.foodId())).findFirst().orElseThrow();
-        mvc.perform(post("/inventory/"+before.foodId()+"/edit").param("foodName","우리집 두부")
+        mvc.perform(post("/inventory/"+before.foodId()+"/edit").param("categoryMajorCode", "kimchi").param("foodName","우리집 두부")
                 .param("quantityAmount","2").param("quantityUnit","모").param("storageType","FRIDGE")
                 .param("expectedUpdatedAt",before.updatedAt().toString())).andExpect(status().is3xxRedirection());
         assertThat(inventory.findById(sibling.foodId()).foodName()).isEqualTo("우리집 두부");

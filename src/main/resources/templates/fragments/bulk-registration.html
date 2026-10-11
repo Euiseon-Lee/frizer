@@ -23,19 +23,20 @@
 <div class="bulk-row-heading"><span class="muted" th:text="${row.sheet() + ' · ' + row.row() + '행'}"></span><strong th:text="${#strings.isEmpty(row.form().foodName()) ? '음식명 미입력' : row.form().foodName()}"></strong></div>
 <ul class="field-error bulk-row-errors" th:if="${!row.errors().isEmpty()}"><li th:each="error : ${row.errors()}" th:text="${error}"></li></ul>
 <details><summary>상세 정보</summary><dl class="bulk-details">
-<div><dt class="bulk-required">수량</dt><dd th:text="${(row.form().quantityAmount() == null ? row.cells().get(1) : row.form().quantityAmount().toPlainString()) + row.form().quantityUnit()}"></dd></div>
-<div><dt class="bulk-required">보관 위치</dt><dd th:text="${row.form().storageType() == null ? '미입력' : (row.form().storageType().name() == 'ROOM' ? '실온' : (row.form().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실'))}"></dd></div>
-<div><dt>용량</dt><dd th:text="${row.form().capacityText() ?: '미입력'}"></dd></div>
-<div><dt>분류</dt><dd th:text="${row.form().category() ?: '미입력'}"></dd></div>
-<div><dt>출처</dt><dd th:text="${#strings.isEmpty(row.cells().get(7)) ? '미입력' : row.cells().get(7)}"></dd></div>
-<div><dt>출처 메모</dt><dd th:text="${row.form().sourceMemo() ?: '미입력'}"></dd></div>
-<div><dt>구매일</dt><dd th:text="${row.form().purchasedAt() ?: '미입력'}"></dd></div>
-<div><dt>소비기한</dt><dd th:text="${row.form().expiredAt() ?: '미입력'}"></dd></div>
-<div><dt>유통기한</dt><dd th:text="${row.form().sellByAt() ?: '미입력'}"></dd></div>
-<div><dt>개봉 상태</dt><dd th:text="${row.form().openingStatus().name() == 'OPENED' ? '개봉함' : (row.form().openingStatus().name() == 'UNOPENED' ? '미개봉' : '불확실')}"></dd></div><div><dt>개봉일</dt><dd th:text="${row.form().openedAt() ?: (row.form().openingStatus().name() == 'OPENED' ? '개봉일 불확실' : '-')}"></dd></div>
-<div><dt>냉동일</dt><dd th:text="${row.form().frozenAt() ?: '미입력'}"></dd></div>
-<div><dt>냉동 구분</dt><dd th:text="${row.form().freezeType() == null or row.form().freezeType().name() == 'NONE' ? '해당 없음' : (row.form().freezeType().name() == 'HOME_FROZEN' ? '직접 냉동' : '시판 냉동식품')}"></dd></div>
-<div class="bulk-detail-wide"><dt>메모</dt><dd th:text="${row.form().memo() ?: '미입력'}"></dd></div>
+<div><dt th:classappend="${row.sheet() == '신규 등록' ? 'bulk-required' : ''}">대분류</dt><dd th:text="${#strings.isEmpty(row.categoryMajorLabel()) ? (row.sheet() == '신규 등록' ? '미입력' : '-') : row.categoryMajorLabel()}"></dd></div>
+<div><dt th:classappend="${row.sheet() == '신규 등록' and row.categoryMinorRequired() ? 'bulk-required' : ''}">중분류</dt><dd th:text="${row.categoryMinorRequired() ? (#strings.isEmpty(row.categoryMinorLabel()) ? (row.sheet() == '신규 등록' ? '미입력' : '-') : row.categoryMinorLabel()) : (row.categoryMajorCode() == null ? (row.sheet() == '신규 등록' ? '대분류 선택 필요' : '-') : '중분류 없음')}"></dd></div>
+<div><dt class="bulk-required">수량</dt><dd th:text="${#strings.isEmpty(row.cells().get(1)) ? '미입력' : (row.form().quantityAmount() == null ? row.cells().get(1) : row.form().quantityAmount().toPlainString()) + row.form().quantityUnit()}"></dd></div>
+<div><dt>용량</dt><dd th:text="${row.form().capacityText() ?: '-'}"></dd></div>
+<div><dt>출처</dt><dd th:text="${#strings.isEmpty(row.cells().get(7)) ? '-' : row.cells().get(7)}"></dd></div>
+<div><dt>출처 메모</dt><dd th:text="${row.form().sourceMemo() ?: '-'}"></dd></div>
+<div class="bulk-detail-wide"><dt class="bulk-required">보관 위치</dt><dd th:text="${row.form().storageType() == null ? '미입력' : (row.form().storageType().name() == 'ROOM' ? '실온' : (row.form().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실'))}"></dd></div>
+<div th:if="${row.form().storageType() != null and row.form().storageType().name() == 'FREEZER'}"><dt>냉동일</dt><dd th:text="${row.form().frozenAt() ?: '-'}"></dd></div>
+<div th:if="${row.form().storageType() != null and row.form().storageType().name() == 'FREEZER'}"><dt>냉동 구분</dt><dd th:text="${row.form().freezeType() == null or row.form().freezeType().name() == 'NONE' ? '-' : (row.form().freezeType().name() == 'HOME_FROZEN' ? '직접 냉동' : '시판 냉동식품')}"></dd></div>
+<div><dt>유통기한</dt><dd th:text="${row.form().sellByAt() ?: '-'}"></dd></div>
+<div><dt>소비기한</dt><dd th:text="${row.form().expiredAt() ?: '-'}"></dd></div>
+<div class="bulk-detail-wide"><dt>구매일</dt><dd th:text="${row.form().purchasedAt() ?: '-'}"></dd></div>
+<div><dt>개봉 상태</dt><dd th:text="${row.form().openingStatus().name() == 'OPENED' ? '개봉함' : (row.form().openingStatus().name() == 'UNOPENED' ? '미개봉' : '불확실')}"></dd></div><div><dt>개봉일</dt><dd th:text="${row.form().openedAt() ?: '-'}"></dd></div>
+<div class="bulk-detail-wide"><dt>메모</dt><dd th:text="${row.form().memo() ?: '-'}"></dd></div>
 </dl></details>
 <p class="help bulk-adjustment-notice" th:each="notice : ${row.notices()}" th:text="${notice}"></p>
 

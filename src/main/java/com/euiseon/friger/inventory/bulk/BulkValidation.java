@@ -12,6 +12,7 @@ public final class BulkValidation {
     public BulkValidation() { this(List.of()); }
     public BulkValidation(List<Issue> issues) { this.issues = new ArrayList<>(issues); }
     public List<Issue> issues() { return List.copyOf(issues); }
+    public void ignore(String field) { issues.removeIf(i -> i.field().equals(field)); }
     public boolean invalid(String field) {
         return issues.stream().anyMatch(i -> i.field().equals(field) && i.type() != Type.AUTOMATIC);
     }
@@ -33,6 +34,7 @@ public final class BulkValidation {
             case "foodName" -> "음식명"; case "quantityAmount" -> "수량";
             case "quantityUnit" -> "단위"; case "storageType" -> "보관 위치";
             case "category" -> "분류"; case "capacityText" -> "용량";
+            case "categoryMajorCode" -> "대분류"; case "categoryMinorCode" -> "중분류";
             case "memo" -> "메모"; case "sourceMemo" -> "출처 메모";
             case "openingStatus" -> "개봉 상태";
             case "purchasedAt" -> "구매일"; case "openedAt" -> "개봉일";

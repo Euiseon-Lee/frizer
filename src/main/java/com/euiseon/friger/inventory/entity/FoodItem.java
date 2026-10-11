@@ -68,7 +68,7 @@ public record FoodItem(
     }
     public String openingLabel() {
         return switch(openingStatus) { case NOT_APPLICABLE -> "해당 없음"; case UNOPENED -> "미개봉"; case UNKNOWN -> "개봉 여부 불확실";
-            case OPENED -> openedAt == null ? "개봉함 · 개봉일 불확실" : "개봉함"; };
+            case OPENED -> openedAt == null ? "개봉함 (개봉일 불확실)" : "개봉함"; };
     }
     public LocalDate openingReference() { return openingStatus == OpeningStatus.OPENED ? (openedAt != null ? openedAt : openingConfirmedAt) : null; }
     public String openingElapsed(LocalDate today) {
@@ -87,7 +87,7 @@ public record FoodItem(
     public String frozenNotice(LocalDate today) {
         if (storageType != StorageType.FREEZER || freezeType != FreezeType.HOME_FROZEN || expiredAt == null) return null;
         if (frozenAt == null) return "냉동일을 몰라 소비기한 전 냉동 여부를 확인할 수 없어.";
-        if (frozenBeforeUseBy()) return "소비기한 당일 또는 이전에 냉동했어 · 냉동 보관 "
+        if (frozenBeforeUseBy()) return "소비기한 당일 또는 이전에 냉동했어. 냉동 보관 "
             + java.time.temporal.ChronoUnit.DAYS.between(frozenAt,today) + "일째";
         return "소비기한이 지난 뒤 냉동했어. 냉동으로 소비기한이 연장되지는 않아.";
     }

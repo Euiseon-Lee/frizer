@@ -43,7 +43,7 @@ class FoodDeleteIntegrationTest {
     }
     long create(String name) throws Exception {return create(name,UUID.randomUUID());}
     long create(String name,UUID registrationId) throws Exception {
-        mvc.perform(post("/inventory").param("registrationRequestId",registrationId.toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",registrationId.toString())
                 .param("foodName",name).param("quantityAmount","2.5").param("quantityUnit","모")
                 .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("memo","원래 메모"))
                 .andExpect(status().is3xxRedirection());
@@ -148,7 +148,7 @@ class FoodDeleteIntegrationTest {
         long a=create("두부",registrationId);long source=masters.masterId(a);
         deleteService.delete(command(source,List.of(a),true),UUID.randomUUID());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item",Integer.class)).isZero();
-        mvc.perform(post("/inventory").param("registrationRequestId",registrationId.toString())
+        mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",registrationId.toString())
                 .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
                 .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("memo","원래 메모"))
                 .andExpect(status().is3xxRedirection());

@@ -45,8 +45,10 @@
             const result=await get(base+'/preview?'+query);
             if(ownRevision!==revision || submitting) return;
             current=result;
-            const finalCategory=root.querySelector('[data-result="targetCategory"]');
-            if(finalCategory) finalCategory.textContent=result.targetCategory || '-';
+            for(const field of ['targetMajorLabel','targetMinorLabel']) {
+                const value=root.querySelector(`[data-result="${field}"]`);
+                if(value) value.textContent=result[field] || '-';
+            }
             find('moveSourceName').textContent=result.source.foodName;
             root.querySelector('[data-result="moveCount"]').textContent=(result.items.length+(result.whole?result.endedCount:0))+'건';
             root.querySelector('[data-result="historyCount"]').textContent=result.historyCount+'건';

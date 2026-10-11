@@ -269,11 +269,11 @@ public class BulkWorkbook {
                 String label=choiceLabel(food.masterId(),food.foodName());
                 var major=storedCatalog.stream().filter(c->c.code().equals(food.categoryMajorCode())).findFirst().orElse(null);
                 String majorLabel=major==null?"":major.label();
-                String minorLabel=major==null?"":major.minors().stream().filter(c->c.code().equals(food.categoryMinorCode())).map(c->c.label()).findFirst().orElse("");
+                String minorLabel=major==null?"":!major.requiresMinor()?"중분류 없음":major.minors().stream().filter(c->c.code().equals(food.categoryMinorCode())).map(c->c.label()).findFirst().orElse("");
                 row.createCell(0).setCellValue(food.foodName());row.getCell(0).setCellStyle(wrapped);
                 row.createCell(1).setCellValue(Long.toString(food.masterId()));row.getCell(1).setCellStyle(existingStyles[1]);row.createCell(2).setCellValue(majorLabel);row.getCell(2).setCellStyle(existingStyles[2]);
                 row.createCell(3).setCellValue(minorLabel);row.getCell(3).setCellStyle(existingStyles[2]);
-                cell(foodValues,i+1,0).setCellValue(label);cell(foodValues,i+1,1).setCellValue(Long.toString(food.masterId()));cell(foodValues,i+1,2).setCellValue(food.category()==null?"":food.category());
+                cell(foodValues,i+1,0).setCellValue(label);cell(foodValues,i+1,1).setCellValue(Long.toString(food.masterId()));cell(foodValues,i+1,2).setCellValue(major==null?"":majorLabel+(major.requiresMinor() && !minorLabel.isEmpty()?" › "+minorLabel:""));
                 cell(foodValues,i+1,3).setCellValue(majorLabel);cell(foodValues,i+1,4).setCellValue(minorLabel);
             }
             if(foods.isEmpty()) {existing.createRow(3).createCell(0).setCellValue("아직 등록된 음식이 없어. 신규 등록 시트를 사용해줘.");}

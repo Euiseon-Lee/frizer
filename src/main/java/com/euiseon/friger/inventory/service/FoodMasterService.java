@@ -13,12 +13,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class FoodMasterService {
     private final FoodMasterDao masters;
     private final InventoryDao inventory;
-    public FoodMasterService(FoodMasterDao masters, InventoryDao inventory) {
-        this.masters=masters; this.inventory=inventory;
+    private final FoodCategoryService categories;
+    public FoodMasterService(FoodMasterDao masters, InventoryDao inventory, FoodCategoryService categories) {
+        this.masters=masters; this.inventory=inventory;this.categories=categories;
     }
     public record Group(FoodMaster master, List<FoodItem> items) {}
     @Transactional(readOnly=true)
-    public List<FoodMasterDao.RegistrationChoice> registrationChoices() { return masters.registrationChoices(); }
+    public List<FoodMasterDao.RegistrationChoice> registrationChoices() { return categories.displayChoices(masters.registrationChoices()); }
+    public String categoryLabel(long id) {
+        var master=find(id);
+        return categories.labels(master.categoryMajorCode(),master.categoryMinorCode()).displayLabel();
+    }
     @Transactional(readOnly=true)
     public FoodMaster find(long id) {
         var master=masters.find(id);

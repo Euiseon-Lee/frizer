@@ -124,6 +124,7 @@ public class InventoryService {
         }
         FoodCategoryService.Selection selection = null;
         if (categorized) {
+            minorCode=categories.normalizeMinor(majorCode,minorCode);
             // Keeping an existing retired choice is valid; a changed choice must be active.
             boolean unchanged = master.categoryMajorCode() != null
                     && java.util.Objects.equals(master.categoryMajorCode(), cleanCode(majorCode))

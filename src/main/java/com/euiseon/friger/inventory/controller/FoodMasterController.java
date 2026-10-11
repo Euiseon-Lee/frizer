@@ -30,6 +30,7 @@ public class FoodMasterController {
         model.addAttribute("ended",ended);
         if (ended) model.addAttribute("endedSummaries", quantities.endedSummaries(id));
         model.addAttribute("master",masters.find(id));
+        model.addAttribute("categoryLabel",masters.categoryLabel(id));
         model.addAttribute("items",masters.items(id).stream()
                 .filter(food -> ended == (food.status() != com.euiseon.friger.common.type.FoodStatus.ACTIVE))
                 .filter(food -> ended || storage == null || food.storageType() == storage)

@@ -24,7 +24,8 @@ public class ItemMoveService {
                           List<Long> itemIds, boolean whole) {}
     public record Selection(FoodMaster source, List<FoodItem> items, boolean whole, int endedCount, int activeCount) {}
     public record Preview(FoodMaster source, List<FoodItem> items, boolean whole, int endedCount, int remainingCount,
-                          String targetName, String targetCategory, int historyCount, Command command, UUID requestId) {}
+                          String targetName, String targetMajorLabel, String targetMinorLabel,
+                          int historyCount, Command command, UUID requestId) {}
     public record MoveResult(long targetId, boolean sourceRemoved) {}
     private final FoodMasterDao masters;
     private final InventoryDao inventory;
@@ -92,7 +93,7 @@ public class ItemMoveService {
                 -(selection.whole()?selection.endedCount():0);
         return new Preview(source,selection.items(),selection.whole(),selection.endedCount(),remaining,
                 target==null?command.newName():target.foodName(),
-                target==null?command.newCategory():target.category(),
+                null,null,
                 historyCount,command,UUID.randomUUID());
     }
     @Transactional
@@ -103,9 +104,15 @@ public class ItemMoveService {
     public Preview previewCategorized(long id,List<Long> items,Mode mode,Long targetId,String name,String major,String minor) {
         var preview=preview(id,items,mode,targetId,name,null);
         var target=mode==Mode.EXISTING?masters.find(targetId):null;
-        String label=target!=null && target.categoryMajorCode()!=null?target.category():categories.requireSelection(major,minor).displayLabel();
+        FoodCategoryService.Labels labels;
+        if(target!=null && target.categoryMajorCode()!=null) {
+            labels=categories.labels(target.categoryMajorCode(),target.categoryMinorCode());
+        } else {
+            var selection=categories.requireSelection(major,minor);
+            labels=new FoodCategoryService.Labels(selection.majorLabel(),selection.minorLabel(),selection.minorCode()!=null);
+        }
         return new Preview(preview.source(),preview.items(),preview.whole(),preview.endedCount(),preview.remainingCount(),
-                preview.targetName(),label,preview.historyCount(),preview.command(),preview.requestId());
+                preview.targetName(),labels.major(),labels.minorDisplay(),preview.historyCount(),preview.command(),preview.requestId());
     }
     @Transactional(readOnly=true)
     public MoveResult replayLegacy(Command raw,UUID token) {

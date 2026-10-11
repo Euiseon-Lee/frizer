@@ -49,7 +49,8 @@
     <section class="form-section purchase-detail-card">
 
         <dl class="detail-grid">
-            <div class="detail-wide-field"><dt>분류</dt><dd th:text="${food.category() ?: '-'}"></dd></div>
+            <div><dt>대분류</dt><dd th:text="${#strings.isEmpty(categoryMajorLabel) ? '-' : categoryMajorLabel}"></dd></div>
+            <div><dt>중분류</dt><dd th:text="${#strings.isEmpty(categoryMinorLabel) ? '-' : categoryMinorLabel}"></dd></div>
             <div th:if="${food.status().name() == 'DEPLETED'}"><dt>최초 등록 수량</dt><dd th:text="${registrationQuantity ?: '등록 당시 수량 미상'}"></dd></div>
             <div th:unless="${food.status().name() == 'DEPLETED'}"><dt>수량</dt><dd th:text="${food.quantityAmount() != null and food.quantityUnit() != null ? food.quantityAmount().stripTrailingZeros().toPlainString() + food.quantityUnit().strip() : (food.quantityText() ?: '-')}"></dd></div>
             <div><dt>용량</dt><dd th:text="${food.capacityText() ?: '-'}"></dd></div>

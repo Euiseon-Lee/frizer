@@ -66,6 +66,7 @@ class FoodCategoryIntegrationTest {
         assertThat(selection.displayLabel()).isEqualTo("음료");
         assertThat(selection.minorCode()).isNull();
         assertThat(selection.example()).contains("원두");
+        assertThat(service.requireSelection("beverage","soy_tofu").minorCode()).isNull();
     }
 
     @ParameterizedTest
@@ -73,7 +74,7 @@ class FoodCategoryIntegrationTest {
             "NULL,NULL,categoryMajorCode", "NULL,soy_tofu,categoryMajorCode",
             "unknown,NULL,categoryMajorCode", "콩·두부,두부,categoryMajorCode",
             "soy,NULL,categoryMinorCode", "soy,grain_bread,categoryMinorCode",
-            "soy,unknown,categoryMinorCode", "beverage,soy_tofu,categoryMinorCode"
+            "soy,unknown,categoryMinorCode"
     }, nullValues = "NULL")
     void rejectsMissingUnknownOrMismatchedSelections(String major, String minor, String field) {
         assertThatThrownBy(() -> service.requireSelection(major, minor))

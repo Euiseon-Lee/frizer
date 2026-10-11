@@ -116,6 +116,10 @@ public class InventoryController {
         model.addAttribute("food", service.findById(id));
         long masterId = masters.masterId(id);
         model.addAttribute("masterId", masterId);
+        var categoryMaster=masters.find(masterId);
+        var categoryLabels=categories.labels(categoryMaster.categoryMajorCode(),categoryMaster.categoryMinorCode());
+        model.addAttribute("categoryMajorLabel",categoryLabels.major());
+        model.addAttribute("categoryMinorLabel",categoryLabels.minorDisplay());
         // A group with a single item in this view collapses the middle list: the food
         // card links straight here, so the detail exposes the group actions itself.
         model.addAttribute("soleItem", masters.items(masterId).stream()
@@ -286,7 +290,8 @@ public class InventoryController {
         var choices = categories.choicesWithCurrent(edit ? current.categoryMajorCode() : null,
                 edit ? current.categoryMinorCode() : null);
         String selectedMajor = major == null ? "" : major.strip();
-        String selectedMinor = minor == null ? "" : minor.strip();
+        String normalizedMinor=categories.normalizeMinor(major,minor);
+        String selectedMinor = normalizedMinor == null ? "" : normalizedMinor;
         var selected = choices.stream().filter(c -> c.code().equals(selectedMajor)).findFirst().orElse(null);
         if (refresh && (selected == null || selected.minors().stream().noneMatch(m -> m.code().equals(minor)))) selectedMinor = "";
         model.addAttribute("categoryMajorCode", selectedMajor);
@@ -295,9 +300,7 @@ public class InventoryController {
         model.addAttribute("categoryMinors", selected == null ? java.util.List.of() : selected.minors());
         model.addAttribute("categoryNeedsMinor", selected == null || selected.requiresMinor());
         model.addAttribute("categoryInherited", inherited);
-        model.addAttribute("categoryInheritedLabel", inherited ? current.category() : "");
-        model.addAttribute("categoryLegacyLabel", current != null && current.categoryMajorCode() == null ? current.category() : null);
-        model.addAttribute("categoryRefresh", refresh);
+        model.addAttribute("categoryInheritedLabel", inherited ? categories.labels(current.categoryMajorCode(),current.categoryMinorCode()).displayLabel() : "");
         model.addAttribute("categoryUnknownMajor", !selectedMajor.isEmpty() && selected == null);
         String minorValue = selectedMinor;
         var child = selected == null ? null : selected.minors().stream().filter(m -> m.code().equals(minorValue)).findFirst().orElse(null);
@@ -325,6 +328,7 @@ public class InventoryController {
     @SuppressWarnings("unchecked")
     private void categoryValidation(String major, String minor, com.euiseon.friger.inventory.entity.FoodMaster current,
                                     boolean inherited, Model model) {
+        minor=categories.normalizeMinor(major,minor);
         if (inherited || (current != null && current.categoryMajorCode() != null
                 && java.util.Objects.equals(current.categoryMajorCode(), major)
                 && java.util.Objects.equals(current.categoryMinorCode(), minor == null || minor.isBlank() ? null : minor))) return;

@@ -71,6 +71,8 @@ class FoodCategoryMergeIntegrationTest {
         masters.assignCategory(group(target),"kimchi",null,"김치");
         jdbc.update("UPDATE food_category_major SET active=false WHERE code='kimchi'");
         var p=preview(source,group(target),"invalid");
+        assertThat(p.targetMajorLabel()).isEqualTo("김치");
+        assertThat(p.targetMinorLabel()).isEqualTo("중분류 없음");
         masters.touch(group(target));
         assertThatThrownBy(()->moves.moveCategorized(p.command(),p.requestId(),"invalid",null)).isInstanceOf(InvalidFoodException.class);
         var current=preview(source,group(target),null);
@@ -104,6 +106,11 @@ class FoodCategoryMergeIntegrationTest {
         String html=mvc.perform(get("/foods/"+id+"/move").param("items",""+source)).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("categoryPicker"))).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         var folder=java.nio.file.Path.of("build/reports/category-merge-ui");java.nio.file.Files.createDirectories(folder);java.nio.file.Files.writeString(folder.resolve("merge.html"),html);
+        assertThat(html).contains("data-result=\"targetMajorLabel\"","data-result=\"targetMinorLabel\"").doesNotContain("id=\"categoryConfirm\"");
+        mvc.perform(get("/foods/"+id+"/move/preview").param("items",""+source).param("mode","NEW")
+                .param("categoryMajorCode","soy").param("categoryMinorCode","soy_tofu"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.targetMajorLabel").value("콩·두부"))
+                .andExpect(jsonPath("$.targetMinorLabel").value("두부"));
         mvc.perform(post("/foods/"+id+"/move").param("mode","NEW").param("sourceId",""+id).param("sourceVersion","0")
                 .param("itemIds",""+source).param("newName","입력 보존").param("categoryContract","v1").param("requestId",UUID.randomUUID().toString()))
                 .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("moveDraft","errorMessage"));

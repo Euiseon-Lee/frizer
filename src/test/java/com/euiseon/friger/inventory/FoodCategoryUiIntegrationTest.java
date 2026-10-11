@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import com.euiseon.friger.inventory.dto.FoodCreateForm;
 import com.euiseon.friger.inventory.service.FoodMasterService;
@@ -179,11 +180,15 @@ class FoodCategoryUiIntegrationTest {
                 .param("categoryMajorCode", "soy").param("categoryMinorCode", "soy_tofu")).andExpect(status().is3xxRedirection());
     }
 
-    @Test void newAndLegacyPagesExposeRequiredPickerInOriginalFieldPosition() throws Exception {
-        long master = masters.masterId(legacy());
+    @Test void registrationAndEditPlaceCategoryBetweenNameAndQuantity() throws Exception {
+        long item=legacy();long master = masters.masterId(item);
         var page = mvc.perform(get("/inventory/new")).andExpect(status().isOk()).andReturn();
         String html = page.getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(html.indexOf("id=\"categoryPicker\"")).isGreaterThan(html.indexOf("id=\"sourceMemo\""));
+        String edit=mvc.perform(get("/inventory/"+item+"/edit")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        for(String rendered:List.of(html,edit)) {
+            assertThat(rendered.indexOf("id=\"categoryPicker\"")).isGreaterThan(rendered.indexOf("id=\"foodName\""));
+            assertThat(rendered.indexOf("id=\"categoryPicker\"")).isLessThan(rendered.indexOf("id=\"quantityAmount\""));
+        }
         assertThat(html).contains("id=\"categoryMajorCode\"", "name=\"categoryMajorCode\" required").doesNotContain("선택 해제");
         export("new", page);
         export("legacy", mvc.perform(get("/inventory/new").param("masterId", ""+master)).andExpect(status().isOk()).andReturn());

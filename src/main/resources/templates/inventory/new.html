@@ -35,6 +35,7 @@
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
             <p class="help section-help" th:if="${editId != null}"><span class="help-warning">음식명과 분류를 수정하면 다른 항목도 같이 수정돼.</span><br>수량·날짜·메모는 이 항목에만 적용돼.</p>
             <div class="field" id="foodNameField" th:hidden="${registrationMode == 'existing'}"><label for="foodName">음식명 <span class="required">필수</span></label><input th:field="*{foodName}" th:classappend="${editId != null ? 'shared-edit-input' : ''}" th:disabled="${registrationMode == 'existing'}" th:readonly="${registrationMode == 'existing'}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('foodName')},aria-describedby=${#fields.hasErrors('foodName') ? 'foodName-error' : null}" placeholder="예: 두부, 어제 남은 곱도리탕" maxlength="100" required autocomplete="off"><p class="field-error" id="foodName-error" th:errors="*{foodName}"></p></div>
+            <input type="hidden" th:field="*{category}"><div th:replace="~{fragments/category-picker :: content}"></div>
             <div class="field-row">
                 <div class="field">
                     <div class="quantity-input-row">
@@ -47,7 +48,6 @@
             </div>
             <div class="field"><label for="sourceType">출처 <span class="optional">선택</span></label><select th:field="*{sourceType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceType')},aria-describedby=${#fields.hasErrors('sourceType') ? 'sourceType-error' : null}"><option value="">선택 안 함</option><option th:each="entry : ${sourceLabels}" th:value="${entry.key}" th:text="${entry.value}"></option></select><p class="field-error" id="sourceType-error" th:errors="*{sourceType}"></p></div>
             <div class="field" id="sourceMemoField"><label for="sourceMemo">출처 메모 <span class="optional">선택</span></label><input th:field="*{sourceMemo}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('sourceMemo')},aria-describedby=${#fields.hasErrors('sourceMemo') ? 'sourceMemo-error' : null}" placeholder="예: 지인에게 받음" maxlength="200"><p class="field-error" id="sourceMemo-error" th:errors="*{sourceMemo}"></p></div>
-            <input type="hidden" th:field="*{category}"><div th:replace="~{fragments/category-picker :: content}"></div>
         </section>
         <section class="form-section"><div class="section-label"><span>02</span><h2>어디에 보관할까? <span class="required">필수</span></h2></div>
             <p class="help section-help" id="deliveryStorageHelp" th:hidden="${foodForm?.sourceType() == null or foodForm?.sourceType().name() != 'DELIVERY_LEFTOVER' or foodForm?.storageType() != null}">배달 잔반은 보관할 곳을 고르지 않으면 냉동실로 등록할게.</p><fieldset class="storage-choices"><legend class="sr-only">보관 위치</legend><label th:each="entry : ${storageLabels}"><input type="radio" th:field="*{storageType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('storageType')},aria-describedby=${#fields.hasErrors('storageType') ? 'storageType-error' : null}" th:value="${entry.key}"><span th:text="${entry.value}"></span></label></fieldset><p class="field-error" id="storageType-error" th:errors="*{storageType}"></p>

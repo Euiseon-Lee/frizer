@@ -188,6 +188,25 @@ class FoodQuantityIntegrationTest {
             .andExpect(redirectedUrl("/foods/"+masters.masterId(id)+"?storage=FRIDGE&warning=true"));
         mvc.perform(get("/inventory/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("처리 취소")));
     }
+    @Test void partialActionsStayOnItemAndFullActionsStayOnListEvenWithOneSibling() throws Exception {
+        for(var action:List.of(CONSUME,DISCARD)) {
+            long id=create(),master=masters.masterId(id);
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name()).param("version",Long.toString(quantities.preview(id).version()))
+                    .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.5").param("storage","FRIDGE").param("warning","true"))
+                    .andExpect(redirectedUrl("/inventory/"+id+"?storage=FRIDGE&warning=true"));
+            mvc.perform(get("/inventory/"+id).flashAttr("processedItemId",id).flashAttr("successMessage","처리했어."))
+                    .andExpect(content().string(containsString("class=\"purchase-undo\"")));
+            inventory.create(com.euiseon.friger.inventory.dto.FoodCreateForm.from(inventory.findById(id),java.time.LocalDate.now()),master,dao.find(master).versionNo());
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name()).param("version",Long.toString(quantities.preview(id).version()))
+                    .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","2").param("ended","true"))
+                    .andExpect(redirectedUrl("/foods/"+master));
+            mvc.perform(get("/foods/"+master)).andExpect(status().isOk()).andExpect(view().name("inventory/master"));
+            var ended=quantities.preview(id);
+            mvc.perform(post("/inventory/"+id+"/quantity").param("action","CANCEL").param("version",Long.toString(ended.version()))
+                    .param("historyId",Long.toString(ended.event().historyId())).param("requestId",UUID.randomUUID().toString()).param("ended","true"))
+                    .andExpect(redirectedUrl("/inventory/"+id));
+        }
+    }
     @Test void partialConsumptionKeepsRemainingStockAndCancellationRestoresOnlyProcessedQuantity() throws Exception {
         long id=create();
         long event=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
@@ -237,7 +256,7 @@ class FoodQuantityIntegrationTest {
             .andExpect(content().string(containsString("응, 좋아!"))).andExpect(content().string(containsString("quantity-consume")));
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME").param("version",Long.toString(version))
             .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","0.12"))
-            .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
+            .andExpect(redirectedUrl("/inventory/"+id));
         assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.38");
     }
 
@@ -376,7 +395,7 @@ class FoodQuantityIntegrationTest {
         mvc.perform(post("/inventory/"+id+"/edit").param("categoryMajorCode", "kimchi").param("foodName","두부").param("storageType","FRIDGE")
             .param("quantityAmount",amount).param("quantityUnit",unit).param("sourceType","PURCHASE").param("memo",memo)
             .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString()))
-            .andExpect(redirectedUrl("/foods/"+masters.masterId(id)));
+            .andExpect(redirectedUrl("/inventory/"+id));
     }
     @Test void quantityCorrectionsUseStoredDeltasAndDoNotBecomePurchases() throws Exception {
         long id=create();

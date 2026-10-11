@@ -593,9 +593,9 @@ class InventoryIntegrationTest {
                 .andExpect(model().attribute("selectedStorage", StorageType.FRIDGE))
                 .andExpect(model().attribute("savedWarning", true)).andExpect(model().attribute("ended", true));
         mvc.perform(editRequest(before).param("storage", "FRIDGE").param("warning", "true"))
-                .andExpect(redirectedUrl("/foods/" + masterId + "?storage=FRIDGE&warning=true"));
+                .andExpect(redirectedUrl("/inventory/" + id + "?storage=FRIDGE&warning=true"));
         mvc.perform(editRequest(service.findById(id)).param("storage", "FREEZER").param("ended", "true"))
-                .andExpect(redirectedUrl("/foods/" + masterId + "?storage=FREEZER&ended=true"));
+                .andExpect(redirectedUrl("/inventory/" + id + "?storage=FREEZER"));
         assertThat(service.findById(id).storageType()).isEqualTo(StorageType.FRIDGE);
     }
 
@@ -612,7 +612,7 @@ class InventoryIntegrationTest {
                 .param("capacityText", "500g").param("category", "반찬").param("memo", "<b>" + "긴 메모".repeat(100) + "</b>")
                 .param("purchasedAt", "2026-09-10").param("openedAt", "2026-09-11")
                 .param("sellByAt", "2026-09-20").param("expiredAt", "2026-09-21");
-        mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/foods/" + jdbc.queryForObject("SELECT master_id FROM food_item WHERE food_id=?", Long.class, id)));
+        mvc.perform(request).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/inventory/" + id));
         FoodItem after = service.findById(id);
         assertThat(after.createdAt()).isEqualTo(before.createdAt());
         assertThat(after.updatedAt()).isAfter(before.updatedAt());

@@ -49,7 +49,8 @@ public class FoodQuantityController {
             quantities.apply(id,action,version,historyId,requestId,selected);
             redirect.addFlashAttribute("successMessage",action==FoodQuantityService.Action.CANCEL ? "처리를 취소했어. 다시 보관 중이야." : action==FoodQuantityService.Action.CONSUME ? "먹은 것으로 기록했어." : "버린 것으로 기록했어.");
             if(action!=FoodQuantityService.Action.CANCEL) redirect.addFlashAttribute("processedItemId",id);
-            return url("/foods/"+masters.masterId(id),storage,warning,action==FoodQuantityService.Action.CANCEL ? false : ended);
+            boolean active=quantities.preview(id).item().status()==com.euiseon.friger.common.type.FoodStatus.ACTIVE;
+            return url(active?"/inventory/"+id:"/foods/"+masters.masterId(id),storage,warning,false);
         } catch(InvalidFoodException error) {
             redirect.addFlashAttribute("successMessage",error.errors().get(""));
             return url("/inventory/"+id,storage,warning,ended);

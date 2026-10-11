@@ -165,7 +165,7 @@ public class InventoryController {
             rejectInvalid(invalid, errors, model);
             return "inventory/new";
         }
-        return FoodQuantityController.url("/foods/" + masters.masterId(id), storage, warning, ended);
+        return FoodQuantityController.url("/inventory/" + id, storage, warning, false);
     }
 
     @PostMapping("/inventory/{id}/warning")

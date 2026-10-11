@@ -23,7 +23,7 @@ class FoodCategoryMigrationTest {
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18.6")
             .withDatabaseName("frizer_category_upgrade_test");
     static JdbcTemplate jdbc;
-    static List<Map<String,Object>> mastersBefore, itemsBefore, historyBefore, receiptsBefore;
+    static List<Map<String,Object>> mastersBefore, itemsBefore, historyBefore, receiptsBefore, oldCategoryAudit;
 
     @BeforeAll
     static void upgrade() {
@@ -42,7 +42,19 @@ class FoodCategoryMigrationTest {
         itemsBefore = jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
         historyBefore = jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
         receiptsBefore = jdbc.queryForList("SELECT * FROM food_registration_receipt ORDER BY user_id,request_id");
-        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword()).load().migrate();
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword()).target("26").load().migrate();
+        jdbc.update("INSERT INTO food_category_history(user_id,master_id,food_name,before_category,after_category,after_major_code) VALUES (1,1,'미분류 두부','옛 분류','김치','kimchi'),(2,999999,'삭제된 그룹',NULL,'음료','beverage')");
+        oldCategoryAudit = jdbc.queryForList("SELECT * FROM food_category_history ORDER BY category_history_id");
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword()).target("27").load().migrate();
+        var retirement = Flyway.configure().dataSource(POSTGRES.getJdbcUrl(),POSTGRES.getUsername(),POSTGRES.getPassword()).load();
+        // A real failed migration must preserve even orphaned legacy rows and V27.
+        assertThatThrownBy(retirement::migrate).hasStackTraceContaining("V28 refuses to discard them");
+        assertThat(jdbc.queryForList("SELECT * FROM food_category_history ORDER BY category_history_id")).isEqualTo(oldCategoryAudit);
+        assertThat(retirement.info().current().getVersion().getVersion()).isEqualTo("27");
+        // Test-only stand-in for an approved, verified export/disposal operation.
+        jdbc.update("DELETE FROM food_category_history");
+        retirement.migrate();
+        assertThat(retirement.validateWithResult().validationSuccessful).isTrue();
     }
 
     @Test
@@ -54,7 +66,14 @@ class FoodCategoryMigrationTest {
         });
         assertThat(after).isEqualTo(mastersBefore);
         assertThat(jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id")).isEqualTo(itemsBefore);
-        assertThat(jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id")).isEqualTo(historyBefore);
+        var histories = jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
+        histories.forEach(row -> {
+            assertThat(row.remove("category_before")).isNull();
+            assertThat(row.remove("category_after")).isNull();
+        });
+        assertThat(histories).isEqualTo(historyBefore);
+        assertThat(jdbc.queryForObject("SELECT to_regclass('public.food_category_history')::text",String.class)).isNull();
+        assertThat(jdbc.queryForObject("SELECT to_regclass('public.ix_food_category_history_owner_master')::text",String.class)).isNull();
         assertThat(jdbc.queryForList("SELECT * FROM food_registration_receipt ORDER BY user_id,request_id")).isEqualTo(receiptsBefore);
         // V11 writes a registration snapshot. Ensure this comparison includes real JSON, not just NULLs.
         assertThat(jdbc.queryForObject("SELECT after_snapshot->>'category' FROM food_history WHERE food_id=3",String.class))

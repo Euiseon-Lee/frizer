@@ -13,7 +13,7 @@
 <p class="merge-caution move-keep-note" th:if="${whole}">모든 항목을 지우는 거라서 음식까지 전부 삭제할 수 있어.</p></section>
 <section class="merge-preview"><h2>이렇게 삭제할 거야</h2>
 <div class="merge-preview-card">
-<dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>음식 이력 총 건수</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
+<dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>삭제할 항목 이력</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
 </div>
 <p class="merge-caution move-keep-note">삭제한 항목은 기록 및 통계에서 사라져.</p>
 <p class="merge-caution">이 작업은 취소할 수 없어.</p>

@@ -49,7 +49,6 @@ class FoodCategoryUiIntegrationTest {
         jdbc.update("DELETE FROM food_item");
         jdbc.update("DELETE FROM food_master");
         jdbc.update("DELETE FROM food_registration_receipt");
-        jdbc.update("DELETE FROM food_category_history");
         jdbc.update("UPDATE food_category_minor SET active=true");
         jdbc.update("UPDATE food_category_major SET active=true");
     }

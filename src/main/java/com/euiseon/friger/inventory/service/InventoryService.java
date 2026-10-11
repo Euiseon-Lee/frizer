@@ -26,18 +26,15 @@ public class InventoryService {
     private final Validator validator;
     private final com.euiseon.friger.inventory.dao.FoodMasterDao masters;
     private final FoodCategoryService categories;
-    private final com.euiseon.friger.inventory.dao.FoodCategoryHistoryDao categoryHistory;
 
     public InventoryService(InventoryDao inventory, HistoryDao history, Clock clock, Validator validator,
-                            com.euiseon.friger.inventory.dao.FoodMasterDao masters, FoodCategoryService categories,
-                            com.euiseon.friger.inventory.dao.FoodCategoryHistoryDao categoryHistory) {
+                            com.euiseon.friger.inventory.dao.FoodMasterDao masters, FoodCategoryService categories) {
         this.inventory = inventory;
         this.history = history;
         this.clock = clock;
         this.validator = validator;
         this.masters = masters;
         this.categories = categories;
-        this.categoryHistory = categoryHistory;
     }
 
     @Transactional(readOnly = true)
@@ -91,13 +88,13 @@ public class InventoryService {
             long categoryMasterId = masterId == null ? masters.masterIdForItem(id) : masterId;
             assignCategory(categoryMasterId, selection);
             if (before != null) {
-                recordCategoryChange(before, selection);
                 masters.invalidateOtherItems(masterId, id);
             }
         }
         if (masterId != null) masters.touch(masterId);
-        int inserted = history.insert(new FoodHistory(null, id, FoodActionType.CREATE, null,
-                food.storageType(), food.quantityText(), now, registrationSnapshot(food)));
+        int inserted = history.insertWithCategory(new FoodHistory(null, id, FoodActionType.CREATE, null,
+                food.storageType(), food.quantityText(), now, registrationSnapshot(food)),
+                before, masters.find(masters.masterIdForItem(id)));
         if (inserted != 1) throw new IllegalStateException("등록 이력을 저장하지 못했습니다.");
         return id;
     }
@@ -168,13 +165,12 @@ public class InventoryService {
             masters.update(masterId, after.foodName(), after.category());
             if (categoryChanged) {
                 assignCategory(masterId, selection);
-                recordCategoryChange(master, selection);
             }
             masters.invalidateOtherItems(masterId, id);
         } else masters.touch(masterId);
         if (inventory.update(after) != 1) throw new IllegalStateException("수정 내용을 저장하지 못했습니다.");
         if (history.insertUpdate(new FoodHistory(null, id, FoodActionType.UPDATE, before.storageType(), after.storageType(),
-                after.quantityText(), now, changes), before, after) != 1) {
+                after.quantityText(), now, changes), before, after, master, masters.find(masterId)) != 1) {
             throw new IllegalStateException("수정 이력을 저장하지 못했습니다.");
         }
         return true;
@@ -183,12 +179,6 @@ public class InventoryService {
     private void assignCategory(long masterId, FoodCategoryService.Selection selection) {
         if (masters.assignCategory(masterId, selection.majorCode(), selection.minorCode(), selection.displayLabel()) != 1)
             throw new IllegalStateException("분류를 저장하지 못했습니다.");
-    }
-
-    private void recordCategoryChange(com.euiseon.friger.inventory.entity.FoodMaster before,
-                                      FoodCategoryService.Selection selection) {
-        if (categoryHistory.insert(before, selection.majorCode(), selection.minorCode(), selection.displayLabel()) != 1)
-            throw new IllegalStateException("분류 변경 이력을 저장하지 못했습니다.");
     }
 
     private static String cleanCode(String value) { return value == null || value.isBlank() ? null : value.strip(); }

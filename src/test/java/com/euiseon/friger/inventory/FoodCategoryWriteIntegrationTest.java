@@ -42,8 +42,6 @@ class FoodCategoryWriteIntegrationTest {
 
     @BeforeEach void reset() {
         jdbc.execute("DROP TRIGGER IF EXISTS fail_category_test ON food_history");
-        jdbc.execute("DROP TRIGGER IF EXISTS fail_category_audit_test ON food_category_history");
-        jdbc.update("DELETE FROM food_category_history");
         jdbc.update("DELETE FROM food_registration_receipt");
         jdbc.update("DELETE FROM food_quantity_receipt");
         jdbc.update("DELETE FROM food_split_receipt");
@@ -63,6 +61,7 @@ class FoodCategoryWriteIntegrationTest {
     private long add(long master, long version, UUID token) {
         return registrations.createCategorized(form(),master,version,"soy","soy_tofu",token);
     }
+    private int categoryTransitions() { return jdbc.queryForObject("SELECT count(*) FROM food_history WHERE category_before IS NOT NULL AND category_before IS DISTINCT FROM category_after",Integer.class); }
     private int count(String table) { return jdbc.queryForObject("SELECT count(*) FROM " + table,Integer.class); }
 
     @Test void newFoodStoresCodesAndRegistrationSnapshot() {
@@ -72,7 +71,7 @@ class FoodCategoryWriteIntegrationTest {
         assertThat(master.categoryMinorCode()).isEqualTo("soy_tofu");
         assertThat(master.category()).isEqualTo("콩·두부 › 두부");
         assertThat(jdbc.queryForObject("SELECT after_snapshot->>'category_minor_code' FROM food_history WHERE food_id=?",String.class,id)).isEqualTo("soy_tofu");
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
     }
     @Test void requiredSelectionFailureLeavesNoReceiptOrFood() {
         assertThatThrownBy(() -> registrations.createCategorized(form(),null,null,null,null,UUID.randomUUID()))
@@ -90,7 +89,7 @@ class FoodCategoryWriteIntegrationTest {
         assertThat(inventory.findById(original).quantityAmount()).isEqualByComparingTo(before.quantityAmount());
         assertThat(inventory.findById(added).category()).isEqualTo("콩·두부 › 두부");
         assertThat(jdbc.queryForObject("SELECT after_snapshot::text FROM food_history WHERE food_id=?",String.class,original)).isEqualTo(snapshot);
-        assertThat(jdbc.queryForObject("SELECT before_category FROM food_category_history WHERE master_id=?",String.class,master)).isEqualTo("옛 분류");
+        assertThat(jdbc.queryForObject("SELECT category_before->>'label' FROM food_history WHERE food_id=?",String.class,added)).isEqualTo("옛 분류");
         assertThat(masters.registrationChoices()).filteredOn(c -> c.masterId()==master)
                 .singleElement().satisfies(c -> assertThat(c.categoryMinorCode()).isEqualTo("soy_tofu"));
         assertThatThrownBy(() -> inventory.updateCategorized(original,form(),before.updatedAt(),"kimchi",null))
@@ -101,7 +100,7 @@ class FoodCategoryWriteIntegrationTest {
         long id=add(master,0,UUID.randomUUID());
         assertThat(inventory.findById(id).foodName()).isEqualTo("빈 음식");
         assertThat(masters.find(master).categoryMinorCode()).isEqualTo("soy_tofu");
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
     }
     @Test void endedOnlyGroupCanBeClassifiedWithoutReopeningOldItem() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
@@ -118,7 +117,7 @@ class FoodCategoryWriteIntegrationTest {
         long added=registrations.createCategorized(form(),master,masters.find(master).versionNo(),"invalid","invalid",UUID.randomUUID());
         assertThat(inventory.findById(added).category()).isEqualTo("콩·두부 › 두부");
         assertThat(masters.find(master).categoryMinorCode()).isEqualTo("soy_tofu");
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
     }
     @Test void staleVersionCannotOverwriteClassification() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
@@ -126,7 +125,7 @@ class FoodCategoryWriteIntegrationTest {
         assertThatThrownBy(() -> registrations.createCategorized(form(),master,0L,"kimchi",null,UUID.randomUUID()))
                 .isInstanceOf(InvalidFoodException.class);
         assertThat(count("food_item")).isEqualTo(2);
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
         assertThat(count("food_registration_receipt")).isEqualTo(1);
     }
     @Test void invalidQuantityDoesNotClassifyGroup() {
@@ -149,24 +148,23 @@ class FoodCategoryWriteIntegrationTest {
         assertThat(masters.find(master).versionNo()).isZero();
         assertThat(inventory.findById(id)).isEqualTo(before);
         assertThat(count("food_item")).isEqualTo(1);
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
         assertThat(count("food_registration_receipt")).isZero();
     }
-    @Test void auditFailureAlsoRollsBackNewItem() {
+    @Test void writesSucceedWithoutLegacyGroupAuditTable() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
-        jdbc.execute("CREATE OR REPLACE FUNCTION fail_category_write() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced audit failure'; END $$");
-        jdbc.execute("CREATE TRIGGER fail_category_audit_test BEFORE INSERT ON food_category_history FOR EACH ROW EXECUTE FUNCTION fail_category_write()");
-        assertThatThrownBy(() -> add(master,0,UUID.randomUUID())).isInstanceOf(org.springframework.dao.DataAccessException.class);
-        assertThat(masters.find(master).categoryMajorCode()).isNull();
-        assertThat(count("food_item")).isEqualTo(1);
-        assertThat(count("food_registration_receipt")).isZero();
+        add(master,0,UUID.randomUUID());
+        assertThat(masters.find(master).categoryMajorCode()).isEqualTo("soy");
+        assertThat(count("food_item")).isEqualTo(2);
+        assertThat(categoryTransitions()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT to_regclass('public.food_category_history')::text",String.class)).isNull();
     }
     @Test void identicalRetriesReturnOriginalItemAfterGroupVersionChanged() {
         long original=inventory.create(form()); long master=masters.masterIdForItem(original);
         UUID token=UUID.randomUUID(); long added=add(master,0,token);
         assertThat(add(master,0,token)).isEqualTo(added);
         assertThat(count("food_item")).isEqualTo(2);
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
         assertThatThrownBy(() -> registrations.createCategorized(form(),master,0L,"kimchi",null,token))
                 .isInstanceOf(InvalidFoodException.class);
     }
@@ -185,7 +183,7 @@ class FoodCategoryWriteIntegrationTest {
         assertThat(inventory.findById(other).updatedAt()).isAfter(beforeOther.updatedAt());
         assertThat(inventory.updateCategorized(id,form(),inventory.findById(id).updatedAt(),"kimchi",null)).isTrue();
         assertThat(masters.find(master).categoryMinorCode()).isNull();
-        assertThat(jdbc.queryForList("SELECT before_major_code FROM food_category_history WHERE master_id=? ORDER BY category_history_id",String.class,master))
+        assertThat(jdbc.queryForList("SELECT category_before->>'major_code' FROM food_history WHERE food_id=? AND action_type='UPDATE' ORDER BY history_id",String.class,id))
                 .containsExactly(null,"soy");
         assertThat(masters.find(master).versionNo()).isEqualTo(3);
     }
@@ -215,7 +213,7 @@ class FoodCategoryWriteIntegrationTest {
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         assertThat(inventory.findById(id)).isEqualTo(before);
         assertThat(masters.find(masters.masterIdForItem(id)).categoryMajorCode()).isNull();
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
     }
     @Test void concurrentDifferentRequestsCannotBothClassifySameVersion() throws Exception {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
@@ -228,14 +226,14 @@ class FoodCategoryWriteIntegrationTest {
             assertThat(java.util.List.of(first.get(20,TimeUnit.SECONDS),second.get(20,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
         }
         assertThat(count("food_item")).isEqualTo(2);
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
     }
     @Test void foreignGroupIsRejectedBeforeAnyCategoryWrite() {
         long user=jdbc.queryForObject("INSERT INTO app_user(role) VALUES ('USER') RETURNING user_id",Long.class);
         long master=jdbc.queryForObject("INSERT INTO food_master(user_id,food_name) VALUES (?,'다른 사용자') RETURNING master_id",Long.class,user);
         assertThatThrownBy(() -> add(master,0,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThat(count("food_item")).isZero();
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
         assertThat(count("food_registration_receipt")).isZero();
     }
 
@@ -250,7 +248,7 @@ class FoodCategoryWriteIntegrationTest {
             assertThat(first.get(20,TimeUnit.SECONDS)).isEqualTo(second.get(20,TimeUnit.SECONDS));
         }
         assertThat(count("food_item")).isEqualTo(2);
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
         assertThat(count("food_registration_receipt")).isEqualTo(1);
     }
 
@@ -272,16 +270,18 @@ class FoodCategoryWriteIntegrationTest {
                 quantities.preview(id).version(),UUID.randomUUID());
         assertThat(masters.masterIdForItem(child)).isEqualTo(masters.masterIdForItem(id));
         assertThat(jdbc.queryForObject("SELECT after_snapshot->>'category_minor_code' FROM food_history WHERE food_id=? AND action_type='SPLIT_IN'",String.class,child)).isEqualTo("soy_tofu");
-        assertThat(count("food_category_history")).isZero();
+        assertThat(categoryTransitions()).isZero();
     }
 
-    @Test void auditSurvivesRemovalOfAllGroupItemsAndGroup() {
+    @Test void categoryHistoryIsRemovedWithItsPurchaseItems() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
         add(master,0,UUID.randomUUID());
+        assertThat(categoryTransitions()).isEqualTo(1);
         jdbc.update("DELETE FROM food_history");
         jdbc.update("DELETE FROM food_item");
         jdbc.update("DELETE FROM food_master");
-        assertThat(jdbc.queryForObject("SELECT before_category FROM food_category_history WHERE user_id=1 AND master_id=?",String.class,master)).isEqualTo("옛 분류");
+        assertThat(categoryTransitions()).isZero();
+        assertThat(jdbc.queryForObject("SELECT to_regclass('public.food_category_history')::text",String.class)).isNull();
     }
 
     @Test void categoryHistoryDoesNotAppendScopeExplanationToMemo() {
@@ -289,7 +289,7 @@ class FoodCategoryWriteIntegrationTest {
         var changed=new FoodCreateForm("두부",StorageType.FRIDGE,null,BigDecimal.ONE,
                 null,null,null,null,null,null,false,"밀폐 용기로 옮김",null,null,null,"팩");
         inventory.updateCategorized(id,changed,inventory.findById(id).updatedAt(),"soy","soy_tofu");
-        var entry=history.findRecent(10).stream().filter(h -> h.foodId()==id && h.actionType()==com.euiseon.friger.common.type.FoodActionType.UPDATE).findFirst().orElseThrow();
+        var entry=history.findRecent(10).stream().filter(h -> java.util.Objects.equals(h.foodId(),id) && h.actionType()==com.euiseon.friger.common.type.FoodActionType.UPDATE).findFirst().orElseThrow();
         assertThat(entry.detailFields()).filteredOn(f -> f.label().equals("메모")).singleElement()
                 .satisfies(f -> assertThat(f.value()).isEqualTo("- → 밀폐 용기로 옮김"));
         assertThat(entry.changesText()).doesNotContain("분류 적용 범위");
@@ -299,11 +299,11 @@ class FoodCategoryWriteIntegrationTest {
         long id=inventory.create(form().withIdentity("두부","콩·두부 › 두부"));
         var before=inventory.findById(id);
         assertThat(inventory.updateCategorized(id,FoodCreateForm.from(before),before.updatedAt(),"soy","soy_tofu")).isTrue();
-        var entry=history.findRecent(10).stream().filter(h -> h.foodId()==id && h.actionType()==com.euiseon.friger.common.type.FoodActionType.UPDATE).findFirst().orElseThrow();
+        var entry=history.findRecent(10).stream().filter(h -> java.util.Objects.equals(h.foodId(),id) && h.actionType()==com.euiseon.friger.common.type.FoodActionType.UPDATE).findFirst().orElseThrow();
         assertThat(entry.detailFields()).singleElement().satisfies(f -> {
             assertThat(f.label()).isEqualTo("분류");
             assertThat(f.value()).isEqualTo("콩·두부 › 두부 (직접 입력) → 콩·두부 › 두부");
         });
-        assertThat(count("food_category_history")).isEqualTo(1);
+        assertThat(categoryTransitions()).isEqualTo(1);
     }
 }

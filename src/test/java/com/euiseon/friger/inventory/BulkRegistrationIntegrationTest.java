@@ -157,6 +157,12 @@ class BulkRegistrationIntegrationTest {
         var preview=bulk.preview(file(values),owner);
         assertThat(preview.rows().getFirst().errors()).containsExactly("누락된 필수 정보: 음식명, 수량, 단위, 보관 위치");
         assertThat(preview.valid()).isFalse();assertThat(count("food_bulk_preview")).isZero();
+        var session=new MockHttpSession();mvc.perform(get("/inventory/bulk").session(session));
+        var html=mvc.perform(multipart("/inventory/bulk/preview")
+                .file(new MockMultipartFile("file","missing.xlsx","application/octet-stream",file(values)))
+                .session(session).param("formToken",session.getAttribute("bulkOwner").toString()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("<dt class=\"bulk-required\">수량</dt><dd>미입력</dd>");
     }
     @ParameterizedTest @ValueSource(strings={"0","-1","1.001","1000000000","abc"})
     void invalidQuantityIsNotAlsoReportedAsMissing(String amount) throws Exception {

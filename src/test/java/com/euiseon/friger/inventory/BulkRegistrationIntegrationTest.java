@@ -220,9 +220,41 @@ class BulkRegistrationIntegrationTest {
         var values=row("","1","","");values[15]="직접 냉동";values[8]="가게";
         var preview=bulk.preview(file(values),owner);
         assertThat(preview.rows().getFirst().errors()).containsExactly(
-                "냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.",
                 "출처 메모: 출처가 기타일 때만 입력해줘.", "누락된 필수 정보: 음식명");
-        assertThat(preview.rows().getFirst().issues()).filteredOn(i -> i.type()==BulkValidation.Type.CONDITION).hasSize(2);
+        assertThat(preview.rows().getFirst().issues()).filteredOn(i -> i.type()==BulkValidation.Type.CONDITION).hasSize(1);
+    }
+    @Test void freezeDetailsAreIgnoredOutsideFreezerAndPreviewDatesFollowRequestedOrder() throws Exception {
+        for(String storage:List.of("실온","냉장실","냉동실")) {
+            var values=row("냉동 정보 확인 "+storage,"1","","");values[3]=storage;
+            values[14]=storage.equals("냉동실")?"2026-01-01":"날짜 아님";
+            values[15]=storage.equals("냉동실")?"직접 냉동":"냉동 구분 오타";
+            byte[] bytes=file(values);
+            var preview=bulk.preview(bytes,owner);
+            assertThat(preview.valid()).isTrue();
+            var session=new MockHttpSession();mvc.perform(get("/inventory/bulk").session(session));
+            String html=mvc.perform(multipart("/inventory/bulk/preview")
+                .file(new MockMultipartFile("file","freeze.xlsx","application/octet-stream",bytes))
+                .session(session).param("formToken",session.getAttribute("bulkOwner").toString()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(html.indexOf("<dt>유통기한</dt>")).isLessThan(html.indexOf("<dt>소비기한</dt>"));
+            assertThat(html.indexOf("<dt>소비기한</dt>")).isLessThan(html.indexOf("<dt>구매일</dt>"));
+            assertThat(html).contains("<div class=\"bulk-detail-wide\"><dt>구매일</dt>");
+            assertThat(html.indexOf("<dt>구매일</dt>")).isLessThan(html.indexOf("<dt>개봉 상태</dt>"));
+            assertThat(html.indexOf("<dt>개봉 상태</dt>")).isLessThan(html.indexOf("<dt>개봉일</dt>"));
+            bulk.commit(preview.requestId(),owner,false);
+            var saved=jdbc.queryForMap("SELECT frozen_at,freeze_type FROM food_item ORDER BY food_id DESC LIMIT 1");
+            if(storage.equals("냉동실")) {
+                assertThat(html.indexOf("<dt class=\"bulk-required\">보관 위치</dt>")).isLessThan(html.indexOf("<dt>냉동일</dt>"));
+                assertThat(html.indexOf("<dt>냉동일</dt>")).isLessThan(html.indexOf("<dt>냉동 구분</dt>"));
+                assertThat(html.indexOf("<dt>냉동 구분</dt>")).isLessThan(html.indexOf("<dt>유통기한</dt>"));
+                assertThat(saved.get("frozen_at")).isNotNull();
+                assertThat(saved.get("freeze_type")).isEqualTo("HOME_FROZEN");
+            } else {
+                assertThat(html).doesNotContain("<dt>냉동일</dt>","<dt>냉동 구분</dt>");
+                assertThat(saved.get("frozen_at")).isNull();
+                assertThat(saved.get("freeze_type")).isEqualTo("NONE");
+            }
+        }
     }
     @Test void previewFromPreviousFormatRequestsUploadAgainWithoutWritingStock() throws Exception {
         var preview=bulk.preview(file(row("두부","1","","")),owner);

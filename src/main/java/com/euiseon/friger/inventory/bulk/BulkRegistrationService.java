@@ -68,14 +68,12 @@ public class BulkRegistrationService {
             String minorLabel=row.categoryMinorCode()==null?savedMinor:row.categoryMinorCode();
             if("추가 등록".equals(row.sheet())) {
                 if(current!=null) {
-                    if(current.categoryMajorCode()==null) errors.add(CONDITION,"categoryMajorCode","대분류: 기존 음식의 분류를 먼저 설정한 뒤 추가 등록해줘.");
-                    else {
-                        major=current.categoryMajorCode();minor=current.categoryMinorCode();
-                        if(row.categoryMajorCode()!=null && !row.categoryMajorCode().isBlank() && !row.categoryMajorCode().equals(savedMajor))
-                            errors.add(CONDITION,"categoryMajorCode","대분류: 추가 등록에서는 분류를 변경할 수 없어. 새 양식을 받아줘.");
-                        if(row.categoryMinorCode()!=null && !row.categoryMinorCode().isBlank() && !row.categoryMinorCode().equals(savedMinor))
-                            errors.add(CONDITION,"categoryMinorCode","중분류: 추가 등록에서는 분류를 변경할 수 없어. 새 양식을 받아줘.");
-                    }
+                    major=current.categoryMajorCode();minor=current.categoryMinorCode();
+                    if(row.categoryMajorCode()!=null && !row.categoryMajorCode().isBlank() && !row.categoryMajorCode().equals(savedMajor))
+                        errors.add(CONDITION,"categoryMajorCode","대분류: 추가 등록에서는 분류를 변경할 수 없어. 새 양식을 받아줘.");
+                    if(storedMajor!=null && !storedMajor.requiresMinor()) errors.ignore("categoryMinorCode");
+                    else if(row.categoryMinorCode()!=null && !row.categoryMinorCode().isBlank() && !row.categoryMinorCode().equals(savedMinor))
+                        errors.add(CONDITION,"categoryMinorCode","중분류: 추가 등록에서는 분류를 변경할 수 없어. 새 양식을 받아줘.");
                     majorLabel=savedMajor;minorLabel=savedMinor;
                 }
             } else {
@@ -111,7 +109,10 @@ public class BulkRegistrationService {
                 } else if(freeze!=null && form.sourceType()==FoodSourceType.DELIVERY_LEFTOVER) {
                     freeze=FreezeType.HOME_FROZEN; errors.add(AUTOMATIC,"freezeType","출처가 ‘배달 잔반’이면 무조건 ‘직접 냉동’으로 설정돼.");
                 }
-            } else if(storage!=null && (form.frozenAt()!=null || form.freezeType()!=null)) errors.add(CONDITION,"freezeInfo","냉동 정보: 냉동실이 아닌 행의 냉동일, 냉동 구분을 비워줘.");
+            } else if(storage!=null) {
+                errors.ignore("frozenAt");
+                errors.ignore("freezeType");
+            }
             if(form.sourceMemo()!=null && !errors.invalid("sourceType") && form.sourceType()!=FoodSourceType.ETC) errors.add(CONDITION,"sourceMemo","출처 메모: 출처가 기타일 때만 입력해줘.");
             form=new FoodCreateForm(form.foodName(), storage,form.category(),form.quantityAmount()==null?null:form.quantityAmount().stripTrailingZeros(),form.expiredAt(),form.purchasedAt(),form.openedAt(),frozen,form.sourceType(),freeze,false,form.memo(),form.capacityText(),form.sourceMemo(),form.sellByAt(),form.quantityUnit(),false,null,false,form.openingStatus());
             String resolvedMajor=major, resolvedMinor=minor, displayMajorLabel=majorLabel;
@@ -170,7 +171,10 @@ public class BulkRegistrationService {
         for(var row:preview.rows()) {
             // Re-lock per row: an earlier row on the same master bumps its version.
             try {
-                inventory.createCategorized(row.form(),row.masterId(),row.masterId()==null?null:masters.lock(row.masterId()).versionNo(),row.categoryMajorCode(),row.categoryMinorCode());
+                if(row.masterId()!=null)
+                    inventory.create(row.form(),row.masterId(),masters.lock(row.masterId()).versionNo());
+                else
+                    inventory.createCategorized(row.form(),null,null,row.categoryMajorCode(),row.categoryMinorCode());
             } catch(com.euiseon.friger.inventory.exception.InvalidFoodException error) {
                 throw new IllegalArgumentException(row.sheet()+" "+row.row()+"행: "+String.join(" ",error.errors().values())+" 파일을 다시 올려줘.");
             }

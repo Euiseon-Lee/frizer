@@ -172,10 +172,10 @@ class FoodCategoryBulkIntegrationTest {
         assertThat(masters.find(id).categoryMinorCode()).isEqualTo("soy_tofu");
     }
     @Test void categoryFormulaDoesNotTrustEditedLookupAndRejectsArbitraryFormulas() throws Exception {
-        long id=legacy();masters.assignCategory(id,"kimchi",null,"김치");
+        long id=legacy();masters.assignCategory(id,"soy","soy_tofu","콩·두부 › 두부");
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(new Row(id,null,null))));var out=new ByteArrayOutputStream()) {
             book.getSheet("음식 선택값").getRow(1).getCell(3).setCellValue("주류");book.write(out);
-            var preview=bulk.preview(out.toByteArray(),owner);assertThat(preview.valid()).isTrue();assertThat(preview.rows().getFirst().categoryMajorCode()).isEqualTo("kimchi");
+            var preview=bulk.preview(out.toByteArray(),owner);assertThat(preview.valid()).isTrue();assertThat(preview.rows().getFirst().categoryMajorCode()).isEqualTo("soy");
             book.getSheet("추가 등록").getRow(4).getCell(2).setCellFormula("\"주류\"");out.reset();book.write(out);
             assertThat(bulk.preview(out.toByteArray(),owner).valid()).isFalse();
         }
@@ -191,7 +191,7 @@ class FoodCategoryBulkIntegrationTest {
             for(int i=1;i<=names.length;i++)assertThat(book.getSheet("음식 선택값").getRow(i).getCell(0).getStringCellValue()).startsWith(actual.get(i-1)+" [#");
         }
     }
-    @Test void additionalRegistrationKeepsCategoryAndRejectsOverridesOrUnclassifiedTargets() throws Exception {
+    @Test void additionalRegistrationKeepsCategoryAndRejectsOverrides() throws Exception {
         long id=legacy();
         assertThat(bulk.preview(file(new Row(id,"음료",null)),owner).valid()).isFalse();
         masters.assignCategory(id,"beverage",null,"음료");
@@ -203,7 +203,24 @@ class FoodCategoryBulkIntegrationTest {
         assertThat(masters.find(id).categoryMajorCode()).isEqualTo("beverage");
         assertThat(jdbc.queryForMap("SELECT * FROM food_history ORDER BY history_id LIMIT 1")).isEqualTo(original);
         assertThat(bulk.preview(file(new Row(id,"주류",null)),owner).valid()).isFalse();
-        assertThat(bulk.preview(file(new Row(id,null,"두부")),owner).valid()).isFalse();
+        var leaf=bulk.preview(file(new Row(id,null,"두부")),owner);
+        assertThat(leaf.valid()).isTrue();
+        assertThat(leaf.rows().getFirst().categoryMinorCode()).isNull();
+    }
+    @Test void unclassifiedAdditionalRegistrationPreservesCategoryAndReplaysWithoutDuplicates() throws Exception {
+        long id=legacy();
+        var original=jdbc.queryForMap("SELECT * FROM food_history");
+        byte[] bytes=file(new Row(id,null,null),new Row(id,null,null));
+        var preview=bulk.preview(bytes,owner);
+        assertThat(preview.valid()).isTrue();
+        assertThat(preview.rows()).allSatisfy(row->assertThat(row.categoryMajorCode()).isNull());
+        assertThat(bulk.commit(preview.requestId(),owner,false)).isEqualTo(2);
+        assertThat(bulk.commit(preview.requestId(),owner,false)).isEqualTo(2);
+        assertThat(masters.find(id).categoryMajorCode()).isNull();
+        assertThat(masters.find(id).category()).isEqualTo("예전 값");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item",Integer.class)).isEqualTo(3);
+        assertThat(jdbc.queryForMap("SELECT * FROM food_history ORDER BY history_id LIMIT 1")).isEqualTo(original);
+        assertThat(bulk.preview(bytes,owner).duplicate()).isTrue();
     }
     @Test void additionalSelectionRefreshesProtectedCategoryCells() throws Exception {
         long a=legacy();masters.assignCategory(a,"beverage",null,"음료");

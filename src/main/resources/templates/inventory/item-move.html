@@ -13,7 +13,7 @@
 <input type="hidden" name="categoryContract" value="v1">
 <script id="moveDraft" type="application/json" th:inline="javascript">/*[[${moveDraft}]]*/ null</script>
 <section class="merge-source"><p class="small muted">병합 대상</p><p id="moveSourceName" class="merge-source-name" th:text="${master.foodName()}"></p>
-<ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> · <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> · 보관 종료</span></li></ul>
+<ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> / <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> / 보관 종료</span></li></ul>
 <p class="merge-caution move-keep-note" th:if="${whole and endedCount == 0}">전체 항목을 선택했고, 종료된 기록이 없어.</p>
 <p class="merge-caution move-keep-note" th:if="${whole and endedCount > 0}">전체 항목을 선택했고, 종료된 기록 <span th:text="${endedCount}"></span>건도 함께 병합돼.</p>
 <p class="merge-caution move-keep-note" th:if="${ended and activeCount == 0 and items.size() == endedCount}">전체 항목을 선택했고, 모든 기록이 함께 병합돼.</p>

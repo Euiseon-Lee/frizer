@@ -149,7 +149,7 @@ class UserIsolationIntegrationTest {
         as("owner");assertThat(registrations.create(form("같은 음식"),token)).isEqualTo(first);
     }
     @Test void endedItemsAndQuantityReceiptsStayPrivate() {
-        long id=inventory.create(form("종료 음식"));UUID token=UUID.randomUUID();
+        long id=inventory.createCategorized(form("종료 음식"),null,null,"kimchi",null);UUID token=UUID.randomUUID();
         long event=quantities.apply(id,FoodQuantityService.Action.CONSUME,0,null,token,null);
         long master=masters.masterIdForItem(id);
         as("tester");assertThat(items.findEnded()).isEmpty();assertThat(items.endedLinks()).isEmpty();

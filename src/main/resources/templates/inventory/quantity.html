@@ -9,12 +9,15 @@
 <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '소비 처리' : '폐기 처리')}"></p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div>
 <img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet" th:with="available=${action == 'CANCEL' ? preview.cancellable() : (preview.item().status().name() == 'ACTIVE' and preview.item().quantityAmount() != null)}">
+<div class="warning-alert warning-alert-overdue" role="alert" th:if="${errorMessage}"><div class="warning-alert-copy"><span th:text="${errorMessage}"></span></div><a id="quantityCategoryLink" class="warning-settings-link" th:if="${categoryBlocked == true}" th:href="@{/inventory/{id}/edit(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">분류 설정</a></div>
 <section class="form-section"><dl class="detail-grid quantity-info-grid">
+<div><dt>대분류</dt><dd th:text="${#strings.isEmpty(categoryMajorLabel) ? '-' : categoryMajorLabel}"></dd></div>
+<div><dt>중분류</dt><dd th:text="${#strings.isEmpty(categoryMinorLabel) ? '-' : categoryMinorLabel}"></dd></div>
 <div><dt>구매일</dt><dd th:text="${preview.item().purchasedAt() ?: '미입력'}"></dd></div>
 <div><dt>보관 위치</dt><dd th:text="${preview.item().storageType().name() == 'ROOM' ? '실온' : (preview.item().storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></dd></div>
 <div><dt th:text="${action == 'CANCEL' ? '복구할 수량' : '기준 수량'}"></dt><dd class="quantity-reference" th:text="${action == 'CANCEL' and preview.event() != null ? preview.event().quantity() : preview.item().displayQuantity()}"></dd></div>
 <div th:if="${action != 'CANCEL' and available}"><dt><label for="quantityAmount" th:text="${action == 'CONSUME' ? '먹은 수량' : '버릴 수량'}"></label></dt><dd>
-<div class="quantity-entry"><input id="quantityAmount" name="quantityAmount" form="quantity-form" type="text" inputmode="decimal" maxlength="12" autocomplete="off" required pattern="[0-9]{1,9}(\.[0-9]{1,2})?" aria-describedby="quantityInputError" th:value="${preview.item().quantityAmount().stripTrailingZeros().toPlainString()}" th:attr="data-maximum=${preview.item().quantityAmount().stripTrailingZeros().toPlainString()},data-unit=${preview.item().quantityUnit()},data-action=${action}"><span class="small" th:text="${preview.item().quantityUnit()}"></span></div>
+<div class="quantity-entry"><input id="quantityAmount" name="quantityAmount" form="quantity-form" type="text" inputmode="decimal" maxlength="12" autocomplete="off" required pattern="[0-9]{1,9}(\.[0-9]{1,2})?" aria-describedby="quantityInputError" th:value="${submittedQuantity != null ? submittedQuantity : preview.item().quantityAmount().stripTrailingZeros().toPlainString()}" th:attr="data-maximum=${preview.item().quantityAmount().stripTrailingZeros().toPlainString()},data-unit=${preview.item().quantityUnit()},data-action=${action}"><span class="small" th:text="${preview.item().quantityUnit()}"></span></div>
 <span id="quantityInputError" class="quantity-message" role="status" aria-live="polite"></span>
 </dd></div>
 </dl></section>
@@ -26,7 +29,7 @@
 <input type="hidden" name="action" th:value="${action}"><input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="historyId" th:if="${action == 'CANCEL'}" th:value="${preview.event().historyId()}">
 <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
-<button class="button merge-submit" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button>
+<button class="button merge-submit" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:disabled="${categoryBlocked == true}" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button>
 </form>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

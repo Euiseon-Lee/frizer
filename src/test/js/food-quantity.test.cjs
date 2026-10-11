@@ -2,6 +2,15 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
+test('server-blocked confirmation cannot be resubmitted with Enter',()=>{
+  const handlers={},button={disabled:true};let prevented=0;
+  const form={addEventListener:(name,fn)=>handlers[name]=fn,querySelector:()=>button};
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    document:{querySelector:()=>form,getElementById:()=>null},window:{addEventListener:()=>{}}
+  });
+  handlers.submit({preventDefault:()=>prevented++});
+  assert.equal(prevented,1);assert.equal(button.disabled,true);
+});
 test('click and Enter submissions are locked; history restore rechecks server state',()=>{
   const handlers={},button={disabled:false};let reloads=0,prevented=0;
   const form={addEventListener:(name,fn)=>handlers[name]=fn,querySelector:()=>button};

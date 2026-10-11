@@ -104,7 +104,10 @@ class FoodCategoryWriteIntegrationTest {
     }
     @Test void endedOnlyGroupCanBeClassifiedWithoutReopeningOldItem() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
+        masters.assignCategory(master,"kimchi",null,"김치");
         quantities.apply(id,FoodQuantityService.Action.CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),null);
+        // Represent an already ended legacy group; new unclassified consumption is blocked.
+        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",master);
         add(master,masters.find(master).versionNo(),UUID.randomUUID());
         assertThat(inventory.findById(id).status().name()).isEqualTo("DEPLETED");
         assertThat(inventory.findById(id).quantityAmount()).isZero();
@@ -254,7 +257,9 @@ class FoodCategoryWriteIntegrationTest {
 
     @Test void cancellationAfterClassificationPreservesNewCategoryAndOldSnapshot() {
         long id=inventory.create(form()); long master=masters.masterIdForItem(id);
+        masters.assignCategory(master,"kimchi",null,"김치");
         long event=quantities.apply(id,FoodQuantityService.Action.DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),null);
+        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",master);
         String snapshot=jdbc.queryForObject("SELECT after_snapshot::text FROM food_history WHERE history_id=?",String.class,event);
         add(master,masters.find(master).versionNo(),UUID.randomUUID());
         quantities.apply(id,FoodQuantityService.Action.CANCEL,quantities.preview(id).version(),event,UUID.randomUUID(),null);

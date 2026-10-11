@@ -47,6 +47,45 @@ class FoodQuantityIntegrationTest {
         return jdbc.queryForObject("SELECT max(food_id) FROM food_item",Long.class);
     }
     long finish(long id) {return quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),null);}
+    @Test void unclassifiedFoodRejectsConsumptionAndDisposalButAllowsCancellation() throws Exception {
+        long id=create();
+        long master=masters.masterId(id);
+        dao.assignCategory(master,"soy","soy_tofu","콩·두부 › 두부");
+        for(var action:List.of(CONSUME,DISCARD)) {
+            String initial=mvc.perform(get("/inventory/"+id+"/quantity").param("action",action.name()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(initial).contains("<dt>대분류</dt><dd>콩·두부</dd>","<dt>중분류</dt><dd>두부</dd>");
+            assertThat(initial.indexOf("<dt>중분류</dt>")).isLessThan(initial.indexOf("<dt>구매일</dt>"));
+        }
+        long event=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",master);
+        var before=jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",id);
+        int receipts=jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class);
+        int histories=jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class);
+        for(var action:List.of(CONSUME,DISCARD)) {
+            String html=mvc.perform(post("/inventory/"+id+"/quantity").param("action",action.name())
+                .param("version",Long.toString(quantities.preview(id).version()))
+                .param("requestId",UUID.randomUUID().toString()).param("quantityAmount","1"))
+                .andExpect(status().isOk()).andExpect(view().name("inventory/quantity"))
+                .andExpect(model().attribute("categoryBlocked",true))
+                .andExpect(model().attribute("submittedQuantity","1"))
+                .andExpect(model().attribute("errorMessage","먼저 수정 화면에서 음식의 분류를 선택해줘."))
+                .andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("class=\"warning-alert warning-alert-overdue\" role=\"alert\"", "value=\"1\"",
+                "<dt>대분류</dt><dd>-</dd>","<dt>중분류</dt><dd>-</dd>");
+            assertThat(html.indexOf("class=\"warning-alert warning-alert-overdue\"")).isLessThan(html.indexOf("<section class=\"form-section\">"));
+            assertThat(html).containsPattern("<button[^>]*type=\"submit\"[^>]*disabled=\"disabled\"");
+            assertThat(html).contains("class=\"warning-settings-link\" href=\"/inventory/"+id+"/edit?storage=&amp;warning=&amp;ended=\">분류 설정</a>");
+        }
+        assertThat(jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",id)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isEqualTo(receipts);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history",Integer.class)).isEqualTo(histories);
+        cancel(id,event);
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.5");
+        dao.assignCategory(master,"kimchi",null,"김치");
+        finish(id);
+        assertThat(inventory.findById(id).quantityAmount()).isZero();
+    }
     String registrationQuantity(long id) {return jdbc.queryForObject("SELECT quantity_text FROM food_history WHERE food_id=? AND action_type='CREATE' ORDER BY history_id LIMIT 1",String.class,id);}
     long cancel(long id,long history) {return quantities.apply(id,CANCEL,quantities.preview(id).version(),history,UUID.randomUUID(),null);}
     @Test void homeSummariesUseRecordedZeroQuantityAndKeepHistoryDetails() throws Exception {

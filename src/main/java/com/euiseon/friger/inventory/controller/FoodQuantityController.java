@@ -17,8 +17,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class FoodQuantityController {
     private final FoodQuantityService quantities;
     private final FoodMasterService masters;
-    public FoodQuantityController(FoodQuantityService quantities,FoodMasterService masters) {
-        this.quantities=quantities;this.masters=masters;
+    private final FoodCategoryService categories;
+    public FoodQuantityController(FoodQuantityService quantities,FoodMasterService masters,FoodCategoryService categories) {
+        this.quantities=quantities;this.masters=masters;this.categories=categories;
     }
     @GetMapping("/inventory/{id}/quantity")
     String preview(@PathVariable long id,@RequestParam FoodQuantityService.Action action,
@@ -26,6 +27,10 @@ public class FoodQuantityController {
                    @RequestParam(defaultValue="false") boolean ended,Model model) {
         var preview=quantities.preview(id);
         model.addAttribute("preview",preview);
+        var master=masters.find(masters.masterId(id));
+        var labels=categories.labels(master.categoryMajorCode(),master.categoryMinorCode());
+        model.addAttribute("categoryMajorLabel",labels.major());
+        model.addAttribute("categoryMinorLabel",labels.minorDisplay());
         model.addAttribute("action",action.name());
         model.addAttribute("requestId",UUID.randomUUID());
         model.addAttribute("selectedStorage",storage);model.addAttribute("savedWarning",warning);model.addAttribute("ended",ended);
@@ -36,7 +41,7 @@ public class FoodQuantityController {
                  @RequestParam(required=false) Long historyId,@RequestParam UUID requestId,
                  @RequestParam(required=false) String quantityAmount,
                  @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
-                 @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request) {
+                 @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request,Model model) {
         ErrorDiagnostics.quantity(request,id,action,version,historyId,null);
         try {
             BigDecimal selected=null;
@@ -52,6 +57,13 @@ public class FoodQuantityController {
             boolean active=quantities.preview(id).item().status()==com.euiseon.friger.common.type.FoodStatus.ACTIVE;
             return url(active?"/inventory/"+id:"/foods/"+masters.masterId(id),storage,warning,false);
         } catch(InvalidFoodException error) {
+            if(error.errors().containsKey("categoryMajorCode")) {
+                preview(id,action,storage,warning,ended,model);
+                model.addAttribute("errorMessage",error.errors().get("categoryMajorCode"));
+                model.addAttribute("categoryBlocked",true);
+                model.addAttribute("submittedQuantity",quantityAmount);
+                return "inventory/quantity";
+            }
             redirect.addFlashAttribute("successMessage",error.errors().get(""));
             return url("/inventory/"+id,storage,warning,ended);
         }

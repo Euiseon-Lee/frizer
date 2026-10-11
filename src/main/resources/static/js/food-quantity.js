@@ -59,7 +59,7 @@
   }
   let submitting = false;
   form.addEventListener('submit', event => {
-    if (submitting) { event.preventDefault(); return; }
+    if (submitting || form.querySelector('button[type="submit"]').disabled) { event.preventDefault(); return; }
     submitting = true;
     form.querySelector('button[type="submit"]').disabled = true;
   });

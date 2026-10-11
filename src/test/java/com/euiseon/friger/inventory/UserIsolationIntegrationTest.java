@@ -159,9 +159,10 @@ class UserIsolationIntegrationTest {
     byte[] file(Long master) throws Exception {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
             var row=book.getSheet(master==null?"신규 등록":"추가 등록").getRow(4);
-            var values=master==null?Map.of(0,"공통 일괄 음식",1,"2",2,"개",6,"냉장실"):
-                    Map.of(2,master.toString(),3,"2",4,"개",8,"냉장실");
+            var values=master==null?Map.of(0,"공통 일괄 음식",3,"2",4,"개",8,"냉장실"):
+                    Map.of(3,"비공개 [#"+master+"]",4,"2",5,"개",9,"냉장실");
             values.forEach((c,v)->row.getCell(c,org.apache.poi.ss.usermodel.Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).setCellValue(v));
+            if(master==null)row.getCell(1).setCellValue("김치");
             book.write(out);return out.toByteArray();
         }
     }

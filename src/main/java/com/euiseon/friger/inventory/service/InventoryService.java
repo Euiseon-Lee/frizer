@@ -75,8 +75,7 @@ public class InventoryService {
             form = form.withIdentity(master.foodName(), master.category());
             before = master;
         }
-        // Existing structured groups inherit their stored choice, even when retired.
-        // Posted category codes must never overwrite a selected group's identity.
+        // Additional purchases inherit their stored choice, even when retired.
         if (categorized && (before == null || before.categoryMajorCode() == null)) {
             selection = categories.requireSelection(majorCode, minorCode);
             form = form.withIdentity(form.foodName(), selection.displayLabel());

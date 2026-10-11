@@ -32,6 +32,13 @@ public class FoodCategoryService {
         return choicesWithCurrent(null, null);
     }
 
+    /** Read labels for persisted codes, including retired choices. */
+    public List<Choice> storedChoices() {
+        var minors=categories.minors();
+        return categories.majors().stream().map(major->new Choice(major.code(),major.label(),major.example(),major.requiresMinor(),
+                minors.stream().filter(minor->minor.majorCode().equals(major.code())).toList())).toList();
+    }
+
     /** Adds only the persisted choice when it has been retired, so an edit can keep it. */
     public List<Choice> choicesWithCurrent(String majorCode, String minorCode) {
         var majors = categories.majors();

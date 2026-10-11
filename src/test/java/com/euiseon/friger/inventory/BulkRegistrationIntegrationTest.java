@@ -59,8 +59,9 @@ class BulkRegistrationIntegrationTest {
                 var sheet=book.getSheet(adding?"추가 등록":"신규 등록");
                 int index=adding?additional++:fresh++;
                 var line=sheet.getRow(index);if(line==null)line=sheet.createRow(index);
-                int[] map=adding?new int[]{-1,3,4,8,-1,2,5,6,7,-1,13,12,11,14,9,10,16}:new int[]{0,1,2,6,-1,-1,3,4,5,-1,11,10,9,12,7,8,14};
+                int[] map=adding?new int[]{-1,4,5,9,-1,3,6,7,8,-1,14,13,12,15,10,11,17}:new int[]{0,3,4,8,-1,-1,5,6,7,-1,13,12,11,14,9,10,16};
                 for(int c=0;c<values.length;c++) if(map[c]>=0)line.getCell(map[c],org.apache.poi.ss.usermodel.Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).setCellValue(values[c]);
+                if(!adding) {line.getCell(1,org.apache.poi.ss.usermodel.Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).setBlank();line.getCell(1).setCellValue("김치");}
             }
             book.write(out);return out.toByteArray();
         }
@@ -68,7 +69,7 @@ class BulkRegistrationIntegrationTest {
     byte[] openingFile(String state, String opened, Long master) throws Exception {
         var values=row(master==null?"개봉 테스트":"","1","",master==null?"":master.toString());values[13]=opened;
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(values)));var out=new ByteArrayOutputStream()) {
-            book.getSheet(master==null?"신규 등록":"추가 등록").getRow(4).getCell(master==null?13:15).setCellValue(state);
+            book.getSheet(master==null?"신규 등록":"추가 등록").getRow(4).getCell(master==null?15:16).setCellValue(state);
             book.write(out);return out.toByteArray();
         }
     }
@@ -114,10 +115,11 @@ class BulkRegistrationIntegrationTest {
             var addHeaders=new ArrayList<>(BulkWorkbook.ADD_HEADERS);addHeaders.remove("개봉 상태");addHeaders.remove("기존 음식명 선택");addHeaders.add(0,"기존 음식명 선택");
             for(var sheet:List.of(fresh,additional)) {var headers=sheet==fresh?newHeaders:addHeaders;var header=sheet.createRow(3);for(int c=0;c<headers.size();c++)header.createCell(c).setCellValue(headers.get(c));}
             var row=fresh.createRow(4);row.createCell(0).setCellValue("이전 양식");row.createCell(1).setCellValue(1);row.createCell(2).setCellValue("개");row.createCell(6).setCellValue("실온");row.createCell(12).setCellValue("2026-01-01");
-            row=additional.createRow(4);row.createCell(0).setCellValue(BulkWorkbook.choiceLabel(id,"기존",null));row.createCell(1).setCellFormula("IF(A5=\"\",\"\",IFERROR(VLOOKUP(A5,ExistingFoodLookup,2,FALSE),\"\"))");row.createCell(3).setCellValue(1);row.createCell(4).setCellValue("개");row.createCell(8).setCellValue("실온");
+            row=additional.createRow(4);row.createCell(0).setCellValue(BulkWorkbook.choiceLabel(id,"기존","김치"));row.createCell(1).setCellFormula("IF(A5=\"\",\"\",IFERROR(VLOOKUP(A5,ExistingFoodLookup,2,FALSE),\"\"))");row.createCell(3).setCellValue(1);row.createCell(4).setCellValue("개");row.createCell(8).setCellValue("실온");
             book.write(out);var preview=bulk.preview(out.toByteArray(),owner);
-            assertThat(preview.valid()).isTrue();assertThat(preview.rows().getFirst().form().openingStatus().name()).isEqualTo("OPENED");
-            assertThat(bulk.commit(preview.requestId(),owner,false)).isEqualTo(2);
+            assertThat(preview.valid()).isFalse();assertThat(preview.rows().getFirst().form().openingStatus().name()).isEqualTo("OPENED");
+            assertThat(preview.rows().getFirst().errors()).anyMatch(error->error.contains("분류"));
+            assertThat(preview.rows().get(1).errors()).isEmpty();
         }
     }
     @Test void uncertainOpeningIsVisibleInPreview() throws Exception {
@@ -165,7 +167,7 @@ class BulkRegistrationIntegrationTest {
     }
     @Test void missingAdditionalSelectionDoesNotReportFoodNameAsMissing() throws Exception {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
-            book.getSheet("추가 등록").getRow(4).getCell(3).setCellValue(-1);
+            book.getSheet("추가 등록").getRow(4).getCell(4).setCellValue(-1);
             book.write(out);var preview=bulk.preview(out.toByteArray(),owner);
             assertThat(preview.rows().getFirst().errors()).containsExactly(
                     "수량은 0보다 큰 숫자를 소수 둘째 자리까지 입력해야 해.",
@@ -200,7 +202,7 @@ class BulkRegistrationIntegrationTest {
     }
     @Test void formulaQuantityHasOneActionableErrorAndStillBlocksRegistration() throws Exception {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(row("두부","1","",""))));var out=new ByteArrayOutputStream()) {
-            book.getSheet("신규 등록").getRow(4).getCell(1).setCellFormula("1+1");
+            book.getSheet("신규 등록").getRow(4).getCell(3).setCellFormula("1+1");
             book.write(out);
             var preview=bulk.preview(out.toByteArray(),owner);
             assertThat(preview.rows().getFirst().errors()).containsExactly("수량: 수식, 오류, 참/거짓 대신 값을 입력해줘.");
@@ -235,8 +237,8 @@ class BulkRegistrationIntegrationTest {
     @Test void preservesNumericDecimalAndExcelDate() throws Exception {
         byte[] bytes;
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(row("두부","1","",""))));var out=new ByteArrayOutputStream()) {
-            var row=book.getSheet("신규 등록").getRow(4);row.getCell(1).setCellValue(0.75);
-            row.getCell(11).setCellValue(java.time.LocalDate.of(2026,1,1));book.write(out);bytes=out.toByteArray();
+            var row=book.getSheet("신규 등록").getRow(4);row.getCell(3).setCellValue(0.75);
+            row.getCell(13).setCellValue(java.time.LocalDate.of(2026,1,1));book.write(out);bytes=out.toByteArray();
         }
         var p=bulk.preview(bytes,owner);assertThat(p.valid()).isTrue();
         assertThat(p.rows().getFirst().form().quantityAmount()).isEqualByComparingTo("0.75");
@@ -245,7 +247,7 @@ class BulkRegistrationIntegrationTest {
     @Test void rejectsFormulaEvenWhenCachedValueLooksValid() throws Exception {
         byte[] bytes;
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(file(row("두부","1","",""))));var out=new ByteArrayOutputStream()) {
-            book.getSheet("신규 등록").getRow(4).getCell(1).setCellFormula("1+1");book.write(out);bytes=out.toByteArray();
+            book.getSheet("신규 등록").getRow(4).getCell(3).setCellFormula("1+1");book.write(out);bytes=out.toByteArray();
         }
         assertThat(bulk.preview(bytes,owner).valid()).isFalse();
     }
@@ -364,13 +366,15 @@ class BulkRegistrationIntegrationTest {
         var choices=masters.registrationChoices();
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(choices)));var output=new ByteArrayOutputStream()) {
             assertThat(book.getSheet("기존 음식").getLastRowNum()).isEqualTo(2);
-            assertThat(book.getSheet("기존 음식").getRow(1).getCell(0).getStringCellValue()).isNotEqualTo(book.getSheet("기존 음식").getRow(2).getCell(0).getStringCellValue());
+            assertThat(book.getSheet("기존 음식").getRow(1).getCell(0).getStringCellValue()).isEqualTo("두부");
+            assertThat(book.getSheet("기존 음식").getRow(2).getCell(0).getStringCellValue()).isEqualTo("두부");
+            assertThat(book.getSheet("음식 선택값").getRow(1).getCell(0).getStringCellValue()).isNotEqualTo(book.getSheet("음식 선택값").getRow(2).getCell(0).getStringCellValue());
             var sheet=book.getSheet("추가 등록");var row=sheet.getRow(4);
-            row.getCell(3).setCellValue(2);row.getCell(4).setCellValue("모");row.getCell(8).setCellValue("냉장실");
-            row.getCell(2).setCellValue(book.getSheet("기존 음식").getRow(2).getCell(0).getStringCellValue());
+            row.getCell(4).setCellValue(2);row.getCell(5).setCellValue("모");row.getCell(9).setCellValue("냉장실");
+            row.getCell(3).setCellValue(book.getSheet("음식 선택값").getRow(2).getCell(0).getStringCellValue());
             assertThat(sheet.getDataValidations()).anySatisfy(v->assertThat(v.getValidationConstraint().getFormula1()).isEqualTo("ExistingFoodNames"));
             assertThat(book.getCreationHelper().createFormulaEvaluator().evaluate(row.getCell(0)).getStringValue()).isEqualTo(Long.toString(choices.get(1).masterId()));
-            assertThat(book.getCreationHelper().createFormulaEvaluator().evaluate(row.getCell(1)).getStringValue()).isEmpty();
+            assertThat(book.getCreationHelper().createFormulaEvaluator().evaluate(row.getCell(1)).getStringValue()).isEqualTo("김치");
             book.write(output);var preview=bulk.preview(output.toByteArray(),owner);
             assertThat(preview.valid()).isTrue();assertThat(preview.rows()).hasSize(1);assertThat(preview.rows().getFirst().masterId()).isEqualTo(choices.get(1).masterId());
         }
@@ -415,21 +419,21 @@ class BulkRegistrationIntegrationTest {
     }
     @Test void missingExistingSelectionNeverBecomesNewRegistration() throws Exception {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(java.util.List.of())));var out=new ByteArrayOutputStream()) {
-            var row=book.getSheet("추가 등록").getRow(4);row.getCell(3).setCellValue(1);row.getCell(4).setCellValue("개");row.getCell(8).setCellValue("실온");
+            var row=book.getSheet("추가 등록").getRow(4);row.getCell(4).setCellValue(1);row.getCell(5).setCellValue("개");row.getCell(9).setCellValue("실온");
             book.write(out);var p=bulk.preview(out.toByteArray(),owner);
             assertThat(p.valid()).isFalse();assertThat(p.rows().getFirst().errors()).anyMatch(e->e.contains("기존 음식명 선택"));assertThat(count("food_bulk_preview")).isZero();
         }
     }
-    @Test void dropdownsAreLimitedToTheirColumnsAnd100Rows() throws Exception {
+    @Test void dropdownsAreLimitedToTheirColumnsAnd500Rows() throws Exception {
         var p=bulk.preview(file(row("두부","1","","")),owner);bulk.commit(p.requestId(),owner,false);
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(workbook.template(masters.registrationChoices())))) {
-            assertThat(book.getName("ExistingFoodNames").getRefersToFormula()).isEqualTo("'기존 음식'!$A$2:$A$2");
-            assertThat(book.getName("ExistingFoodLookup").getRefersToFormula()).isEqualTo("'기존 음식'!$A$2:$C$2");
+            assertThat(book.getName("ExistingFoodNames").getRefersToFormula()).isEqualTo("'음식 선택값'!$A$2:$A$2");
+            assertThat(book.getName("ExistingFoodLookup").getRefersToFormula()).isEqualTo("'음식 선택값'!$A$2:$E$2");
             var s=book.getSheet("추가 등록");
-            assertThat(s.getDataValidations()).anySatisfy(v->{assertThat(v.getValidationConstraint().getFormula1()).isEqualTo("ExistingFoodNames");assertThat(v.getRegions().getCellRangeAddress(0).formatAsString()).isEqualTo("C5:C104");});
+            assertThat(s.getDataValidations()).anySatisfy(v->{assertThat(v.getValidationConstraint().getFormula1()).isEqualTo("ExistingFoodNames");assertThat(v.getRegions().getCellRangeAddress(0).formatAsString()).isEqualTo("D5:D504");});
             for(var sheet:List.of(book.getSheet("신규 등록"),s)) for(var v:sheet.getDataValidations()) {
                 var region=v.getRegions().getCellRangeAddress(0);
-                assertThat(region.getFirstColumn()).isEqualTo(region.getLastColumn());assertThat(region.getLastRow()).isEqualTo(103);
+                assertThat(region.getFirstColumn()).isEqualTo(region.getLastColumn());assertThat(region.getLastRow()).isEqualTo(503);
             }
         }
     }
@@ -441,17 +445,18 @@ class BulkRegistrationIntegrationTest {
             for(String name:List.of("신규 등록","추가 등록")) {
                 var a=original.getSheet(name);var b=result.getSheet(name);
                 assertThat(b.getMergedRegions()).isEqualTo(a.getMergedRegions());
-                for(int c=0;c<a.getRow(3).getLastCellNum();c++) {
-                    assertThat(b.getColumnWidth(c)).isEqualTo(a.getColumnWidth(c));
-                    assertThat(b.getRow(3).getCell(c).getCellStyle().getIndex()).isEqualTo(a.getRow(3).getCell(c).getCellStyle().getIndex());
+                for(int c=0;c<b.getRow(3).getLastCellNum();c++) {
+                    int sourceColumn=c;
+                    assertThat(b.getColumnWidth(c)).isEqualTo(a.getColumnWidth(sourceColumn));
+                    assertThat(b.getRow(3).getCell(c).getCellStyle().getIndex()).isEqualTo(a.getRow(3).getCell(sourceColumn).getCellStyle().getIndex());
                 }
                 assertThat(b.getRow(4).getHeight()).isEqualTo(a.getRow(4).getHeight());
-                assertThat(b.getRow(4).getCell(name.equals("추가 등록")?2:0).getCellType()).isEqualTo(org.apache.poi.ss.usermodel.CellType.BLANK);
+                assertThat(b.getRow(4).getCell(name.equals("추가 등록")?3:0).getCellType()).isEqualTo(org.apache.poi.ss.usermodel.CellType.BLANK);
             }
-            assertThat(result.getSheet("추가 등록").getRow(4).getCell(1).getCellFormula()).contains("VLOOKUP(C5,ExistingFoodLookup,3,FALSE)");
+            assertThat(result.getSheet("추가 등록").getRow(4).getCell(0).getCellFormula()).contains("VLOOKUP(D5,ExistingFoodLookup,2,FALSE)");
             assertThat((Object)result.getSheet("기존 음식").getRow(1)).isNull();
             var originalGuide=original.getSheet("안내");var guide=result.getSheet("안내");
-            assertThat(guide.getMergedRegions()).isEqualTo(originalGuide.getMergedRegions());
+            assertThat(guide.getMergedRegions()).containsAll(originalGuide.getMergedRegions());
             assertThat(guide.getColumnWidth(0)).isEqualTo(originalGuide.getColumnWidth(0));
             for(var row:originalGuide) {
                 assertThat(guide.getRow(row.getRowNum()).getHeight()).isEqualTo(row.getHeight());

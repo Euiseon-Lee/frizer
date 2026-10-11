@@ -130,8 +130,10 @@ public class InventoryController {
     @GetMapping("/inventory/{id}/edit")
     String editFood(@PathVariable long id, @RequestParam(required = false) StorageType storage,
             @RequestParam(defaultValue = "false") boolean warning, @RequestParam(defaultValue = "false") boolean ended,
+            @RequestParam(required = false) String returnAction, @RequestParam(required = false) String returnQuantity,
             Model model, RedirectAttributes redirect) {
         editFilters(storage, warning, ended, model);
+        quantityReturnContext(returnAction, returnQuantity, model);
         var food = service.findById(id);
         if (food.status() != FoodStatus.ACTIVE) {
             redirect.addFlashAttribute("successMessage", "보관 중인 음식만 수정할 수 있어.");
@@ -151,8 +153,10 @@ public class InventoryController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
             @RequestParam(required = false) StorageType storage,
             @RequestParam(defaultValue = "false") boolean warning, @RequestParam(defaultValue = "false") boolean ended,
+            @RequestParam(required = false) String returnAction, @RequestParam(required = false) String returnQuantity,
             Model model, RedirectAttributes redirect) {
         editFilters(storage, warning, ended, model);
+        quantityReturnContext(returnAction, returnQuantity, model);
         editContext(id, expectedUpdatedAt, model);
         var master = masters.find(masters.masterId(id));
         categoryContext(categoryMajorCode, categoryMinorCode, master, false, "refresh".equals(categoryAction), model);
@@ -169,7 +173,20 @@ public class InventoryController {
             rejectInvalid(invalid, errors, model);
             return "inventory/new";
         }
+        if (model.containsAttribute("returnAction")) {
+            redirect.addAttribute("action", model.getAttribute("returnAction"));
+            redirect.addAttribute("draftQuantity", model.getAttribute("returnQuantity"));
+            return FoodQuantityController.url("/inventory/" + id + "/quantity", storage, warning, ended);
+        }
         return FoodQuantityController.url("/inventory/" + id, storage, warning, false);
+    }
+
+    private void quantityReturnContext(String action, String quantity, Model model) {
+        if (("CONSUME".equals(action) || "DISCARD".equals(action))
+                && quantity != null && quantity.matches("[0-9]{1,9}(\\.[0-9]{1,2})?")) {
+            model.addAttribute("returnAction", action);
+            model.addAttribute("returnQuantity", quantity);
+        }
     }
 
     @PostMapping("/inventory/{id}/warning")

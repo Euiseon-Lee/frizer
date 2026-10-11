@@ -31,6 +31,7 @@
         </div>
         <div id="singleRegistrationFields">
         <input th:if="${editId != null}" type="hidden" name="expectedUpdatedAt" th:value="${expectedUpdatedAt}">
+        <th:block th:if="${editId != null and returnAction != null}"><input type="hidden" name="returnAction" th:value="${returnAction}"><input type="hidden" name="returnQuantity" th:value="${returnQuantity}"></th:block>
         <th:block th:if="${editId != null}"><input th:if="${selectedStorage != null}" type="hidden" name="storage" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}"></th:block>
         <section class="form-section"><div class="section-label"><span>01</span><h2>어떤 음식이야?</h2></div>
             <p class="help section-help" th:if="${editId != null}"><span class="help-warning">음식명과 분류를 수정하면 다른 항목도 같이 수정돼.</span><br>수량·날짜·메모는 이 항목에만 적용돼.</p>

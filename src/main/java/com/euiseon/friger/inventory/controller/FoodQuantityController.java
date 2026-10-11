@@ -24,8 +24,11 @@ public class FoodQuantityController {
     @GetMapping("/inventory/{id}/quantity")
     String preview(@PathVariable long id,@RequestParam FoodQuantityService.Action action,
                    @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
-                   @RequestParam(defaultValue="false") boolean ended,Model model) {
+                   @RequestParam(defaultValue="false") boolean ended,
+                   @RequestParam(required=false) String draftQuantity,Model model) {
         var preview=quantities.preview(id);
+        if(action!=FoodQuantityService.Action.CANCEL && draftQuantity!=null)
+            model.addAttribute("submittedQuantity",draftQuantity.matches("[0-9]{1,9}(\\.[0-9]{1,2})?")?draftQuantity:"");
         model.addAttribute("preview",preview);
         var master=masters.find(masters.masterId(id));
         var labels=categories.labels(master.categoryMajorCode(),master.categoryMinorCode());
@@ -58,7 +61,7 @@ public class FoodQuantityController {
             return url(active?"/inventory/"+id:"/foods/"+masters.masterId(id),storage,warning,false);
         } catch(InvalidFoodException error) {
             if(error.errors().containsKey("categoryMajorCode")) {
-                preview(id,action,storage,warning,ended,model);
+                preview(id,action,storage,warning,ended,null,model);
                 model.addAttribute("errorMessage",error.errors().get("categoryMajorCode"));
                 model.addAttribute("categoryBlocked",true);
                 model.addAttribute("submittedQuantity",quantityAmount);

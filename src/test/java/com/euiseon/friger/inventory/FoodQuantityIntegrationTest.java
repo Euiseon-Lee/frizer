@@ -75,7 +75,7 @@ class FoodQuantityIntegrationTest {
                 "<dt>대분류</dt><dd>-</dd>","<dt>중분류</dt><dd>-</dd>");
             assertThat(html.indexOf("class=\"warning-alert warning-alert-overdue\"")).isLessThan(html.indexOf("<section class=\"form-section\">"));
             assertThat(html).containsPattern("<button[^>]*type=\"submit\"[^>]*disabled=\"disabled\"");
-            assertThat(html).contains("class=\"warning-settings-link\" href=\"/inventory/"+id+"/edit?storage=&amp;warning=&amp;ended=\">분류 설정</a>");
+            assertThat(html).contains("class=\"warning-settings-link\" href=\"/inventory/"+id+"/edit?storage=&amp;warning=&amp;ended=&amp;returnAction="+action+"&amp;returnQuantity=1\">분류 설정</a>");
         }
         assertThat(jdbc.queryForMap("SELECT * FROM food_item WHERE food_id=?",id)).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isEqualTo(receipts);
@@ -87,6 +87,43 @@ class FoodQuantityIntegrationTest {
         assertThat(inventory.findById(id).quantityAmount()).isZero();
     }
     String registrationQuantity(long id) {return jdbc.queryForObject("SELECT quantity_text FROM food_history WHERE food_id=? AND action_type='CREATE' ORDER BY history_id LIMIT 1",String.class,id);}
+    @Test void categoryEditReturnsToRequestedActionWithDraftQuantityWithoutProcessing() throws Exception {
+        long id=create();
+        for (var action:List.of(CONSUME,DISCARD)) {
+            jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL WHERE master_id=?",masters.masterId(id));
+            mvc.perform(get("/inventory/"+id+"/edit").param("returnAction",action.name()).param("returnQuantity","0.75"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("name=\"returnQuantity\" value=\"0.75\"")));
+            mvc.perform(post("/inventory/"+id+"/edit").param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString())
+                .param("foodName","").param("returnAction",action.name()).param("returnQuantity","0.75"))
+                .andExpect(status().isOk()).andExpect(model().attribute("returnAction",action.name()))
+                .andExpect(model().attribute("returnQuantity","0.75"));
+            var saved=mvc.perform(post("/inventory/"+id+"/edit")
+                .param("expectedUpdatedAt",inventory.findById(id).updatedAt().toString())
+                .param("foodName","두부").param("quantityAmount","2.5").param("quantityUnit","모")
+                .param("storageType","FRIDGE").param("sourceType","PURCHASE").param("categoryMajorCode","kimchi")
+                .param("returnAction",action.name()).param("returnQuantity","0.75")
+                .param("storage","FRIDGE").param("warning","true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/inventory/"+id+"/quantity?storage=FRIDGE&warning=true&action="+action+"&draftQuantity=0.75"))
+                .andReturn();
+            String html=mvc.perform(get(saved.getResponse().getRedirectedUrl()).flashAttrs(saved.getFlashMap()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(html).contains("value=\"0.75\"","<dt>대분류</dt><dd>김치</dd>")
+                .doesNotContain("disabled=\"disabled\"");
+            mvc.perform(get(saved.getResponse().getRedirectedUrl()))
+                .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity","0.75"))
+                .andExpect(content().string(containsString("value=\"0.75\"")));
+            assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("2.5");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
+        }
+    }
+    @Test void invalidRestoredQuantityNeverFallsBackToFullStock() throws Exception {
+        long id=create();
+        for(String draft:List.of("", "invalid", "1e2"))
+            mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME").param("draftQuantity",draft))
+                .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity",""))
+                .andExpect(content().string(containsString("value=\"\" data-maximum=\"2.5\"")));
+    }
     long cancel(long id,long history) {return quantities.apply(id,CANCEL,quantities.preview(id).version(),history,UUID.randomUUID(),null);}
     @Test void homeSummariesUseRecordedZeroQuantityAndKeepHistoryDetails() throws Exception {
         long id=create();

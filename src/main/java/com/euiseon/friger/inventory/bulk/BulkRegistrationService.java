@@ -51,7 +51,7 @@ public class BulkRegistrationService {
                 if(master==null) errors.add(CONDITION,"masterId","기존 음식 번호: 해당 음식을 찾을 수 없어. 최신 양식을 받아 다시 선택해줘.");
                 else {
                     version=master.versionNo();
-                    if (!row.cells().get(5).matches("[0-9]+") && !row.cells().get(5).equals(BulkWorkbook.choiceLabel(master.masterId(),master.foodName(),master.category()))
+                    if (!row.cells().get(5).matches("[0-9]+") && !row.cells().get(5).equals(BulkWorkbook.choiceLabel(master.masterId(),master.foodName()))
                             && !row.cells().get(5).equals(BulkWorkbook.legacyChoiceLabel(master.masterId(),master.foodName(),master.category())))
                         errors.add(CONDITION,"masterId","기존 음식 선택: 음식 정보가 바뀌었어. 최신 양식을 받아 다시 선택해줘.");
                     if(!form.foodName().isBlank() && !form.foodName().equals(master.foodName())) errors.add(CONDITION,"foodName","음식명: 기존 음식 번호의 이름과 달라.");

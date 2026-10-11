@@ -19,7 +19,7 @@ public class BulkRegistrationController {
     private final FoodMasterDao masters;
     public BulkRegistrationController(BulkRegistrationService service,BulkWorkbook workbook,FoodMasterDao masters) { this.service=service;this.workbook=workbook;this.masters=masters; }
     @GetMapping
-    String page(Model model,HttpSession session) { owner(session); return "inventory/bulk"; }
+    String page(HttpSession session) { owner(session); return "inventory/bulk"; }
     @GetMapping("/template")
     ResponseEntity<byte[]> template() throws IOException {
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=frizer-bulk-template.xlsx")
@@ -27,18 +27,18 @@ public class BulkRegistrationController {
     }
     @PostMapping("/preview")
     String preview(org.springframework.web.multipart.MultipartHttpServletRequest request,@RequestParam UUID formToken,HttpSession session,Model model) throws IOException {
-        if(!owner(session).equals(formToken)) { model.addAttribute("error","파일을 다시 선택해줘.");return page(model,session); }
+        if(!owner(session).equals(formToken)) { model.addAttribute("error","파일을 다시 선택해줘.");return page(session); }
         var files=request.getMultiFileMap().values().stream().flatMap(java.util.Collection::stream).toList();
         if(files.size()!=1 || !"file".equals(files.getFirst().getName()) || files.getFirst().isEmpty()) {
-            model.addAttribute("error","엑셀 파일은 1개만 선택해줘.");return page(model,session);
+            model.addAttribute("error","엑셀 파일은 1개만 선택해줘.");return page(session);
         }
         var file=files.getFirst();
         if(file.getOriginalFilename()==null || !file.getOriginalFilename().toLowerCase(java.util.Locale.ROOT).endsWith(".xlsx") || file.getSize()>BulkWorkbook.MAX_BYTES) {
-            model.addAttribute("error","2MB 이하의 .xlsx 파일을 선택해줘.");return page(model,session);
+            model.addAttribute("error","2MB 이하의 .xlsx 파일을 선택해줘.");return page(session);
         }
         try { model.addAttribute("preview",service.preview(file.getBytes(),owner(session))); model.addAttribute("fileName",file.getOriginalFilename()); }
         catch(IllegalArgumentException e) { model.addAttribute("error",e.getMessage()); }
-        return page(model,session);
+        return page(session);
     }
     @PostMapping("/commit")
     String commit(@RequestParam UUID requestId,@RequestParam(defaultValue="false") boolean repeat,HttpSession session,RedirectAttributes redirect) {

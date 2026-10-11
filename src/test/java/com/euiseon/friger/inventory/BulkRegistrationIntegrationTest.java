@@ -47,7 +47,7 @@ class BulkRegistrationIntegrationTest {
         String selected=id;
         if (!id.isBlank()) {
             var master=masters.find(Long.parseLong(id));
-            selected=master==null?"없는 음식 [#"+id+"]":BulkWorkbook.choiceLabel(master.masterId(),master.foodName(),master.category());
+            selected=master==null?"없는 음식 [#"+id+"]":BulkWorkbook.choiceLabel(master.masterId(),master.foodName());
         }
         return new String[]{name,amount,"모","냉장실",group,selected,"300g","장보기","","","","","","","","",""};
     }
@@ -115,7 +115,7 @@ class BulkRegistrationIntegrationTest {
             var addHeaders=new ArrayList<>(BulkWorkbook.ADD_HEADERS);addHeaders.remove("개봉 상태");addHeaders.remove("기존 음식명 선택");addHeaders.add(0,"기존 음식명 선택");
             for(var sheet:List.of(fresh,additional)) {var headers=sheet==fresh?newHeaders:addHeaders;var header=sheet.createRow(3);for(int c=0;c<headers.size();c++)header.createCell(c).setCellValue(headers.get(c));}
             var row=fresh.createRow(4);row.createCell(0).setCellValue("이전 양식");row.createCell(1).setCellValue(1);row.createCell(2).setCellValue("개");row.createCell(6).setCellValue("실온");row.createCell(12).setCellValue("2026-01-01");
-            row=additional.createRow(4);row.createCell(0).setCellValue(BulkWorkbook.choiceLabel(id,"기존","김치"));row.createCell(1).setCellFormula("IF(A5=\"\",\"\",IFERROR(VLOOKUP(A5,ExistingFoodLookup,2,FALSE),\"\"))");row.createCell(3).setCellValue(1);row.createCell(4).setCellValue("개");row.createCell(8).setCellValue("실온");
+            row=additional.createRow(4);row.createCell(0).setCellValue(BulkWorkbook.choiceLabel(id,"기존"));row.createCell(1).setCellFormula("IF(A5=\"\",\"\",IFERROR(VLOOKUP(A5,ExistingFoodLookup,2,FALSE),\"\"))");row.createCell(3).setCellValue(1);row.createCell(4).setCellValue("개");row.createCell(8).setCellValue("실온");
             book.write(out);var preview=bulk.preview(out.toByteArray(),owner);
             assertThat(preview.valid()).isFalse();assertThat(preview.rows().getFirst().form().openingStatus().name()).isEqualTo("OPENED");
             assertThat(preview.rows().getFirst().errors()).anyMatch(error->error.contains("분류"));

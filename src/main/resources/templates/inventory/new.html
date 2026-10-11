@@ -54,7 +54,7 @@
             <div class="freezer-fields" id="freezerFields"><div class="field"><label for="freezeType">냉동 유형</label><select th:field="*{freezeType}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('freezeType')},aria-describedby=${#fields.hasErrors('freezeType') ? 'freezeType-error' : null}"><option value="HOME_FROZEN">직접 냉동</option><option value="COMMERCIAL_FROZEN">시판 냉동식품</option></select><p class="field-error" id="freezeType-error" th:errors="*{freezeType}"></p><p class="help" id="deliveryFreezeHelp" th:hidden="${foodForm?.sourceType() == null or foodForm?.sourceType().name() != 'DELIVERY_LEFTOVER'}">배달 잔반은 ‘직접 냉동’으로 기록할게.</p></div>
                 <fieldset class="field frozen-date-group">
                     <legend>우리 집 냉동실에 넣은 날</legend>
-                    <div id="frozenDateField"><label class="sr-only" for="frozenAt">우리 집 냉동실에 넣은 날</label><input type="date" th:field="*{frozenAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('frozenAt')},aria-describedby=${#fields.hasErrors('frozenAt') ? 'frozenAt-error' : null}" th:max="${today}"><p class="field-error" id="frozenAt-error" th:errors="*{frozenAt}"></p></div>
+                    <div><label class="sr-only" for="frozenAt">우리 집 냉동실에 넣은 날</label><input type="date" th:field="*{frozenAt}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('frozenAt')},aria-describedby=${#fields.hasErrors('frozenAt') ? 'frozenAt-error' : null}" th:max="${today}"><p class="field-error" id="frozenAt-error" th:errors="*{frozenAt}"></p></div>
                     <label class="check-label today-checkbox"><input type="checkbox" th:field="*{freezeToday}"> 오늘 넣었어</label>
                 </fieldset>
             </div>

@@ -188,7 +188,7 @@ public class BulkWorkbook {
         } catch (RuntimeException e) { errors.add(INVALID, field, BulkValidation.label(field) + ": yyyy-mm-dd 형식의 날짜를 입력해줘."); return null; }
     }
 
-    public static String choiceLabel(long id, String name, String category) {
+    public static String choiceLabel(long id, String name) {
         return name + " [#" + id + "]";
     }
     public static String legacyChoiceLabel(long id, String name, String category) {
@@ -266,7 +266,7 @@ public class BulkWorkbook {
             for(var row:foodValues) for(var value:row) value.setBlank();
             for(int i=0;i<foods.size();i++) {
                 var food=foods.get(i);var row=existing.createRow(i+1);
-                String label=choiceLabel(food.masterId(),food.foodName(),food.category());
+                String label=choiceLabel(food.masterId(),food.foodName());
                 var major=storedCatalog.stream().filter(c->c.code().equals(food.categoryMajorCode())).findFirst().orElse(null);
                 String majorLabel=major==null?"":major.label();
                 String minorLabel=major==null?"":major.minors().stream().filter(c->c.code().equals(food.categoryMinorCode())).map(c->c.label()).findFirst().orElse("");

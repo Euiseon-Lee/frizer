@@ -125,7 +125,6 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .detail-grid .detail-warning dt{color:var(--warning-text)}.detail-grid .detail-warning dd{color:var(--warning-text)}
 .attention-reasons{display:flex;flex-direction:column;gap:4px;text-align:right;font-size:11px;flex-shrink:0}.alert-card .date-foods a{gap:12px}.alert-card .date-foods a>span:first-child{min-width:0;overflow-wrap:anywhere}
 @media(max-width:360px){.alert-card .date-foods a{flex-direction:column;align-items:flex-start}.attention-reasons{text-align:left}}
-.detail-expiry-alert{background:var(--warning-expired-bg);border-color:var(--warning-expired-border);color:var(--warning-expired-fg)}
 .detail-grid .detail-warning dt{display:flex;align-items:center;gap:5px}
 /* Home attention semantics are independent of primary and history badge colors. */
 .overview-card{--attention-surface:#fff;--attention-border:#FF4040;--attention-badge-bg:var(--warning-expired-bg);--attention-badge-fg:var(--warning-text);--attention-coral:var(--warning-text);--attention-ink:#30313d;--attention-muted:#696b7a;--attention-divider:#ececf1;background:var(--attention-surface);border:1px solid var(--attention-border);color:var(--attention-ink);padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px;align-items:start}
@@ -273,7 +272,6 @@ h1,h2,h3{font-weight:650}p{line-height:1.6}.eyebrow{font-size:12px;letter-spacin
 .food-group-card .quantity{min-width:0;max-width:100%;font-size:12px;line-height:22px}
 .food-group-card .quantity strong{font-weight:700;color:var(--ink)}
 .stock-location-quantity{display:inline-flex;align-items:center;gap:8px;min-width:0}
-.button-secondary.button-merge{background:#f7f4ff;border-color:#dcd4f2}
 
 .food-card.master-item-card{display:flex;flex-direction:column;align-items:stretch;gap:8px}
 .master-item-card p{margin:0;overflow-wrap:anywhere}
@@ -335,9 +333,7 @@ label.merge-target-heading{font-size:18px;font-weight:700;margin:0 0 20px}
 .form-actions .button:disabled{background:#eeedf2;color:#92909c;border-color:#eeedf2;cursor:not-allowed;box-shadow:none;transform:none;filter:none;transition:none}
 
 .merge-source{padding:14px;background:#f7f7fb;border-radius:12px;margin-bottom:20px}
-.merge-label{font-size:13px;font-weight:700;margin:0 0 8px}
 .merge-source-name{font-size:18px;font-weight:700;margin:0;overflow-wrap:anywhere}
-.merge-status:empty{display:none}.merge-status{margin:20px 0 0}
 .merge-preview{margin-top:24px}.merge-preview h2{font-size:18px;margin:0 0 20px}
 .merge-facts{display:grid;gap:16px;margin:0}.merge-facts>div{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:center;margin:0 8px}
 .merge-facts dt{font-size:13px;color:var(--muted)}.merge-facts dd{margin:0;min-width:0;font-size:14px;font-weight:700;text-align:right;direction:ltr;unicode-bidi:isolate;word-break:normal;overflow-wrap:anywhere}
@@ -369,7 +365,6 @@ label.merge-target-heading{font-size:18px;font-weight:700;margin:0 0 20px}
 
 
 
-.merge-options button[aria-pressed=true]{background:#f0e9ff}
 
 .inventory-filters{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px}.warning-filter{margin:0 0 0 auto;display:flex;justify-content:flex-end}.warning-filter label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:calc(13px - 1pt);white-space:nowrap;cursor:pointer}.master-warning-filter{margin-bottom:12px}
 .warning-view-all{display:flex;align-items:center;grid-column:1/-1;justify-content:center;width:100%;min-height:36px;padding:6px 15px;margin-top:8px;border-radius:8px}

@@ -41,7 +41,7 @@ class FoodCategoryBulkIntegrationTest {
             int fresh=4,additional=4;
             for(var row:rows) {
                 boolean adding=row.master()!=null;var line=book.getSheet(adding?"추가 등록":"신규 등록").getRow(adding?additional++:fresh++);
-                if(adding) {var master=masters.find(row.master());line.getCell(3).setCellValue(BulkWorkbook.choiceLabel(master.masterId(),master.foodName(),master.category()));}
+                if(adding) {var master=masters.find(row.master());line.getCell(3).setCellValue(BulkWorkbook.choiceLabel(master.masterId(),master.foodName()));}
                 else line.getCell(0).setCellValue("새 음식 "+fresh);
                 line.getCell(adding?4:3).setCellValue(1);line.getCell(adding?5:4).setCellValue("개");line.getCell(adding?9:8).setCellValue("냉장실");
                 if(row.major()!=null){line.getCell(1).setBlank();line.getCell(1).setCellValue(row.major());}
@@ -215,9 +215,9 @@ class FoodCategoryBulkIntegrationTest {
             for(int c=3;c<18;c++)assertThat(row.getCell(c).getCellStyle().getLocked()).isFalse();
             assertThat(sheet.getDataValidations()).noneMatch(v->v.getRegions().getCellRangeAddress(0).getFirstColumn()<3);
             var evaluator=book.getCreationHelper().createFormulaEvaluator();
-            row.getCell(3).setCellValue(BulkWorkbook.choiceLabel(a,masters.find(a).foodName(),null));
+            row.getCell(3).setCellValue(BulkWorkbook.choiceLabel(a,masters.find(a).foodName()));
             assertThat(evaluator.evaluate(row.getCell(1)).getStringValue()).isEqualTo("음료");
-            row.getCell(3).setCellValue(BulkWorkbook.choiceLabel(b,masters.find(b).foodName(),null));
+            row.getCell(3).setCellValue(BulkWorkbook.choiceLabel(b,masters.find(b).foodName()));
             evaluator.clearAllCachedResultValues();
             assertThat(evaluator.evaluate(row.getCell(1)).getStringValue()).isEqualTo("콩·두부");
             assertThat(evaluator.evaluate(row.getCell(2)).getStringValue()).isEqualTo("두부");

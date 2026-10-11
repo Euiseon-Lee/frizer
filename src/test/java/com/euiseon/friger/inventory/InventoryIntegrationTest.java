@@ -130,7 +130,7 @@ class InventoryIntegrationTest {
     }
 
     @Test
-    void homeSeparatesExpiredTodayAndUnknownDatesAndFiltersStorage() throws Exception {
+    void homeOverviewIncludesExpiredAndTodayFoodsAndFiltersStorage() throws Exception {
         mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "경과 음식").param("quantityAmount", "1").param("quantityUnit", "개")
                 .param("storageType", "ROOM").param("expiredAt", "2026-09-12")).andExpect(status().is3xxRedirection());
         mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "오늘 음식").param("quantityAmount", "2").param("quantityUnit", "팩")
@@ -138,9 +138,8 @@ class InventoryIntegrationTest {
         mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "기한 미입력").param("quantityAmount", "1").param("quantityUnit", "병")
                 .param("storageType", "FRIDGE").param("sellByAt", "2026-09-01")).andExpect(status().is3xxRedirection());
         var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getModelAndView().getModel();
-        assertThat((java.util.List<FoodItem>) home.get("attentionFoods")).extracting(FoodItem::foodName).containsExactlyInAnyOrder("경과 음식", "기한 미입력");
-        assertThat((java.util.List<FoodItem>) home.get("dueFoods")).extracting(FoodItem::foodName).containsExactly("오늘 음식");
-        assertThat(home.get("unknownDateCount")).isEqualTo(1L);
+        assertThat((java.util.List<FoodItem>) home.get("overviewFoods")).extracting(FoodItem::foodName)
+                .containsExactlyInAnyOrder("경과 음식", "오늘 음식", "기한 미입력");
         var filtered = mvc.perform(get("/inventory").param("storage", "ROOM")).andExpect(status().isOk())
                 .andReturn().getModelAndView().getModel();
         assertThat((java.util.List<FoodItem>) filtered.get("foods")).extracting(FoodItem::foodName).containsExactly("경과 음식");
@@ -817,8 +816,6 @@ class InventoryIntegrationTest {
             assertThat(detail.indexOf("개봉 후 3개월이 지났어.")).isLessThan(detail.indexOf("<section class=\"form-section purchase-detail-card\">"));
         }
         var home = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
-        assertThat((java.util.List<FoodItem>) home.getModelAndView().getModel().get("attentionFoods"))
-                .hasSize(warnings == 0 ? 0 : 1);
         var html = home.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if (warnings > 0) assertThat(html).contains("확인할 음식이");
         if (food.openedOverdue(LocalDate.of(2026, 9, 13))) assertThat(html).contains("개봉 후 +<span");

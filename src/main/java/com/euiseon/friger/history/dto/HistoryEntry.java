@@ -56,10 +56,6 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         return registrationValues().getOrDefault("음식명", foodName);
     }
 
-    public boolean incompleteRegistration() {
-        return actionType == FoodActionType.CREATE && registrationValues().isEmpty();
-    }
-
     public java.util.List<DetailField> detailFields() {
         var result = new java.util.ArrayList<DetailField>();
         if (actionType == FoodActionType.CREATE) {

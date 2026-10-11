@@ -30,9 +30,10 @@ public class ItemMoveService {
     private final InventoryDao inventory;
     private final ItemMoveDao moves;
     private final com.fasterxml.jackson.databind.ObjectMapper json;
+    private final FoodCategoryService categories;
     public ItemMoveService(FoodMasterDao masters, InventoryDao inventory, ItemMoveDao moves,
-                           com.fasterxml.jackson.databind.ObjectMapper json) {
-        this.masters=masters; this.inventory=inventory; this.moves=moves; this.json=json;
+                           com.fasterxml.jackson.databind.ObjectMapper json, FoodCategoryService categories) {
+        this.masters=masters; this.inventory=inventory; this.moves=moves; this.json=json; this.categories=categories;
     }
     private static InvalidFoodException invalid(String message) {
         return new InvalidFoodException(Map.of("",message));
@@ -96,11 +97,37 @@ public class ItemMoveService {
     }
     @Transactional
     public MoveResult move(Command raw, UUID token) {
+        return moveInternal(raw,token,null,null,false);
+    }
+    @Transactional(readOnly=true, isolation=Isolation.REPEATABLE_READ)
+    public Preview previewCategorized(long id,List<Long> items,Mode mode,Long targetId,String name,String major,String minor) {
+        var preview=preview(id,items,mode,targetId,name,null);
+        var target=mode==Mode.EXISTING?masters.find(targetId):null;
+        String label=target!=null && target.categoryMajorCode()!=null?target.category():categories.requireSelection(major,minor).displayLabel();
+        return new Preview(preview.source(),preview.items(),preview.whole(),preview.endedCount(),preview.remainingCount(),
+                preview.targetName(),label,preview.historyCount(),preview.command(),preview.requestId());
+    }
+    @Transactional(readOnly=true)
+    public MoveResult replayLegacy(Command raw,UUID token) {
+        if(token==null) throw invalid("병합 내용을 다시 확인해줘.");
+        try {
+            String fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsBytes(normalize(raw))));
+            var result=completed(token,fingerprint);
+            if(result!=null) return result;
+        } catch(InvalidFoodException error) { throw error; }
+        catch(Exception error) { throw new IllegalStateException(error); }
+        throw invalid("분류 선택이 추가됐어. 병합 내용을 다시 확인해줘.");
+    }
+    @Transactional
+    public MoveResult moveCategorized(Command raw, UUID token, String major, String minor) {
+        return moveInternal(raw,token,clean(major),clean(minor),true);
+    }
+    private MoveResult moveInternal(Command raw, UUID token, String major, String minor, boolean categorized) {
         var c=normalize(raw);
         if(token==null) throw invalid("병합 내용을 다시 확인해줘.");
         String fingerprint;
         try {fingerprint=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(
-                json.writeValueAsString(c).getBytes(StandardCharsets.UTF_8)));}
+                json.writeValueAsString(categorized ? Arrays.asList("category-v1",c,major,minor) : c).getBytes(StandardCharsets.UTF_8)));}
         catch(Exception error) {throw new IllegalStateException(error);}
         var done=completed(token,fingerprint);
         if(done!=null) return done;
@@ -117,6 +144,10 @@ public class ItemMoveService {
         if(source==null || source.versionNo()!=c.sourceVersion()
                 || (c.mode()==Mode.EXISTING && (target==null || c.targetVersion()==null || target.versionNo()!=c.targetVersion())))
             throw invalid("확인 후 음식 정보가 바뀌었어. 최신 병합 내용을 다시 확인해줘.");
+        var targetBefore=target;
+        FoodCategoryService.Selection category=null;
+        if(categorized && (target==null || target.categoryMajorCode()==null))
+            category=categories.requireSelection(major,minor);
         var moving=c.itemIds();
         if(c.whole()) {
             // Confirmed whole move: ended records follow and the food retires afterwards.
@@ -130,9 +161,15 @@ public class ItemMoveService {
             if(!Long.valueOf(c.sourceId()).equals(masters.masterIdForItem(itemId)))
                 throw invalid("선택한 구매 항목이 변경되었어. 목록에서 다시 확인해줘.");
         if(target==null) {
-            long newId=moves.createMaster(c.newName(),c.newCategory(),
+            long newId=moves.createMaster(c.newName(),category==null?c.newCategory():category.displayLabel(),
                     inventory.findById(c.itemIds().getFirst()).quantityUnit());
             target=masters.find(newId);
+        }
+        if(category!=null) {
+            if(masters.assignCategory(target.masterId(),category.majorCode(),category.minorCode(),category.displayLabel())!=1)
+                throw new IllegalStateException("분류를 저장하지 못했습니다.");
+            masters.invalidateOtherItems(target.masterId(),-1);
+            target=masters.find(target.masterId());
         }
         for(long itemId:moving)
             if(moves.transfer(itemId,source.masterId(),target.masterId())!=1)
@@ -141,9 +178,18 @@ public class ItemMoveService {
         boolean removed=masters.countItems(source.masterId())==0;
         if(removed) masters.delete(source.masterId()); else masters.touch(source.masterId());
         try {
-            for(long itemId:moving)
+            for(long itemId:moving) {
                 moves.receipt(token,fingerprint,itemId,source.masterId(),target.masterId(),
                         source.foodName(),target.foodName(),target.category(),removed);
+                if(categorized) {
+                    String changes="음식명: "+source.foodName()+" (#"+source.masterId()+") → "+target.foodName()+" (#"+target.masterId()+")";
+                    if(!Objects.equals(source.category(),target.category()))
+                        changes+="\n분류: "+(source.category()==null?"-":source.category())+" → "+target.category();
+                    if(moves.history(itemId,token,source.foodName(),changes,state(source),state(target),
+                            "{\"target_category_before\":"+state(targetBefore)+"}")!=1)
+                        throw new IllegalStateException("병합 이력을 저장하지 못했습니다.");
+                }
+            }
         } catch(org.springframework.dao.DuplicateKeyException error) {
             throw invalid("이미 보낸 요청이야. 병합 내용을 다시 확인해줘.");
         }
@@ -154,5 +200,13 @@ public class ItemMoveService {
         if(receipt==null) return null;
         if(!receipt.fingerprint().equals(fingerprint)) throw invalid("이미 보낸 요청이야. 병합 내용을 다시 확인해줘.");
         return new MoveResult(receipt.targetId(),receipt.sourceRemoved());
+    }
+    private static String clean(String value) { return value==null || value.isBlank()?null:value.strip(); }
+    private String state(FoodMaster master) {
+        if(master==null) return "null";
+        var state=new LinkedHashMap<String,Object>();
+        state.put("master_id",master.masterId()); state.put("label",master.category());
+        state.put("major_code",master.categoryMajorCode()); state.put("minor_code",master.categoryMinorCode());
+        try { return json.writeValueAsString(state); } catch(Exception error) { throw new IllegalStateException(error); }
     }
 }

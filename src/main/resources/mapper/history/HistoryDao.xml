@@ -15,12 +15,13 @@
             SELECT h.history_id, h.food_id, COALESCE(h.recorded_food_name,m.food_name) AS food_name, h.action_type,
                 h.previous_storage_type, h.new_storage_type, h.quantity_text, h.created_at, h.changes_text,
                 m.master_id AS current_master_id, m.food_name AS current_food_name,
-                NULL::varchar AS merged_from_name, NULL::varchar AS merged_into_name,
+                linked.source_name AS merged_from_name, linked.target_name AS merged_into_name,
                 NULL::integer AS merged_item_count,
                 EXISTS(SELECT 1 FROM food_item_move_receipt mr WHERE mr.user_id=#{_userId,jdbcType=BIGINT} AND mr.food_id=h.food_id) AS item_moved,
-                h.after_quantity_amount, NULL::bigint AS merged_target_id,
+                h.after_quantity_amount, linked.target_id AS merged_target_id,
                 0 AS event_order, h.history_id::text AS event_key
             FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
+            LEFT JOIN food_item_move_receipt linked ON h.action_type='MERGE' AND linked.user_id=h.user_id AND linked.food_id=h.food_id AND linked.request_id=h.operation_id
             WHERE h.action_type &lt;&gt; 'SPLIT_IN'
             UNION ALL
             SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
@@ -39,6 +40,7 @@
                 m.master_id, m.food_name, r.source_name, r.target_name, NULL::integer, TRUE, NULL::numeric, r.target_id, 2, r.request_id::text
             FROM food_item_move_receipt r
             JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
+            WHERE NOT EXISTS (SELECT 1 FROM food_history recorded WHERE recorded.user_id=r.user_id AND recorded.food_id=r.food_id AND recorded.operation_id=r.request_id AND recorded.action_type='MERGE')
         )
         SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
             quantity_text, created_at, changes_text, current_master_id, current_food_name,

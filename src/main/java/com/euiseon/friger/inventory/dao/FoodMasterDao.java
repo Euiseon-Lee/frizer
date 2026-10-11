@@ -36,6 +36,6 @@ public interface FoodMasterDao {
     int delete(long id);
     @Select("SELECT count(*) FROM food_item WHERE user_id=#{_userId,jdbcType=BIGINT} AND master_id=#{id}")
     int countItems(long id);
-    @Select("SELECT (SELECT count(*) FROM food_history h JOIN food_item i ON i.food_id=h.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id}) + (SELECT count(*) FROM food_item_move_receipt r JOIN food_item i ON i.food_id=r.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id})")
+    @Select("SELECT (SELECT count(*) FROM food_history h JOIN food_item i ON i.food_id=h.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id}) + (SELECT count(*) FROM food_item_move_receipt r JOIN food_item i ON i.food_id=r.food_id WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.master_id=#{id} AND NOT EXISTS (SELECT 1 FROM food_history h WHERE h.user_id=r.user_id AND h.food_id=r.food_id AND h.operation_id=r.request_id AND h.action_type='MERGE'))")
     int countHistory(long id);
 }

@@ -3,12 +3,15 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FR!ZER | 음식 병합</title><link rel="stylesheet" th:href="@{/css/app.css}">
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script>
-<script th:src="@{/js/item-move.js}" defer></script></head>
+<script th:src="@{/js/food-category.js}" defer></script><script th:src="@{/js/item-move.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
 <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${(ended ? '선택한 종료 항목 ' : '선택한 보관 중인 항목 ') + items.size() + '건'}"></p><h1>음식 병합하기</h1></div>
 <img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
 <div class="tab-sheet" id="itemMove" th:attr="data-base-url=@{/foods/{id}/move(id=${master.masterId()})},data-items=${itemsParam}">
 <p class="error-summary" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+<form id="itemMoveSubmit" method="post" novalidate th:action="@{/foods/{id}/move(id=${master.masterId()})}">
+<input type="hidden" name="categoryContract" value="v1">
+<script id="moveDraft" type="application/json" th:inline="javascript">/*[[${moveDraft}]]*/ null</script>
 <section class="merge-source"><p class="small muted">병합 대상</p><p id="moveSourceName" class="merge-source-name" th:text="${master.foodName()}"></p>
 <ul class="small muted move-item-list"><li th:each="item : ${items}"><span th:text="${item.storageType().name() == 'ROOM' ? '실온' : (item.storageType().name() == 'FRIDGE' ? '냉장실' : '냉동실')}"></span> · <span th:text="${item.displayQuantity() ?: '수량 미입력'}"></span><span th:if="${item.status().name() == 'DEPLETED'}"> · 보관 종료</span></li></ul>
 <p class="merge-caution move-keep-note" th:if="${whole and endedCount == 0}">전체 항목을 선택했고, 종료된 기록이 없어.</p>
@@ -27,7 +30,7 @@
 <div class="merge-target-list" th:unless="${moveChoices.isEmpty()}">
 <input id="moveFilter" type="search" maxlength="100" placeholder="음식 검색" autocomplete="off" aria-controls="moveTargetOptions">
 <div class="merge-target-options" id="moveTargetOptions" role="listbox" aria-label="병합 기준이 될 음식">
-<button type="button" role="option" aria-selected="false" th:each="choice : ${moveChoices}" th:attr="data-value=${choice.masterId()},data-name=${choice.foodName()}"><strong th:text="${choice.foodName()}"></strong><span class="merge-target-count" th:text="${'(' + choice.itemCount() + '건)'}"></span></button>
+<button type="button" role="option" aria-selected="false" th:each="choice : ${moveChoices}" th:attr="data-value=${choice.masterId()},data-master-id=${choice.masterId()},data-name=${choice.foodName()},data-category=${choice.category()},data-major=${choice.categoryMajorCode()}"><strong th:text="${choice.foodName()}"></strong><span class="merge-target-count" th:text="${'(' + choice.itemCount() + '건)'}"></span></button>
 </div>
 <p class="small muted merge-target-empty" id="moveFilterEmpty" hidden>검색한 음식이 없어. 다른 이름으로 찾아줘.</p>
 </div>
@@ -35,19 +38,19 @@
 </div>
 <input type="hidden" id="moveTarget" name="targetId" form="itemMoveSubmit">
 </div>
-<div id="newMove" hidden><div class="field"><label for="moveName">새로운 음식명 <span class="required">필수</span></label><input id="moveName" name="newName" form="itemMoveSubmit" maxlength="100"></div><div class="field"><label for="moveCategory">분류 <span class="optional">선택</span></label><input id="moveCategory" name="newCategory" form="itemMoveSubmit" maxlength="50" th:value="${master.category()}"></div></div>
+<div id="newMove" hidden><div class="field"><label for="moveName">새로운 음식명 <span class="required">필수</span></label><input id="moveName" name="newName" form="itemMoveSubmit" maxlength="100"></div></div>
+<div th:replace="~{fragments/category-picker :: content}"></div>
 <p id="moveStatus" class="small muted" role="status" aria-live="polite"></p><button id="moveRetry" type="button" class="merge-text-button" hidden>다시 시도</button>
 <section id="itemMovePreview" class="merge-preview" hidden aria-busy="false"><h2>이렇게 병합할 거야</h2>
 <div class="merge-preview-card">
-<dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd data-result="moveCount"></dd></div><div><dt>음식 이력 총 건수</dt><dd data-result="historyCount"></dd></div><div th:unless="${whole}"><dt>[참고] 기존 음식에 남는 항목 건수</dt><dd data-result="remainingCount"></dd></div></dl>
+<dl class="merge-facts"><div><dt>분류</dt><dd data-result="targetCategory"></dd></div><div><dt>개별 구매 총 건수</dt><dd data-result="moveCount"></dd></div><div><dt>음식 이력 총 건수</dt><dd data-result="historyCount"></dd></div><div th:unless="${whole}"><dt>[참고] 기존 음식에 남는 항목 건수</dt><dd data-result="remainingCount"></dd></div></dl>
 </div>
 <p class="merge-caution">이 작업은 취소할 수 없어.</p>
-<form id="itemMoveSubmit" method="post" th:action="@{/foods/{id}/move(id=${master.masterId()})}">
 <input type="hidden" name="sourceId" th:value="${master.masterId()}"><input type="hidden" name="sourceVersion" th:value="${master.versionNo()}">
 <input type="hidden" name="whole" th:value="${whole}"><input type="hidden" name="ended" th:value="${ended}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="itemIds" th:each="item : ${items}" th:value="${item.foodId()}">
 <div id="moveFields"></div>
-<button class="button merge-submit action-move" type="submit">확인했어, 병합하자!</button></form></section>
+<button class="button merge-submit action-move" type="submit">확인했어, 병합하자!</button></section></form>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:if="${backItemId != null}" th:href="@{/inventory/{id}(id=${backItemId},ended=${ended ? true : null})}">돌아가기</a>
 <a class="cancel-link purchase-back-link" th:if="${backItemId == null}" th:href="@{/foods/{id}(id=${master.masterId()},ended=${ended ? true : null})}">돌아가기</a></div>
 <noscript><p>병합 내용을 확인하려면 JavaScript를 켜줘.</p></noscript>

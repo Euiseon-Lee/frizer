@@ -7,6 +7,13 @@
     const target=find('moveTarget'), form=find('itemMoveSubmit');
     const filter=find('moveFilter'), options=find('moveTargetOptions'), emptyNote=find('moveFilterEmpty');
     const items=root.dataset.items.split(',');
+    const picker=window.frizerCategoryPicker;
+    let selected=null;
+    function categoryContext(reset=false) {
+        picker?.switchContext(mode()==='NEW'?'new':mode()==='EXISTING'?'existing':'bulk',selected,reset);
+        const help=find('sharedCategoryHelp');
+        if(help) help.hidden=true;
+    }
     let revision=0, current=null, submitting=false, retryAction;
     const mode=()=>root.querySelector('input[name=mode]:checked')?.value;
     function invalidate() {
@@ -23,16 +30,23 @@
         if(submitting) return;
         invalidate();
         if(!mode()) return;
+        if(picker && !picker.confirmed()) {status.textContent='분류 선택을 완료해줘.';return;}
         const query=new URLSearchParams({mode:mode()});
         for(const item of items) query.append('items',item);
         if(mode()==='EXISTING') {if(!target.value) return;query.set('targetId',target.value);}
-        else if(find('moveName').value.trim()) {query.set('newName',find('moveName').value);query.set('newCategory',find('moveCategory').value);}
+        else if(find('moveName').value.trim()) query.set('newName',find('moveName').value);
+        if(picker) {
+            query.set('categoryMajorCode',find('categoryMajorCode').disabled?'':find('categoryMajorCode').value);
+            query.set('categoryMinorCode',find('categoryMinorCode').disabled?'':find('categoryMinorCode').value);
+        }
         const ownRevision=revision;
         status.textContent='병합할 내용을 확인하고 있어.';
         try {
             const result=await get(base+'/preview?'+query);
             if(ownRevision!==revision || submitting) return;
             current=result;
+            const finalCategory=root.querySelector('[data-result="targetCategory"]');
+            if(finalCategory) finalCategory.textContent=result.targetCategory || '-';
             find('moveSourceName').textContent=result.source.foodName;
             root.querySelector('[data-result="moveCount"]').textContent=(result.items.length+(result.whole?result.endedCount:0))+'건';
             root.querySelector('[data-result="historyCount"]').textContent=result.historyCount+'건';
@@ -72,19 +86,36 @@
             other.setAttribute('aria-selected',String(selected));
         }
         target.value=button.dataset.value;
+        selected=button; categoryContext(true);
         loadPreview();
     });
     root.querySelectorAll('input[name=mode]').forEach(input=>input.addEventListener('change',()=>{
-        invalidate();find('existingMove').hidden=mode()!=='EXISTING';find('newMove').hidden=mode()!=='NEW';loadPreview();
+        invalidate();find('existingMove').hidden=mode()!=='EXISTING';find('newMove').hidden=mode()!=='NEW';categoryContext();loadPreview();
     }));
     retry.addEventListener('click',()=>retryAction&&retryAction());
     form.addEventListener('submit',event=>{
-        if(submitting || !current){event.preventDefault();return;}
+        if(event.defaultPrevented || submitting || !current || (picker && !picker.confirmed())){event.preventDefault();return;}
+        if(mode()==='NEW' && !find('moveName').value.trim()) {event.preventDefault();status.textContent='음식명을 입력해줘.';find('moveName').focus();return;}
         submitting=true;
         // Form-associated controls stay enabled so their live values submit; disabling would drop them.
-        root.querySelectorAll('input:not([type=hidden]):not([form]),select:not([form]),button').forEach(control=>control.disabled=true);
-        form.querySelector('button').textContent='병합하는 중…';
+        root.querySelectorAll('button').forEach(control=>control.disabled=true);
+        form.querySelector('button[type=submit]').textContent='병합하는 중…';
         preview.setAttribute('aria-busy','true');
     });
     window.addEventListener('pageshow',event=>{if(event.persisted) window.location.reload();});
+    find('moveName').addEventListener('input',()=>{invalidate();loadPreview();});
+    if(picker) {
+        for(const id of ['categoryMajorCode','categoryMinorCode']) find(id).addEventListener('change',invalidate);
+        for(const id of ['categoryConfirm','categoryCancel']) find(id).addEventListener('click',loadPreview);
+        categoryContext();
+        const draft=JSON.parse(find('moveDraft').textContent || 'null');
+        if(draft) {
+            root.querySelectorAll('input[name=mode]').forEach(input=>{input.checked=input.value===draft.mode;});
+            find('moveName').value=draft.name;
+            selected=options && [...options.querySelectorAll('button')].find(button=>button.dataset.value===draft.targetId);
+            if(selected) {target.value=selected.dataset.value;selected.classList.toggle('is-selected',true);selected.setAttribute('aria-selected','true');}
+            find('existingMove').hidden=mode()!=='EXISTING';find('newMove').hidden=mode()!=='NEW';
+            categoryContext();picker.restore(draft.major,draft.minor);loadPreview();
+        }
+    }
 })();

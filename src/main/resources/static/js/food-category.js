@@ -99,6 +99,13 @@
         clearErrors(); render(); toggle.focus();
     });
     window.frizerCategoryPicker = {
+        confirmed() {
+            const parent=choice();
+            return active && (inherited || (!dirty() && !!parent && (!parent.requiresMinor || parent.minors.some(c=>c.code===state.minor))));
+        },
+        restore(majorValue,minorValue) {
+            state.major=state.savedMajor=majorValue || ''; state.minor=state.savedMinor=minorValue || ''; render();
+        },
         switchContext(nextMode, selected, reset = false) {
             const nextKey = nextMode === 'existing' ? `existing:${selected?.dataset.masterId || ''}` : nextMode;
             if (reset) states.delete(nextKey);
@@ -133,7 +140,7 @@
             }
             clearErrors(); if (!validate()) { event.preventDefault(); return; }
         }
-        if (mode === 'edit') {
+        if (mode === 'edit' && document.getElementById('registrationSubmit')) {
             submitting = true;
             document.getElementById('registrationSubmit').disabled = true;
         }

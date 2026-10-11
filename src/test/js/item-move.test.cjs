@@ -66,6 +66,10 @@ const response=id=>({ok:true,json:async()=>({source:{foodName:'듀부'},items:[{
  change.requests[1].resolve(response(4));await tick();
  change.requests[0].resolve(response(2));await tick();
  assert.equal(change.ids.moveFields.children.find(c=>c.name==='targetVersion').value,'0');
- assert.equal(change.ids.moveName.listeners.input,undefined);
+ change.ids.moveName.value='새 이름';change.ids.moveName.listeners.input();
+ assert.equal(change.ids.itemMovePreview.hidden,true);
+ assert.ok(change.requests[2].url.includes('newName='));
+ change.requests[2].resolve(response(4));await tick();
+ assert.equal(change.ids.itemMovePreview.hidden,false);
  console.log('item-move: preloaded list selection, stale previews, retry, filtering, mode race and duplicate submission passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

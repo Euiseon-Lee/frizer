@@ -130,7 +130,7 @@ class Step3ScenarioIntegrationTest {
         long item=masters.items(a).getFirst().foodId();
         for (String value : new String[]{null,"not-a-number-or-uuid"}) {
             var params=new org.springframework.util.LinkedMultiValueMap<String,String>();
-            params.set("mode","EXISTING"); params.set("whole","true"); params.set("itemIds",""+item);
+            params.set("categoryContract","v1"); params.set("categoryMajorCode","kimchi"); params.set("mode","EXISTING"); params.set("whole","true"); params.set("itemIds",""+item);
             params.set("sourceId",""+a); params.set("targetId",""+b);
             params.set("sourceVersion","0"); params.set("targetVersion","0");
             params.set("requestId",UUID.randomUUID().toString());
@@ -191,11 +191,11 @@ class Step3ScenarioIntegrationTest {
     @Test void chainedMergeRetryDoesNotRecreateDeletedFoods() throws Exception {
         long a=food("A"),b=food("B"),c=food("C"); UUID token=UUID.randomUUID();
         long item=activeItems(a).getFirst();
-        mvc.perform(post("/foods/"+a+"/move").param("mode","EXISTING").param("whole","true")
+        mvc.perform(post("/foods/"+a+"/move").param("categoryContract","v1").param("categoryMajorCode","kimchi").param("mode","EXISTING").param("whole","true")
                 .param("itemIds",""+item).param("sourceId",""+a).param("targetId",""+b).param("sourceVersion","0")
                 .param("targetVersion","0").param("requestId",token.toString())).andExpect(redirectedUrl("/foods/"+b));
         merge(b,c); var before=snapshot();
-        mvc.perform(post("/foods/"+a+"/move").param("mode","EXISTING").param("whole","true")
+        mvc.perform(post("/foods/"+a+"/move").param("categoryContract","v1").param("categoryMajorCode","kimchi").param("mode","EXISTING").param("whole","true")
                 .param("itemIds",""+item).param("sourceId",""+a).param("targetId",""+b).param("sourceVersion","0")
                 .param("targetVersion","0").param("requestId",token.toString())).andExpect(redirectedUrl("/foods/"+b));
         assertThat(snapshot()).isEqualTo(before); assertThat(masters.items(c)).hasSize(3);

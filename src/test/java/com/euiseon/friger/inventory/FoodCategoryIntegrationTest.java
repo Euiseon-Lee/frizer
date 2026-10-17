@@ -55,7 +55,7 @@ class FoodCategoryIntegrationTest {
     void validatesParentChildAndUsesTheSelectedMinorExample() {
         var selection = service.requireSelection("soy", "soy_tofu");
         assertThat(selection.displayLabel()).isEqualTo("콩·두부 › 두부");
-        assertThat(selection.example()).isEqualTo("부침두부·찌개두부");
+        assertThat(selection.example()).isEqualTo("두부·부침두부·찌개두부");
         assertThat(selection.majorCode()).isEqualTo("soy");
         assertThat(selection.minorCode()).isEqualTo("soy_tofu");
     }

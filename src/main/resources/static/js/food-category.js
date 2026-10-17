@@ -21,7 +21,7 @@
     let active = true;
     let submitting = false;
     const choice = () => catalog.find(c => c.code === state.major);
-    const exampleText = entry => '예) ' + [...new Set(`${entry.label}, ${entry.example}`.replace(/\s+등$/, '')
+    const exampleText = entry => '예) ' + [...new Set(entry.example.replace(/\s+등$/, '')
         .split(/[·,]/).map(value => value.trim()).filter(Boolean))].join(', ') + ' 등';
     function clearErrors() {
         for (const [input, error] of [[major, majorError], [minor, minorError]]) {

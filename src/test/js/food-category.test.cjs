@@ -4,9 +4,11 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 
 function picker({mode='new',major='',minor='',error=false,inherited=false}={}) {
-  const catalog=[{code:'soy',label:'콩·두부',requiresMinor:true,minors:[{code:'soy_tofu',label:'두부',example:'부침두부·찌개두부'},
+  const catalog=[{code:'soy',label:'콩·두부',requiresMinor:true,minors:[{code:'soy_tofu',label:'두부',example:'두부·부침두부·찌개두부'},
     {code:'soy_soft_tofu',label:'순두부·연두부',example:'순두부·연두부'}]},
     {code:'grain',label:'곡물류',requiresMinor:true,minors:[{code:'grain_bread',label:'빵',example:'식빵'}]},
+    {code:'vegetable',label:'채소',requiresMinor:true,minors:[{code:'vegetable_root',label:'뿌리·덩이채소',example:'무·당근·감자·고구마'}]},
+    {code:'fruit',label:'과일',requiresMinor:true,minors:[{code:'fruit_fresh',label:'일반 과일',example:'사과·바나나·귤·딸기'}]},
     {code:'kimchi',label:'김치',example:'배추김치',requiresMinor:false,minors:[]}];
   function element(){return {value:'',textContent:'',hidden:false,disabled:false,required:false,dataset:{},listeners:{},attrs:{},options:[],
     classList:{add(){},remove(){}},setAttribute(k,v){this.attrs[k]=v},focus(){this.focused=true},
@@ -46,6 +48,13 @@ test('category: child selection updates examples and a leaf hides its child inpu
   assert.equal(p.ids.categoryMinorCode.disabled,true);assert.equal(p.ids.categoryMinorCode.required,false);
   assert.equal(p.submit().defaultPrevented,false);
 });
+test('category: examples contain explicit items without prepending category labels',()=>{
+  const p=picker({major:'vegetable',minor:'vegetable_root'});
+  assert.equal(p.ids.categoryExample.textContent,'예) 무, 당근, 감자, 고구마 등');
+  p.change('categoryMajorCode','fruit');p.change('categoryMinorCode','fruit_fresh');
+  assert.equal(p.ids.categoryExample.textContent,'예) 사과, 바나나, 귤, 딸기 등');
+});
+
 test('category: new input survives existing and bulk modes; reselection clears target input',()=>{
   const p=picker({major:'soy',minor:'soy_tofu'});p.change('categoryMajorCode','grain');
   const target={dataset:{masterId:'2',category:''}};p.context('existing',target,true);

@@ -322,12 +322,12 @@ public class InventoryController {
         String minorValue = selectedMinor;
         var child = selected == null ? null : selected.minors().stream().filter(m -> m.code().equals(minorValue)).findFirst().orElse(null);
         model.addAttribute("categoryUnknownMinor", !selectedMinor.isEmpty() && child == null);
-        model.addAttribute("categoryExample", child != null ? categoryExample(child.label(), child.example())
-                : selected != null && !selected.requiresMinor() ? categoryExample(selected.label(), selected.example()) : "");
+        model.addAttribute("categoryExample", child != null ? categoryExample(child.example())
+                : selected != null && !selected.requiresMinor() ? categoryExample(selected.example()) : "");
     }
 
-    private static String categoryExample(String label, String example) {
-        return "예) " + java.util.Arrays.stream((label + ", " + example).replaceFirst("\\s+등$", "").split("[·,]"))
+    private static String categoryExample(String example) {
+        return "예) " + java.util.Arrays.stream(example.replaceFirst("\\s+등$", "").split("[·,]"))
                 .map(String::strip).filter(value -> !value.isEmpty()).distinct()
                 .collect(java.util.stream.Collectors.joining(", ")) + " 등";
     }

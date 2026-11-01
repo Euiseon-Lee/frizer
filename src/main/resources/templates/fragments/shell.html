@@ -14,14 +14,17 @@
 <nav th:fragment="nav(active)" class="bottom-nav" aria-label="주 메뉴">
     <a th:href="@{/}" th:attr="aria-current=${active == 'home' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H4V10m5 10v-7h6v7"/></svg><span>홈</span></a>
     <a th:href="@{/inventory}" th:attr="aria-current=${active == 'inventory' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M5 9h14M8 5v1m0 7v3"/></svg><span>뭐 있지?</span></a>
-    <a class="nav-add" th:href="@{/inventory/new}" th:attr="aria-current=${active == 'new' ? 'page' : null}" aria-label="이건 뭐야?"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>이건 뭐야?</span></a>
+    <a class="nav-add" th:href="@{/register}" data-registration-menu th:attr="aria-current=${active == 'new' ? 'page' : null}" aria-label="이건 뭐야?"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>이건 뭐야?</span></a>
     <a th:href="@{/history}" th:attr="aria-current=${active == 'history' ? 'page' : null}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17H5zM9 2v4m6-4v4M8 10h8m-8 4h8m-8 4h5"/></svg><span>히스토리</span></a>
+    <dialog id="registrationMenu" class="registration-menu" aria-labelledby="registrationMenuTitle"><h2 id="registrationMenuTitle">무엇을 기록할까?</h2><div class="registration-menu-options"><a class="button action-create" th:href="@{/inventory/new}">음식 등록</a><a class="button action-cook" th:href="@{/cooking/new}">요리 등록</a></div><button class="cancel-link" type="button" data-registration-close>닫기</button></dialog>
+    <script th:src="@{/js/registration-menu.js}" defer></script>
 </nav>
 <div th:fragment="historyRows(entries)" class="history-rows">
     <article class="history-row" th:each="entry : ${entries}">
         <span class="action-badge history-badge" th:attr="data-event=${entry.actionType() != null ? entry.actionType() : 'MERGE'}" th:text="${entry.actionLabel()}"></span>
-        <div><a th:if="${entry.foodId() != null}" th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
-            <a th:if="${entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:text="${entry.displayFoodName()}"></a>
+        <div><a th:if="${entry.cookingId() != null}" th:href="@{/cooking/{id}(id=${entry.cookingId()})}" th:text="${entry.displayFoodName()}"></a>
+            <a th:if="${entry.cookingId() == null and entry.foodId() != null}" th:href="@{/inventory/{id}(id=${entry.foodId()})}" th:text="${entry.displayFoodName()}"></a>
+            <a th:if="${entry.cookingId() == null and entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:text="${entry.displayFoodName()}"></a>
             <p class="small muted history-current-location" th:if="${entry.currentLocationNote() != null}" th:text="${entry.isMerge() ? (entry.foodId() != null ? '변경한 음식의 개별 구매 항목으로 이동이 될 거야.' : (entry.currentMasterId() != null ? '변경한 음식의 개별 구매 목록으로 이동할 거야.' : entry.currentLocationNote())) : entry.currentLocationNote()}"></p>
             <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd><th:block th:replace="~{fragments/shell :: historyChange(${field.value()})}"></th:block></dd></div></dl>
             <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time>
@@ -29,7 +32,7 @@
     </article>
 </div>
 <div th:fragment="recentHistoryRows(entries)" class="recent-history-rows">
-    <a class="recent-history-row" th:each="entry : ${entries}" th:href="@{/history}">
+    <a class="recent-history-row" th:each="entry : ${entries}" th:href="${entry.cookingId() != null} ? @{/cooking/{id}(id=${entry.cookingId()})} : @{/history}">
         <span class="action-badge history-badge" th:attr="data-event=${entry.actionType() != null ? entry.actionType() : 'MERGE'}" th:text="${entry.actionLabel()}"></span>
         <span class="recent-food-name" th:text="${entry.displayFoodName()}" th:title="${entry.displayFoodName()}"></span>
         <span class="recent-change" th:text="${entry.homeSummary()}"></span>

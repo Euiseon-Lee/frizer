@@ -1,0 +1,4 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="content(category, quantity, id)" th:with="label=${#strings.isEmpty(category) or category == '-' ? '미분류' : category}" th:text="${#strings.replace(label, ' › ', ' > ') + (quantity == null ? '' : ' / '+quantity) + ' / #'+id}"></th:block>
+</body></html>

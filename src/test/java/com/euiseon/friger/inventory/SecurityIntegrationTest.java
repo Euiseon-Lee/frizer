@@ -37,7 +37,7 @@ class SecurityIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired com.euiseon.friger.account.AccountService accounts;
 
-    @ParameterizedTest @ValueSource(strings={"/", "/inventory", "/inventory/new", "/history", "/inventory/bulk", "/inventory/bulk/template", "/account", "/foods/1", "/foods/1/move?items=1"})
+    @ParameterizedTest @ValueSource(strings={"/", "/inventory", "/inventory/new", "/history", "/inventory/bulk", "/inventory/bulk/template", "/account", "/foods/1", "/foods/1/move?items=1", "/register", "/cooking/new", "/cooking/00000000-0000-0000-0000-000000000001"})
     void anonymousCannotReadPrivatePages(String path) throws Exception {
         mvc.perform(get(path)).andExpect(status().is3xxRedirection()).andExpect(redirectedUrlPattern("**/login"));
     }
@@ -105,6 +105,10 @@ class SecurityIntegrationTest {
         int before = jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class);
         mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
         mvc.perform(post("/inventory").with(user(accounts.loadUserByUsername("owner"))).with(csrf().useInvalidToken())).andExpect(status().isForbidden());
+        for (String path : java.util.List.of("/cooking/preview", "/cooking", "/cooking/00000000-0000-0000-0000-000000000001/correct"))
+            mvc.perform(post(path).with(user(accounts.loadUserByUsername("owner")))).andExpect(status().isForbidden());
+        mvc.perform(get("/cooking/new").with(user(accounts.loadUserByUsername("owner"))))
+            .andExpect(status().isOk()).andExpect(content().string(containsString("name=\"_csrf\"")));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item", Integer.class)).isEqualTo(before);
         mvc.perform(post("/login").param("username", "owner").param("password", "test-only-strong-password")).andExpect(redirectedUrl("/login?expired"));
     }

@@ -15,7 +15,8 @@
 <div class="merge-preview-card">
 <dl class="merge-facts"><div><dt>개별 구매 총 건수</dt><dd th:text="${items.size() + '건'}"></dd></div><div><dt>삭제할 항목 이력</dt><dd th:text="${historyCount + '건'}"></dd></div></dl>
 </div>
-<p class="merge-caution move-keep-note">삭제한 항목은 기록 및 통계에서 사라져.</p>
+<p class="merge-caution move-keep-note" th:unless="${hasCookingRecord == true}">삭제한 항목은 기록 및 통계에서 사라져.</p>
+<p class="merge-caution move-keep-note" th:if="${hasCookingRecord == true}">항목과 수량 이력은 삭제돼. 연결된 요리 기록은 남고, 다른 재료의 잔량은 바뀌지 않아.</p>
 <p class="merge-caution">이 작업은 취소할 수 없어.</p>
 <form method="post" th:action="@{/foods/{id}/delete(id=${master.masterId()})}">
 <label class="check-label" th:if="${whole}"><input type="checkbox" name="deleteMaster" value="true"><span>음식 ‘<span th:text="${master.foodName()}"></span>’ 그룹도 함께 삭제할게</span></label>

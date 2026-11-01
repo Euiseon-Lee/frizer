@@ -25,12 +25,16 @@ public class InventoryController {
     private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
     private final com.euiseon.friger.inventory.service.FoodQuantityService quantities;
     private final com.euiseon.friger.inventory.service.FoodCategoryService categories;
+    private final com.euiseon.friger.cooking.CookingService cooking;
+    private final com.euiseon.friger.cooking.CookingDao cookingDao;
 
     public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
                                FoodFormValidation formValidation,
                                com.euiseon.friger.inventory.service.FoodRegistrationService registrations,
                                com.euiseon.friger.inventory.service.FoodQuantityService quantities,
-                               com.euiseon.friger.inventory.service.FoodCategoryService categories) {
+                               com.euiseon.friger.inventory.service.FoodCategoryService categories,
+                               com.euiseon.friger.cooking.CookingService cooking,
+                               com.euiseon.friger.cooking.CookingDao cookingDao) {
         this.service = service;
         this.clock = clock;
         this.masters = masters;
@@ -38,6 +42,8 @@ public class InventoryController {
         this.registrations = registrations;
         this.quantities = quantities;
         this.categories = categories;
+        this.cooking = cooking;
+        this.cookingDao = cookingDao;
     }
 
     @ModelAttribute
@@ -99,8 +105,18 @@ public class InventoryController {
     @GetMapping("/inventory/{id}")
     String detail(@PathVariable long id, @RequestParam(required = false) StorageType storage,
                   @RequestParam(required = false) Boolean ended,
+                  @RequestParam(defaultValue = "false") boolean quantityHistory,
+                  @RequestParam(name="cooking",required=false) java.util.UUID cookingId,
                   @RequestParam(defaultValue = "false") boolean warning, Model model) {
         var preview = quantities.preview(id);
+        model.addAttribute("showQuantityHistory", quantityHistory);
+        model.addAttribute("cookedAt", cookingDao.cookedAt(id));
+        if (cookingId != null) {
+            var detail = cooking.detail(cookingId);
+            if (java.util.Objects.equals(detail.record().resultFoodId(),id)
+                    || detail.ingredients().stream().anyMatch(ingredient -> ingredient.foodId()==id))
+                model.addAttribute("cookingReturn",cookingId);
+        }
         boolean endedView = ended == null ? preview.item().status() != FoodStatus.ACTIVE : ended;
         model.addAttribute("quantityPreview", preview);
         model.addAttribute("quantityHistory", quantities.history(id));

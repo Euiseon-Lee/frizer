@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 요리 등록</title><link rel="stylesheet" th:href="@{/css/app.css(v='fields-41')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/quantity-input.js}" defer></script><script th:src="@{/js/storage-choices.js(v='storage-1')}" defer></script><script th:src="@{/js/cooking-form.js(v='ingredients-8')}" defer></script><script th:src="@{/js/form-errors.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
+<section class="heading character-heading tab-heading"><div><p class="eyebrow">이건 뭐야?</p><h1>요리 등록</h1><p class="muted">기록하고 싶은 주재료만 골라줘.</p></div><img class="choco" width="85" height="114" alt="쪼코" data-choco-region="add-header" data-choco-role="add-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+<div class="tab-sheet"><p class="error-summary" role="alert" th:if="${errorMessage != null}" th:text="${errorMessage}"></p>
+<form method="post" th:action="@{/cooking/preview}" th:object="${cookingForm}" id="cookingForm" novalidate>
+<input type="hidden" name="requestId" th:value="${cookingForm.requestId()}">
+<input type="hidden" id="ingredientSearchPerformed" name="ingredientSearchPerformed" th:value="${ingredientSearchPerformed == true}">
+<section class="form-section cooking-section"><div class="section-label"><span>01</span><h2>사용한 재료는 뭐야?</h2></div>
+<div class="field" th:unless="${#lists.isEmpty(ingredients)}"><div class="food-search-row"><input type="search" id="ingredientSearch" name="ingredientQuery" th:value="${ingredientQuery}" placeholder="재료를 음식명으로 찾기" aria-label="재료를 음식명으로 찾기" autocomplete="off" enterkeyhint="search" aria-describedby="ingredientSearchStatus"><button class="search-button" type="submit" id="searchIngredients" name="refresh" value="ingredients" formnovalidate>검색</button></div></div>
+<p class="muted" th:if="${#lists.isEmpty(ingredients)}">수량과 단위가 있는 보관 항목이 없어. 음식 등록 후 다시 열어줘.</p>
+<div id="selectedCookingIngredients"></div>
+<p class="help" id="ingredientSearchStatus" aria-live="polite" th:text="${ingredientSearchMessage}"></p>
+<div class="cooking-search-results" id="cookingIngredientResults" role="region" aria-label="재료 검색 결과">
+<div class="cooking-ingredient-input" th:each="choice, row : ${ingredients}" th:with="item=${choice.item()},selected=${selectedIngredients.get(item.foodId())}" th:attr="data-ingredient-name=${item.foodName()}" th:hidden="${(selected == null or !selected.selected()) and !visibleIngredientIds.contains(item.foodId())}">
+    <input type="hidden" data-ingredient-field="foodId" th:name="${'ingredients['+row.index+'].foodId'}" th:value="${item.foodId()}">
+    <input type="hidden" data-ingredient-field="version" th:name="${'ingredients['+row.index+'].version'}" th:value="${choice.version()}">
+    <label class="check-label"><input type="checkbox" data-ingredient-field="selected" th:name="${'ingredients['+row.index+'].selected'}" value="true" th:checked="${selected != null and selected.selected()}"><span><strong th:text="${item.foodName()}"></strong><small class="muted"><th:block th:replace="~{fragments/cooking-choice-description :: content(${ingredientCategoryLabels != null ? ingredientCategoryLabels.get(item.foodId()) : null}, ${item.displayQuantity()}, ${item.foodId()})}"></th:block></small></span></label>
+    <div class="field cooking-amount-field"><div class="cooking-amount"><input type="number" data-ingredient-field="amount" min="0.01" step="0.01" inputmode="decimal" th:max="${item.quantityAmount()}" th:id="${'used-'+row.index}" th:name="${'ingredients['+row.index+'].amount'}" th:value="${selected != null ? selected.amount() : null}" th:aria-label="${item.foodName()+' #'+item.foodId()+' 사용량'}"><span th:text="${item.quantityUnit()}"></span></div></div>
+</div>
+</div>
+<p class="help" id="ingredientSelection" aria-live="polite"></p></section>
+<section class="form-section cooking-section"><div class="section-label"><span>02</span><h2>만들어진 요리는 뭐야?</h2></div>
+<fieldset class="registration-modes cooking-result-modes" id="cookingResultModes"><legend class="sr-only">만들어진 요리 등록 방식</legend>
+    <label><input type="radio" name="resultMode" value="new" th:checked="${cookingForm.masterId() == null}"><span>새로운 음식으로 등록</span></label>
+    <label><input type="radio" name="resultMode" value="existing" th:checked="${cookingForm.masterId() != null}"><span>기존 음식으로 등록</span></label>
+</fieldset>
+<input type="hidden" id="masterId" name="masterId" th:value="${cookingForm.masterId()}" th:disabled="${cookingForm.masterId() == null}">
+<input type="hidden" id="masterVersion" name="masterVersion" th:value="${cookingForm.masterVersion()}" th:disabled="${cookingForm.masterId() == null}">
+<div id="existingFoodPicker" th:hidden="${cookingForm.masterId() == null}">
+    <div class="field" id="cookingFoodSearchField"><div class="food-search-row"><input id="foodSearch" type="search" placeholder="음식 이름 검색" aria-label="만들어진 요리를 음식명으로 찾기" autocomplete="off" enterkeyhint="search" aria-describedby="foodSearchStatus"><button type="button" id="searchFoods" class="search-button">검색</button></div></div>
+    <div class="registration-candidates cooking-search-results" id="foodCandidates" role="region" aria-label="기존 음식 검색 결과" hidden>
+        <button type="button" th:each="food : ${existingFoods}" th:attr="data-master-id=${food.masterId()},data-name=${food.foodName()},data-major=${food.categoryMajorCode()},data-version=${food.versionNo()},data-unit=${food.defaultQuantityUnit()}">
+            <strong th:text="${food.foodName()}"></strong><span class="small muted"><th:block th:replace="~{fragments/cooking-choice-description :: content(${food.category()}, ${null}, ${food.masterId()})}"></th:block></span>
+        </button>
+    </div>
+    <p id="foodSearchStatus" class="small muted" role="status" hidden></p>
+    <div id="selectedFoodSummary" class="selected-food-summary" hidden aria-live="polite"><div><strong id="selectedFoodName"></strong><p class="small muted" id="selectedFoodCategory"></p></div><button type="button" id="changeSelectedFood">변경</button></div>
+    <p class="help cooking-existing-help">기존 음식을 골라도 별도의 보관 항목으로 등록돼.</p>
+</div>
+<div class="field" id="cookingNameField" th:hidden="${selectedMaster != null}"><label for="foodName">요리명 <span class="required">필수</span></label><input th:field="*{foodName}" maxlength="100" th:required="${selectedMaster == null}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('foodName')},aria-describedby=${#fields.hasErrors('foodName') ? 'foodName-error' : null}" placeholder="예: 카레"><p class="field-error" id="foodName-error" th:errors="*{foodName}"></p></div>
+<div class="field" id="cookingCategories" th:hidden="${selectedMaster != null and selectedMaster.categoryMajorCode() != null}">
+<div class="field"><label for="categoryMajorCode">대분류 <span class="required">필수</span></label><select id="categoryMajorCode" name="categoryMajorCode"><option value="">대분류를 골라줘</option><option th:each="category : ${categoryChoices}" th:value="${category.code()}" th:text="${category.label()}" th:selected="${category.code() == cookingForm.categoryMajorCode()}"></option></select></div>
+<div class="field" id="cookingMinorField"><label for="categoryMinorCode">중분류 <span class="required">필수</span></label><select id="categoryMinorCode" name="categoryMinorCode"><option value="">중분류를 골라줘</option><optgroup th:each="category : ${categoryChoices}" th:label="${category.label()}"><option th:each="minor : ${category.minors()}" th:value="${minor.code()}" th:text="${minor.label()}" th:selected="${minor.code() == cookingForm.categoryMinorCode()}"></option></optgroup></select></div>
+<p class="help" id="cookingCategoryExample"></p></div>
+<div class="field-row">
+    <div th:replace="~{fragments/food-item-fields :: quantity('예: 인분, 통', false)}"></div>
+    <div th:replace="~{fragments/food-item-fields :: capacity('예: 한 통 약 1L', '대략적인 양을 적어주면 더 좋아!')}"></div>
+</div>
+<div class="field"><label for="cookedAt">조리일 <span class="required">필수</span></label><input th:field="*{cookedAt}" type="date" required th:max="${today}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('cookedAt')},aria-describedby=${#fields.hasErrors('cookedAt') ? 'cookedAt-error' : null}"><p class="field-error" id="cookedAt-error" th:errors="*{cookedAt}"></p></div>
+<div th:replace="~{fragments/food-item-fields :: memo('예: 소분해서 보관')}"></div>
+</section>
+<section class="form-section cooking-section"><div class="section-label"><span>03</span><h2>어디에 보관할까? <span class="required">필수</span></h2></div>
+<th:block th:replace="~{fragments/storage-choices :: content('cookingFrozenField')}"></th:block>
+<div class="field freezer-fields" id="cookingFrozenField"><label for="frozenAt">냉동 보관일</label><input th:field="*{frozenAt}" type="date" th:max="${today}" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('frozenAt')},aria-describedby=${#fields.hasErrors('frozenAt') ? 'frozenAt-error' : null}"><p class="field-error" id="frozenAt-error" th:errors="*{frozenAt}"></p></div>
+</section>
+<details class="form-section cooking-section cooking-consumption" id="cookingConsumption" th:open="${cookingForm.consumedAmount() != null or #fields.hasErrors('consumedAmount')}">
+<summary class="section-label"><span>04</span><h2>혹시 만들고 나서 먹었어?</h2></summary>
+<div class="field"><label for="consumedAmount">소비 수량 <span class="optional">선택</span></label><input th:field="*{consumedAmount}" type="number" min="0" max="999999999.99" step="0.01" inputmode="decimal" th:errorclass="invalid" th:attr="aria-invalid=${#fields.hasErrors('consumedAmount')},aria-describedby=${#fields.hasErrors('consumedAmount') ? 'consumedAmount-error' : null}" placeholder="예: 2, 0.5"><p class="field-error" id="consumedAmount-error" th:errors="*{consumedAmount}"></p></div>
+</details>
+<div class="form-actions"><a class="cancel-link" th:href="@{/}">돌아가기</a><button class="button action-cook" id="cookingSubmit" type="submit" th:disabled="${#lists.isEmpty(ingredients)}">입력 내용 확인</button></div>
+<script id="cookingCategoryCatalog" type="application/json" th:inline="javascript">/*[[${categoryChoices}]]*/ []</script>
+</form></div></main><nav th:replace="~{fragments/shell :: nav('new')}"></nav></body></html>

@@ -15,7 +15,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class FoodDeleteController {
     private final FoodDeleteService deletes;
     private final FoodMasterService masters;
-    public FoodDeleteController(FoodDeleteService deletes,FoodMasterService masters) {this.deletes=deletes;this.masters=masters;}
+    private final com.euiseon.friger.cooking.CookingDao cooking;
+    public FoodDeleteController(FoodDeleteService deletes,FoodMasterService masters,com.euiseon.friger.cooking.CookingDao cooking) {this.deletes=deletes;this.masters=masters;this.cooking=cooking;}
     @GetMapping
     String page(@PathVariable long id,@RequestParam(required=false) List<Long> items,
                 @RequestParam(defaultValue="false") boolean ended,Model model,RedirectAttributes redirect) {
@@ -30,6 +31,7 @@ public class FoodDeleteController {
         model.addAttribute("versions",selection.versions());
         model.addAttribute("whole",selection.whole());
         model.addAttribute("historyCount",selection.historyCount());
+        model.addAttribute("hasCookingRecord",selection.items().stream().anyMatch(item->cooking.hasReference(item.foodId())));
         model.addAttribute("requestId",UUID.randomUUID());
         model.addAttribute("ended",ended);
         // Entered from a collapsed (single-item) detail: 돌아가기 returns to that item,

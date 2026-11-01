@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="content(freezerFieldsId)">
+    <fieldset class="storage-choices" id="storageType" data-storage-choices tabindex="-1"
+              data-error-id="storageType-error" data-source-field="sourceType"
+              th:attr="data-freezer-fields=${freezerFieldsId},aria-invalid=${#fields.hasErrors('storageType')},aria-describedby=${#fields.hasErrors('storageType') ? 'storageType-error' : null}">
+        <legend class="sr-only">보관 위치</legend>
+        <label th:each="entry : ${storageLabels}">
+            <input type="radio" th:field="*{storageType}" th:value="${entry.key}" required th:errorclass="invalid"
+                   th:attr="aria-invalid=${#fields.hasErrors('storageType')},aria-describedby=${#fields.hasErrors('storageType') ? 'storageType-error' : null}">
+            <span th:text="${entry.value}"></span>
+        </label>
+    </fieldset>
+    <p class="field-error" id="storageType-error" aria-live="polite" th:hidden="${!#fields.hasErrors('storageType')}"
+       th:text="${#fields.hasErrors('storageType') ? #fields.errors('storageType')[0] : '보관 위치를 선택해 주세요.'}"></p>
+</th:block>
+</body></html>

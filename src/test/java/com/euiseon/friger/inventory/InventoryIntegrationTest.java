@@ -229,6 +229,22 @@ class InventoryIntegrationTest {
     }
 
     @Test
+    void missingStorageMarksEveryChoiceWithoutSelectingTheFirstOne() throws Exception {
+        var result=mvc.perform(post("/inventory").param("categoryMajorCode","kimchi")
+                .param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName","두부")
+                .param("quantityAmount","1").param("quantityUnit","모"))
+            .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("foodForm","storageType")).andReturn();
+        var html=result.getResponse().getContentAsString();
+        var radios=java.util.regex.Pattern.compile("<input(?=[^>]*name=\"storageType\")[^>]*>").matcher(html)
+            .results().map(java.util.regex.MatchResult::group).toList();
+        assertThat(radios).hasSize(3).allSatisfy(radio->assertThat(radio).contains("aria-invalid=\"true\"","class=\"invalid\"").doesNotContain("checked"));
+        assertThat(radios.get(0)).contains("value=\"ROOM\"");
+        assertThat(radios.get(1)).contains("value=\"FRIDGE\"");
+        assertThat(radios.get(2)).contains("value=\"FREEZER\"");
+        assertThat(service.findActive()).isEmpty();
+    }
+
+    @Test
     void expiredFoodIsAllowedWithCautionAndNamesAreEscaped() throws Exception {
         mvc.perform(post("/inventory").param("categoryMajorCode", "kimchi").param("registrationRequestId",java.util.UUID.randomUUID().toString()).param("foodName", "<script>alert(1)</script>")
                 .param("storageType", "FRIDGE").param("quantityAmount", "1").param("quantityUnit", "개").param("expiredAt", "2026-09-01"))

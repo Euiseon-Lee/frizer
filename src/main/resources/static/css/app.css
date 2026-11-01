@@ -561,3 +561,7 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .category-inherited{margin:0;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--primary) 5%,white);font-size:16px;overflow-wrap:anywhere}
 
 .category-inherited-heading{font-size:13px;font-weight:700;margin:0 0 9px}
+
+.storage-choices[data-storage-choices][aria-invalid=true] input[name=storageType]+span{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 6%,white)}
+.storage-choices[data-storage-choices][aria-invalid=true] input[name=storageType]:focus-visible+span{outline-color:var(--danger)}
+.storage-choices[data-storage-choices]:focus{outline:none}

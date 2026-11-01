@@ -66,6 +66,19 @@ public class InventoryService {
 
     private long createInternal(FoodCreateForm form, Long masterId, Long expectedVersion,
                                 String majorCode, String minorCode, boolean categorized) {
+        return createInternal(form,masterId,expectedVersion,majorCode,minorCode,categorized,true);
+    }
+
+    /** The cooking transaction writes COOK_IN instead of a second registration event. */
+    @Transactional
+    public long createCookingOutput(FoodCreateForm form, Long masterId, Long expectedVersion,
+                                    String majorCode, String minorCode) {
+        if (form.sourceType() != FoodSourceType.COOKED) throw new IllegalArgumentException("요리 출처가 필요합니다.");
+        return createInternal(form,masterId,expectedVersion,majorCode,minorCode,true,false);
+    }
+
+    private long createInternal(FoodCreateForm form, Long masterId, Long expectedVersion,
+                                String majorCode, String minorCode, boolean categorized, boolean registrationHistory) {
         com.euiseon.friger.inventory.entity.FoodMaster before = null;
         FoodCategoryService.Selection selection = null;
         if (masterId != null) {
@@ -91,6 +104,7 @@ public class InventoryService {
             }
         }
         if (masterId != null) masters.touch(masterId);
+        if (!registrationHistory) return id;
         int inserted = history.insertWithCategory(new FoodHistory(null, id, FoodActionType.CREATE, null,
                 food.storageType(), food.quantityText(), now, registrationSnapshot(food)),
                 before, masters.find(masters.masterIdForItem(id)));

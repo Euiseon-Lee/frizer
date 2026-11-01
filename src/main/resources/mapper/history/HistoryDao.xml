@@ -19,15 +19,15 @@
                 NULL::integer AS merged_item_count,
                 EXISTS(SELECT 1 FROM food_item_move_receipt mr WHERE mr.user_id=#{_userId,jdbcType=BIGINT} AND mr.food_id=h.food_id) AS item_moved,
                 h.after_quantity_amount, linked.target_id AS merged_target_id,
-                0 AS event_order, h.history_id::text AS event_key
+                h.cooking_id, 0 AS event_order, h.history_id::text AS event_key
             FROM food_history h JOIN food_item f ON f.food_id = h.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
             LEFT JOIN food_item_move_receipt linked ON h.action_type='MERGE' AND linked.user_id=h.user_id AND linked.food_id=h.food_id AND linked.request_id=h.operation_id
-            WHERE h.action_type &lt;&gt; 'SPLIT_IN'
+            WHERE h.action_type NOT IN ('SPLIT_IN','COOK_IN','COOK_OUT')
             UNION ALL
             SELECT NULL::bigint, NULL::bigint, r.source_name, NULL::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
                 '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
-                m.master_id, m.food_name, r.source_name, r.target_name, r.item_count, FALSE, NULL::numeric, r.target_id, 1, r.request_id::text
+                m.master_id, m.food_name, r.source_name, r.target_name, r.item_count, FALSE, NULL::numeric, r.target_id, NULL::uuid, 1, r.request_id::text
             FROM food_merge_receipt r
             LEFT JOIN (
                 SELECT d.request_id, m.master_id, m.food_name FROM destinations d
@@ -37,20 +37,29 @@
             SELECT NULL::bigint, r.food_id, r.source_name, NULL::varchar,
                 NULL::varchar, NULL::varchar, NULL::varchar, r.created_at,
                 '음식명: ' || r.source_name || ' (#' || r.source_id || ') → ' || r.target_name || ' (#' || r.target_id || ')' AS changes_text,
-                m.master_id, m.food_name, r.source_name, r.target_name, NULL::integer, TRUE, NULL::numeric, r.target_id, 2, r.request_id::text
+                m.master_id, m.food_name, r.source_name, r.target_name, NULL::integer, TRUE, NULL::numeric, r.target_id, NULL::uuid, 2, r.request_id::text
             FROM food_item_move_receipt r
             JOIN food_item f ON f.food_id=r.food_id JOIN food_master m ON m.master_id=f.master_id AND m.user_id=#{_userId,jdbcType=BIGINT}
             WHERE NOT EXISTS (SELECT 1 FROM food_history recorded WHERE recorded.user_id=r.user_id AND recorded.food_id=r.food_id AND recorded.operation_id=r.request_id AND recorded.action_type='MERGE')
+            UNION ALL
+            SELECT NULL::bigint,c.result_food_id,c.food_name,'COOK_IN',NULL::varchar,NULL::varchar,
+                trim_scale(c.original_quantity_amount)::text || c.quantity_unit,c.created_at,
+                '수량: ' || trim_scale(c.original_quantity_amount)::text || c.quantity_unit || E'\n사용 재료: ' ||
+                (SELECT string_agg(ci.food_name || ' ' || trim_scale(ci.original_used_amount)::text || ci.quantity_unit, ', ' ORDER BY ci.food_id)
+                 FROM cooking_ingredient ci WHERE ci.user_id=c.user_id AND ci.cooking_id=c.cooking_id) || E'\n조리일: ' || c.cooked_at::text,
+                NULL::bigint,NULL::varchar,NULL::varchar,NULL::varchar,NULL::integer,FALSE,c.original_quantity_amount,NULL::bigint,c.cooking_id,0,c.cooking_id::text
+            FROM cooking_record c WHERE c.user_id=#{_userId,jdbcType=BIGINT} AND c.result_food_id IS NOT NULL
         )
         SELECT history_id, food_id, food_name, action_type, previous_storage_type, new_storage_type,
             quantity_text, created_at, changes_text, current_master_id, current_food_name,
-            merged_from_name, merged_into_name, merged_item_count, item_moved, after_quantity_amount, merged_target_id
+            merged_from_name, merged_into_name, merged_item_count, item_moved, after_quantity_amount, merged_target_id, cooking_id
         FROM events
         <where>
         <if test="query != null and query != ''">
             AND (strpos(lower(food_name), lower(#{query})) &gt; 0
                OR strpos(lower(current_food_name), lower(#{query})) &gt; 0
-               OR strpos(lower(merged_into_name), lower(#{query})) &gt; 0)
+               OR strpos(lower(merged_into_name), lower(#{query})) &gt; 0
+               OR EXISTS(SELECT 1 FROM cooking_ingredient ci WHERE ci.user_id=#{_userId,jdbcType=BIGINT} AND ci.cooking_id=events.cooking_id AND strpos(lower(ci.food_name),lower(#{query})) &gt; 0))
         </if>
         <if test="from != null">AND created_at &gt;= #{from}</if>
         <if test="until != null">AND created_at &lt; #{until}</if>

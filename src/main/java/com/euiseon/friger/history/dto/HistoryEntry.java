@@ -8,9 +8,20 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         FoodActionType actionType, StorageType previousStorageType, StorageType newStorageType,
         String quantityText, OffsetDateTime createdAt, String changesText,
         Long currentMasterId, String currentFoodName, String mergedFromName, String mergedIntoName,
-        Integer mergedItemCount, Boolean itemMoved, java.math.BigDecimal afterQuantityAmount, Long mergedTargetId) {
+        Integer mergedItemCount, Boolean itemMoved, java.math.BigDecimal afterQuantityAmount, Long mergedTargetId, java.util.UUID cookingId) {
+    @org.apache.ibatis.annotations.AutomapConstructor
+    public HistoryEntry {}
+    public HistoryEntry(Long historyId, Long foodId, String foodName, FoodActionType actionType,
+            StorageType previousStorageType, StorageType newStorageType, String quantityText,
+            OffsetDateTime createdAt, String changesText, Long currentMasterId, String currentFoodName,
+            String mergedFromName, String mergedIntoName, Integer mergedItemCount, Boolean itemMoved,
+            java.math.BigDecimal afterQuantityAmount, Long mergedTargetId) {
+        this(historyId,foodId,foodName,actionType,previousStorageType,newStorageType,quantityText,createdAt,changesText,
+            currentMasterId,currentFoodName,mergedFromName,mergedIntoName,mergedItemCount,itemMoved,afterQuantityAmount,mergedTargetId,null);
+    }
     public boolean isMerge() { return mergedFromName != null; }
     public String currentLocationNote() {
+        if (cookingId != null) return null;
         if (currentFoodName == null) return isMerge() ? "현재 음식은 전체 목록에서 확인해줘." : null;
         if (isMerge()) return "이동 이력이 있어 클릭 시 ‘" + currentFoodName + "’로 이동해.";
         if (currentFoodName.equals(displayFoodName())) return null;
@@ -23,6 +34,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         return actionType.label();
     }
     public String homeSummary() {
+        if (actionType == FoodActionType.COOK_IN) return "요리했어!";
         if (isMerge()) return "→ " + mergedIntoName + " (#" + mergedTargetId + ")";
         if ((actionType == FoodActionType.CONSUME || actionType == FoodActionType.DISCARD)
                 && afterQuantityAmount != null && afterQuantityAmount.signum() == 0)
@@ -72,7 +84,7 @@ public record HistoryEntry(Long historyId, Long foodId, String foodName,
         } else if (changesText != null && !changesText.isBlank()) {
             for (String line : changesText.split("\\R", -1)) {
                 int colon = line.indexOf(": ");
-                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉 상태", "개봉 상태 확인일", "개봉일", "경고 알림 제외 종료일", "메모", "새 항목").contains(line.substring(0, colon))) {
+                if (colon > 0 && java.util.Set.of("음식명", "수량", "단위", "용량", "출처", "출처 메모", "분류", "보관 위치", "냉동 유형", "냉동 보관 시작일", "유통기한", "소비기한", "구매일", "개봉 상태", "개봉 상태 확인일", "개봉일", "경고 알림 제외 종료일", "메모", "새 항목", "요리", "사용량", "요리 수량", "사용 재료", "조리일").contains(line.substring(0, colon))) {
                     result.add(new DetailField(line.substring(0, colon), line.substring(colon + 2)));
                 } else if (!result.isEmpty()) {
                     var previous = result.remove(result.size() - 1);

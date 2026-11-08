@@ -7,7 +7,20 @@ import java.util.Objects;
 /** Quantity changes use recorded values, never today's remaining quantity. */
 public record QuantityChange(long historyId, String actionType, BigDecimal beforeQuantityAmount,
         BigDecimal afterQuantityAmount, String beforeQuantityUnit, String quantityUnit, String quantityText,
-        OffsetDateTime createdAt) {
+        OffsetDateTime createdAt, java.util.UUID cookingId, String cookingName, String changesText) {
+    @org.apache.ibatis.annotations.AutomapConstructor
+    public QuantityChange {}
+    public QuantityChange(long historyId,String actionType,BigDecimal beforeQuantityAmount,BigDecimal afterQuantityAmount,
+            String beforeQuantityUnit,String quantityUnit,String quantityText,OffsetDateTime createdAt) {
+        this(historyId,actionType,beforeQuantityAmount,afterQuantityAmount,beforeQuantityUnit,quantityUnit,quantityText,createdAt,null,null,null);
+    }
+    public String cookingDescription() {
+        if (actionType.equals("COOK_IN")) return "수량 " + remainingQuantity();
+        if (actionType.equals("COOK_OUT")) return cookingName + " - "
+            + display(beforeQuantityAmount.subtract(afterQuantityAmount),quantityUnit) + " 사용 ("
+            + display(beforeQuantityAmount,quantityUnit) + " → " + remainingQuantity() + ")";
+        return changesText == null ? changeQuantity() : changesText.replace("\n", ", ");
+    }
     public String actionLabel() {
         return com.euiseon.friger.common.type.FoodActionType.valueOf(actionType).label();
     }

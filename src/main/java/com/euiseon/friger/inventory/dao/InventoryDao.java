@@ -23,4 +23,6 @@ public interface InventoryDao {
     FoodItem findById(long id);
     FoodItem findByIdForUpdate(long id);
     int update(FoodItem food);
+    @org.apache.ibatis.annotations.Update("UPDATE food_item child SET cooked_at=source.cooked_at FROM food_item source WHERE child.user_id=#{_userId,jdbcType=BIGINT} AND source.user_id=child.user_id AND child.food_id=#{childId} AND source.food_id=#{sourceId} AND source.cooked_at IS NOT NULL")
+    int copyCookingDate(long sourceId,long childId);
 }

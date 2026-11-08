@@ -61,7 +61,7 @@ class DatabaseSmokeTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     @MapperScan(basePackages = {"com.euiseon.friger.smoke", "com.euiseon.friger.inventory.dao",
-            "com.euiseon.friger.history.dao"})
+            "com.euiseon.friger.history.dao", "com.euiseon.friger.cooking"})
     static class MapperConfiguration {
     }
 
@@ -77,7 +77,7 @@ class DatabaseSmokeTest {
         assertThat(jdbc.queryForObject("SELECT version()", String.class)).startsWith("PostgreSQL 18.");
         assertThat(jdbc.queryForObject("SHOW TIME ZONE", String.class)).isEqualTo("Asia/Seoul");
         assertThat(clock.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("30");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("31");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -95,7 +95,7 @@ class DatabaseSmokeTest {
                 SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'public' AND indexname LIKE 'ix_food_%'
                 """, String.class)).containsExactlyInAnyOrder(
-                "ix_food_item_active_expired", "ix_food_item_active_frozen", "ix_food_history_created", "ix_food_item_master", "ix_food_history_quantity");
+                "ix_food_item_active_expired", "ix_food_item_active_frozen", "ix_food_history_created", "ix_food_item_master", "ix_food_history_quantity", "ix_food_history_cooking");
     }
 
     static Stream<Arguments> storageCombinations() {

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.euiseon.friger.cooking.CookingDao">
+    <select id="resultHistory" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,
+            quantity_text,changes_text,recorded_food_name,operation_id,processed_quantity_amount,
+            quantity_unit,after_quantity_amount,after_snapshot,snapshot_version,after_item_version,
+            after_stock_revision,cooking_id,category_before,category_after,created_at)
+        SELECT i.user_id,i.food_id,'COOK_IN',NULL,i.storage_type,i.quantity_text,#{changes},m.food_name,
+            #{id},i.quantity_amount,i.quantity_unit,i.quantity_amount,
+            to_jsonb(i)||jsonb_build_object('food_name',m.food_name,'category',m.category,
+                'category_major_code',m.category_major_code,'category_minor_code',m.category_minor_code),
+            1,i.version_no,i.stock_revision,#{id},
+            <include refid="com.euiseon.friger.history.dao.HistoryDao.categoryStates"/>,clock_timestamp()
+        FROM food_item i JOIN food_master m USING(master_id)
+        WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND i.food_id=#{foodId}
+        RETURNING history_id
+    </select>
+</mapper>

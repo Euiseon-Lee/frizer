@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 이건 뭐야?</title><link rel="stylesheet" th:href="@{/css/app.css(v='cooking-31')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
+<section class="heading character-heading tab-heading"><div><p class="eyebrow">이건 뭐야?</p><h1>무엇을 기록할까?</h1></div><img class="choco" width="85" height="114" alt="쪼코" data-choco-region="add-header" data-choco-role="add-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
+<div class="tab-sheet"><div class="registration-menu-options"><a class="button action-create" th:href="@{/inventory/new}">음식 등록</a><a class="button action-cook" th:href="@{/cooking/new}">요리 등록</a></div></div>
+</main><nav th:replace="~{fragments/shell :: nav('new')}"></nav></body></html>

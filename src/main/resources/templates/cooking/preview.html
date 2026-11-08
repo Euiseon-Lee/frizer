@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FR!ZER | 요리 확인</title><link rel="stylesheet" th:href="@{/css/app.css(v='preview-43')}"><script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script></head>
+<body><header th:replace="~{fragments/shell :: header}"></header><main class="page form-page">
+<section class="heading character-heading tab-heading"><div><p class="eyebrow">요리 등록</p><h1>이렇게 기록할까?</h1></div><img class="choco" width="85" height="114" alt="쪼코" data-choco-region="add-header" data-choco-role="add-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section><div class="tab-sheet">
+<section class="form-section"><h2 th:text="${preview.name()}"></h2><dl class="detail-grid cooking-preview-grid">
+<div><dt>수량</dt><dd th:text="${preview.quantity()}"></dd></div>
+<div><dt>조리일</dt><dd th:text="${preview.form().cookedAt()}"></dd></div>
+<div><dt>보관 위치</dt><dd th:text="${preview.form().storageType().name() == 'FRIDGE' ? '냉장실' : preview.form().storageType().name() == 'FREEZER' ? '냉동실' : '실온'}"></dd></div>
+<div><dt>등록 후 잔량</dt><dd th:text="${preview.remaining()}"></dd></div>
+<div th:if="${preview.form().consumedAmount() != null and preview.form().consumedAmount().signum() > 0}"><dt>소비 수량</dt><dd th:text="${preview.form().consumedAmount().stripTrailingZeros().toPlainString()+preview.form().quantityUnit()}"></dd></div>
+</dl></section>
+<section class="form-section"><h2>재료별 사용량</h2><ul class="cooking-ingredients"><li th:each="ingredient : ${preview.ingredients()}"><strong th:text="${ingredient.item().foodName()+' (#'+ingredient.item().foodId()+')'}"></strong><p th:text="${ingredient.usedText()+' 사용 ('+ingredient.item().displayQuantity()+' → '+ingredient.remainingText()+')'}"></p></li></ul></section>
+<p class="help cooking-preview-notice">요리 내역을 취소할 수 없으니 마지막으로 확인해 줘.<br>잘못 입력한 수량은 이후에 요리 기록에서 수정할 수 있어.</p>
+<form method="post" th:action="@{/cooking}"><input type="hidden" name="confirmationId" th:value="${confirmationId}"><div class="form-actions"><a class="cancel-link" th:href="@{/cooking/new(draft=${confirmationId})}">다시 입력</a><button class="button action-cook" type="submit">요리했어!</button></div></form>
+</div></main><nav th:replace="~{fragments/shell :: nav('new')}"></nav></body></html>

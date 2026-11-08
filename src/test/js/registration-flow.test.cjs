@@ -7,6 +7,7 @@ function element(value='') {
     addEventListener(type,fn){(this.listeners[type]??=[]).push(fn)},
     emit(type,event={}){for(const fn of this.listeners[type]??[]) fn(event)},
     removeAttribute(name){(this.removed??=[]).push(name)},
+    setAttribute(name,value){(this.attributes??={})[name]=value}, classList:{toggle(){}},
     focus(){this.focused=true}, closest(){return this.field??=(element())},
     setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b}};
 }
@@ -109,15 +110,18 @@ test('registration: existing purchase Enter without selection is blocked, select
 
 function foodForm() {
   const ids=Object.fromEntries(['sourceType','sourceMemoField','sourceMemo','freezerFields','frozenAt','freezeType',
-    'deliveryStorageHelp','deliveryFreezeHelp'].map(id=>[id,element()]));
+    'deliveryStorageHelp','deliveryFreezeHelp','storageType-error'].map(id=>[id,element()]));
   const today=element();ids.frozenAt.max='2026-09-14';const radios=['FRIDGE','FREEZER','ROOM'].map(element);
   let storage;const option={isConnected:true,remove(){this.isConnected=false}};
   ids.freezeType.querySelector=()=>option;ids.freezeType.append=o=>{o.isConnected=true};
   ids.freezerFields.querySelectorAll=()=>[ids.freezeType,ids.frozenAt,today];
   const invalid=element();
-  run('food-form',{getElementById:id=>ids[id],querySelectorAll:()=>radios,querySelector:q=>
-    q.includes('storageType')?(storage?{value:storage}:null):q.includes('freezeToday')?today:invalid});
-  return {ids,today,option,invalid,storage(value){storage=value;radios[0].emit('change')},source(value){ids.sourceType.value=value;ids.sourceType.emit('change')}};
+  const group=element();group.dataset={errorId:'storageType-error',freezerFields:'freezerFields',sourceField:'sourceType'};
+  ids['storageType-error'].id='storageType-error';group.querySelectorAll=()=>radios;
+  const document={getElementById:id=>ids[id],querySelectorAll:q=>q==='[data-storage-choices]'?[group]:radios,querySelector:q=>
+    q.includes('storageType')?(storage?{value:storage}:null):q.includes('freezeToday')?today:invalid};
+  run('storage-choices',document);run('food-form',document);run('form-errors',document);
+  return {ids,today,option,invalid,storage(value){storage=value;radios.forEach(r=>{r.checked=r.value===value});radios[0].emit('change')},source(value){ids.sourceType.value=value;ids.sourceType.emit('change')}};
 }
 test('form: delivery defaults only without explicit storage and forces home freezing',()=>{
   const e=foodForm();e.source('DELIVERY_LEFTOVER');assert.equal(e.ids.freezerFields.hidden,false);

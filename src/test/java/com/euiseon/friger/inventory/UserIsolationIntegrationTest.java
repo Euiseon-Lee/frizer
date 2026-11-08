@@ -324,6 +324,7 @@ class UserIsolationIntegrationTest {
             assertThat(jdbc.queryForObject("SELECT user_id FROM users_upgrade."+table,Long.class)).isEqualTo(1);
         var after=jdbc.queryForMap("SELECT * FROM users_upgrade.food_item");
         assertThat(after.remove("warning_paused_until")).isNull();
+        assertThat(after.remove("cooked_at")).isNull();
         assertThat(after.remove("opening_status")).isEqualTo(after.get("opened_at")==null?"UNKNOWN":"OPENED");assertThat(after.remove("opening_confirmed_at")).isNull();
         after.remove("user_id");assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT enabled FROM users_upgrade.app_user",Boolean.class)).isFalse();

@@ -1,7 +1,7 @@
 package com.euiseon.friger.common.type;
 
 public enum FoodActionType {
-    CREATE, UPDATE, CONSUME, FREEZE, MOVE, DISCARD, CANCEL, SPLIT_OUT, SPLIT_IN, MERGE;
+    CREATE, UPDATE, CONSUME, FREEZE, MOVE, DISCARD, CANCEL, SPLIT_OUT, SPLIT_IN, MERGE, COOK_OUT, COOK_IN;
 
     public String label() {
         return switch (this) {
@@ -14,6 +14,7 @@ public enum FoodActionType {
             case CANCEL -> "취소";
             // Both sides of a split share one label; the signed quantity tells the direction.
             case SPLIT_OUT, SPLIT_IN -> "분리";
+            case COOK_OUT, COOK_IN -> "요리";
         };
     }
 }

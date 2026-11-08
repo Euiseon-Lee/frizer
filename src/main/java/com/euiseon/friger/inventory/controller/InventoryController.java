@@ -20,30 +20,36 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class InventoryController {
     private final InventoryService service;
     private final Clock clock;
-    private final jakarta.validation.Validator validator;
+    private final FoodFormValidation formValidation;
     private final com.euiseon.friger.inventory.service.FoodMasterService masters;
     private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
     private final com.euiseon.friger.inventory.service.FoodQuantityService quantities;
     private final com.euiseon.friger.inventory.service.FoodCategoryService categories;
+    private final com.euiseon.friger.cooking.CookingService cooking;
+    private final com.euiseon.friger.cooking.CookingDao cookingDao;
 
     public InventoryController(InventoryService service, Clock clock, com.euiseon.friger.inventory.service.FoodMasterService masters,
-                               jakarta.validation.Validator validator,
+                               FoodFormValidation formValidation,
                                com.euiseon.friger.inventory.service.FoodRegistrationService registrations,
                                com.euiseon.friger.inventory.service.FoodQuantityService quantities,
-                               com.euiseon.friger.inventory.service.FoodCategoryService categories) {
+                               com.euiseon.friger.inventory.service.FoodCategoryService categories,
+                               com.euiseon.friger.cooking.CookingService cooking,
+                               com.euiseon.friger.cooking.CookingDao cookingDao) {
         this.service = service;
         this.clock = clock;
         this.masters = masters;
-        this.validator = validator;
+        this.formValidation = formValidation;
         this.registrations = registrations;
         this.quantities = quantities;
         this.categories = categories;
+        this.cooking = cooking;
+        this.cookingDao = cookingDao;
     }
 
     @ModelAttribute
     void choices(Model model, jakarta.servlet.http.HttpSession session) {
         com.euiseon.friger.inventory.bulk.BulkRegistrationController.owner(session);
-        model.addAttribute("storageLabels", labels(new StorageType[]{StorageType.ROOM, StorageType.FRIDGE, StorageType.FREEZER}, "실온", "냉장실", "냉동실"));
+        model.addAttribute("storageLabels", StorageType.labels());
         model.addAttribute("sourceLabels", labels(FoodSourceType.values(), "장보기", "배달 잔반", "직접 조리", "부모님의 은혜", "기타"));
         model.addAttribute("today", LocalDate.now(clock));
         model.addAttribute("categoryErrors", new LinkedHashMap<String,String>());
@@ -99,8 +105,18 @@ public class InventoryController {
     @GetMapping("/inventory/{id}")
     String detail(@PathVariable long id, @RequestParam(required = false) StorageType storage,
                   @RequestParam(required = false) Boolean ended,
+                  @RequestParam(defaultValue = "false") boolean quantityHistory,
+                  @RequestParam(name="cooking",required=false) java.util.UUID cookingId,
                   @RequestParam(defaultValue = "false") boolean warning, Model model) {
         var preview = quantities.preview(id);
+        model.addAttribute("showQuantityHistory", quantityHistory);
+        model.addAttribute("cookedAt", cookingDao.cookedAt(id));
+        if (cookingId != null) {
+            var detail = cooking.detail(cookingId);
+            if (java.util.Objects.equals(detail.record().resultFoodId(),id)
+                    || detail.ingredients().stream().anyMatch(ingredient -> ingredient.foodId()==id))
+                model.addAttribute("cookingReturn",cookingId);
+        }
         boolean endedView = ended == null ? preview.item().status() != FoodStatus.ACTIVE : ended;
         model.addAttribute("quantityPreview", preview);
         model.addAttribute("quantityHistory", quantities.history(id));
@@ -161,7 +177,7 @@ public class InventoryController {
         var master = masters.find(masters.masterId(id));
         categoryContext(categoryMajorCode, categoryMinorCode, master, false, "refresh".equals(categoryAction), model);
         if ("refresh".equals(categoryAction)) return "inventory/new";
-        collectValidationErrors(form, errors);
+        formValidation.collect(form, errors);
         if (errors.hasErrors()) {
             categoryValidation(categoryMajorCode, categoryMinorCode, master, false, model);
             return "inventory/new";
@@ -216,24 +232,6 @@ public class InventoryController {
         model.addAttribute("ended", ended);
     }
 
-    private void collectValidationErrors(FoodCreateForm form, BindingResult errors) {
-        validator.validate(form).forEach(violation -> {
-            String field = violation.getPropertyPath().toString();
-            if (!errors.hasFieldErrors(field)) {
-                String code = violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName();
-                if (errors.getTarget() != null) errors.rejectValue(field, code, violation.getMessage());
-                else errors.addError(new org.springframework.validation.FieldError(errors.getObjectName(), field,
-                        errors.getFieldValue(field), false, errors.resolveMessageCodes(code, field), null, violation.getMessage()));
-            }
-        });
-        service.validationErrors(form).forEach((field, message) -> {
-            if (!errors.hasFieldErrors(field)) {
-                if (errors.getTarget() != null) errors.rejectValue(field, "invalid", message);
-                else errors.addError(new org.springframework.validation.FieldError(errors.getObjectName(), field,
-                        errors.getFieldValue(field), true, errors.resolveMessageCodes("invalid", field), null, message));
-            }
-        });
-    }
     private void editContext(long id, OffsetDateTime expectedUpdatedAt, Model model) {
         var food = service.findById(id);
         model.addAttribute("editId", id);
@@ -279,7 +277,7 @@ public class InventoryController {
             if (master == null) errors.reject("missingMaster", "추가할 기존 음식을 선택해줘.");
             else validatedForm = form.withIdentity(master.foodName(), master.category());
         }
-        collectValidationErrors(validatedForm, errors);
+        formValidation.collect(validatedForm, errors);
         if (errors.hasErrors()) {
             categoryValidation(categoryMajorCode, categoryMinorCode, master, inherited, model);
             return "inventory/new";

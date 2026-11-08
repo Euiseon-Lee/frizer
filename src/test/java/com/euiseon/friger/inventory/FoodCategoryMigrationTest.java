@@ -65,11 +65,14 @@ class FoodCategoryMigrationTest {
             assertThat(row.remove("category_minor_code")).isNull();
         });
         assertThat(after).isEqualTo(mastersBefore);
-        assertThat(jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id")).isEqualTo(itemsBefore);
+        var items = jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
+        items.forEach(row -> assertThat(row.remove("cooked_at")).isNull());
+        assertThat(items).isEqualTo(itemsBefore);
         var histories = jdbc.queryForList("SELECT * FROM food_history ORDER BY history_id");
         histories.forEach(row -> {
             assertThat(row.remove("category_before")).isNull();
             assertThat(row.remove("category_after")).isNull();
+            assertThat(row.remove("cooking_id")).isNull();
         });
         assertThat(histories).isEqualTo(historyBefore);
         assertThat(jdbc.queryForObject("SELECT to_regclass('public.food_category_history')::text",String.class)).isNull();

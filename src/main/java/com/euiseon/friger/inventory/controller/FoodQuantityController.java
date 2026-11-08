@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.euiseon.friger.common.errorlog.ErrorDiagnostics;
 import java.math.BigDecimal;
 import com.euiseon.friger.common.type.StorageType;
+import com.euiseon.friger.common.type.OpeningStatus;
 import com.euiseon.friger.inventory.service.*;
 import com.euiseon.friger.inventory.exception.InvalidFoodException;
 import org.springframework.stereotype.Controller;
@@ -27,8 +28,16 @@ public class FoodQuantityController {
                    @RequestParam(defaultValue="false") boolean ended,
                    @RequestParam(required=false) String draftQuantity,Model model) {
         var preview=quantities.preview(id);
-        if(action!=FoodQuantityService.Action.CANCEL && draftQuantity!=null)
-            model.addAttribute("submittedQuantity",draftQuantity.matches("[0-9]{1,9}(\\.[0-9]{1,2})?")?draftQuantity:"");
+        boolean partialDraft = false;
+        if(action!=FoodQuantityService.Action.CANCEL && draftQuantity!=null) {
+            boolean valid = draftQuantity.matches("[0-9]{1,9}(\\.[0-9]{1,2})?");
+            model.addAttribute("submittedQuantity", valid ? draftQuantity : "");
+            if (valid && preview.item().quantityAmount() != null) {
+                BigDecimal amount = new BigDecimal(draftQuantity);
+                partialDraft = amount.signum() > 0 && amount.compareTo(preview.item().quantityAmount()) < 0;
+            }
+        }
+        model.addAttribute("partialDraft",partialDraft);
         model.addAttribute("preview",preview);
         var master=masters.find(masters.masterId(id));
         var labels=categories.labels(master.categoryMajorCode(),master.categoryMinorCode());
@@ -43,6 +52,7 @@ public class FoodQuantityController {
     String apply(@PathVariable long id,@RequestParam FoodQuantityService.Action action,@RequestParam long version,
                  @RequestParam(required=false) Long historyId,@RequestParam UUID requestId,
                  @RequestParam(required=false) String quantityAmount,
+                 @RequestParam(required=false) OpeningStatus remainingOpening,
                  @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
                  @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request,Model model) {
         ErrorDiagnostics.quantity(request,id,action,version,historyId,null);
@@ -54,12 +64,17 @@ public class FoodQuantityController {
                 selected=new BigDecimal(quantityAmount);
             }
             ErrorDiagnostics.quantity(request,id,action,version,historyId,selected);
-            quantities.apply(id,action,version,historyId,requestId,selected);
+            quantities.apply(id,action,version,historyId,requestId,selected,remainingOpening);
             redirect.addFlashAttribute("successMessage",action==FoodQuantityService.Action.CANCEL ? "처리를 취소했어. 다시 보관 중이야." : action==FoodQuantityService.Action.CONSUME ? "먹은 것으로 기록했어." : "버린 것으로 기록했어.");
             if(action!=FoodQuantityService.Action.CANCEL) redirect.addFlashAttribute("processedItemId",id);
             boolean active=quantities.preview(id).item().status()==com.euiseon.friger.common.type.FoodStatus.ACTIVE;
             return url(active?"/inventory/"+id:"/foods/"+masters.masterId(id),storage,warning,false);
         } catch(InvalidFoodException error) {
+            if (error.errors().containsKey("remainingOpening")) {
+                preview(id,action,storage,warning,ended,quantityAmount,model);
+                model.addAttribute("openingError", error.errors().get("remainingOpening"));
+                return "inventory/quantity";
+            }
             if(error.errors().containsKey("categoryMajorCode")) {
                 preview(id,action,storage,warning,ended,null,model);
                 model.addAttribute("errorMessage",error.errors().get("categoryMajorCode"));

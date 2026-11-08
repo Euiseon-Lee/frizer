@@ -6,6 +6,19 @@
     const maximum = Number(input.dataset.maximum);
     const question = document.getElementById('quantityQuestion');
     const error = document.getElementById('quantityInputError');
+    const opening = document.getElementById('remainingOpening');
+    const openingError = document.getElementById('openingError');
+    function clearOpeningError() {
+      opening.removeAttribute('aria-invalid');
+      opening.removeAttribute('aria-describedby');
+      if (openingError) openingError.hidden = true;
+    }
+    opening?.addEventListener('change', clearOpeningError);
+    opening?.addEventListener('invalid', () => {
+      opening.setAttribute('aria-invalid', 'true');
+      opening.setAttribute('aria-describedby', 'openingError');
+      openingError.hidden = false;
+    }, true);
     let previous = input.value;
     const verb = input.dataset.action === 'CONSUME' ? '먹은' : '버린';
     const draftValid = value => /^\d{0,9}(?:\.\d{0,2})?$/.test(value)
@@ -14,6 +27,14 @@
       const valid = /^\d{1,9}(?:\.\d{1,2})?$/.test(input.value)
         && Number(input.value) > 0 && Number(input.value) <= maximum;
       input.setCustomValidity(valid ? '' : '0보다 크고 기준 수량 이하인 숫자를 입력해줘.');
+      if (opening) {
+        const showOpening = valid && Number(input.value) < maximum;
+        opening.hidden = opening.disabled = !showOpening;
+        if (!showOpening) {
+          for (const radio of opening.querySelectorAll('input')) radio.checked = false;
+          clearOpeningError();
+        }
+      }
       question.textContent = input.dataset.action === 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : valid
         ? (Number(input.value) === maximum ? `이 구매 항목을 전부 ${verb} 것으로 기록할까?`
           : `이 구매 항목 중 ${input.value}${input.dataset.unit}를 ${verb} 것으로 기록할까?`)

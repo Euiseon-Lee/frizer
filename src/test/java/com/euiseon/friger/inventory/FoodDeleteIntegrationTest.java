@@ -1,5 +1,7 @@
 package com.euiseon.friger.inventory;
 
+import static com.euiseon.friger.common.type.OpeningStatus.UNOPENED;
+
 import java.util.*;
 import java.util.concurrent.*;
 import com.euiseon.friger.common.type.FoodStatus;
@@ -64,7 +66,7 @@ class FoodDeleteIntegrationTest {
     @Test void deletesItemWithWholeHistoryAndKeepsSiblingAndRequestReceipts() throws Exception {
         long a=create("두부"),b=create("두부"),source=masters.masterId(a);
         adopt(b,source);
-        long event=quantities.apply(a,CONSUME,quantities.preview(a).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        long event=quantities.apply(a,CONSUME,quantities.preview(a).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"),UNOPENED);
         quantities.apply(a,CANCEL,quantities.preview(a).version(),event,UUID.randomUUID(),null);
         assertThat(historyCount(a)).isEqualTo(3);
         long sourceVersionBefore=dao.find(source).versionNo();
@@ -125,7 +127,7 @@ class FoodDeleteIntegrationTest {
         dao.touch(source);
         assertThatThrownBy(()->deleteService.delete(staleSource,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         var staleItem=command(source,List.of(a),false);
-        quantities.apply(a,CONSUME,quantities.preview(a).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        quantities.apply(a,CONSUME,quantities.preview(a).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"),UNOPENED);
         assertThatThrownBy(()->deleteService.delete(staleItem,UUID.randomUUID())).isInstanceOf(InvalidFoodException.class);
         assertThat(inventory.findById(a)).isNotNull();
         assertThat(historyCount(a)).isEqualTo(2);

@@ -584,6 +584,10 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .storage-choices[data-storage-choices][aria-invalid=true] input[name=storageType]+span{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 6%,white)}
 .storage-choices[data-storage-choices][aria-invalid=true] input[name=storageType]:focus-visible+span{outline-color:var(--danger)}
 .storage-choices[data-storage-choices]:focus{outline:none}
+.remaining-opening{min-width:0;margin-top:20px}
+.remaining-opening legend{padding:0;margin-bottom:9px;font-weight:650;font-size:14px}
+.remaining-opening span{word-break:keep-all}
+.remaining-opening[aria-invalid=true] span{border-color:var(--danger)}
 .cooking-consumption>summary{min-height:44px;padding:0;list-style:none}
 .cooking-consumption>summary::-webkit-details-marker{display:none}
 .cooking-consumption>summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}

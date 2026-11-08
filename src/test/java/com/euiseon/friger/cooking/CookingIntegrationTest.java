@@ -1,5 +1,7 @@
 package com.euiseon.friger.cooking;
 
+import static com.euiseon.friger.common.type.OpeningStatus.UNOPENED;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -131,7 +133,7 @@ class CookingIntegrationTest {
     @Test void staleIngredientRollsBackClaimAndAllStock() {
         long a=item("감자","3","개"),b=item("소고기","500","g");
         var f=form(List.of(use(a,"2"),use(b,"100")));
-        quantities.apply(b,FoodQuantityService.Action.CONSUME,quantities.preview(b).version(),null,UUID.randomUUID(),new BigDecimal("20"));
+        quantities.apply(b,FoodQuantityService.Action.CONSUME,quantities.preview(b).version(),null,UUID.randomUUID(),new BigDecimal("20"),UNOPENED);
         assertThatThrownBy(()->cooking.create(f)).isInstanceOf(InvalidFoodException.class);
         stock(a,"3");stock(b,"480");assertThat(dao.find(f.requestId())).isNull();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item",Integer.class)).isEqualTo(2);
@@ -204,7 +206,7 @@ class CookingIntegrationTest {
     }
     @Test void correctionsUseLatestUsageAndPreserveLaterConsumption() {
         long id=item("소고기","500","g");var cook=cooking.create(form(List.of(use(id,"300"))));
-        quantities.apply(id,FoodQuantityService.Action.CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new BigDecimal("50"));
+        quantities.apply(id,FoodQuantityService.Action.CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),new BigDecimal("50"),UNOPENED);
         var correction=correction(cook,id,"100",null);cooking.correct(correction);stock(id,"350");
         cooking.correct(correction);stock(id,"350");
         cooking.correct(correction(cook,id,"120",null));stock(id,"330");
@@ -235,7 +237,7 @@ class CookingIntegrationTest {
     @Test void staleCorrectionCannotOverwriteNewStock() {
         long id=item("소고기","500","g");var cook=cooking.create(form(List.of(use(id,"300"))));
         var correction=correction(cook,id,"100",null);
-        quantities.apply(id,FoodQuantityService.Action.CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),BigDecimal.ONE);
+        quantities.apply(id,FoodQuantityService.Action.CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),BigDecimal.ONE,UNOPENED);
         assertThatThrownBy(()->cooking.correct(correction)).isInstanceOf(InvalidFoodException.class);stock(id,"199");
     }
     @Test void deletingAnItemRetainsCookingSnapshotAndDisablesItsLink() throws Exception {

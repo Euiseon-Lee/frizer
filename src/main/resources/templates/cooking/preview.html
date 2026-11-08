@@ -12,5 +12,5 @@
 </dl></section>
 <section class="form-section"><h2>재료별 사용량</h2><ul class="cooking-ingredients"><li th:each="ingredient : ${preview.ingredients()}"><strong th:text="${ingredient.item().foodName()+' (#'+ingredient.item().foodId()+')'}"></strong><p th:text="${ingredient.usedText()+' 사용 ('+ingredient.item().displayQuantity()+' → '+ingredient.remainingText()+')'}"></p></li></ul></section>
 <p class="help cooking-preview-notice">요리 내역을 취소할 수 없으니 마지막으로 확인해 줘.<br>잘못 입력한 수량은 이후에 요리 기록에서 수정할 수 있어.</p>
-<form method="post" th:action="@{/cooking}"><input type="hidden" name="requestId" th:value="${preview.form().requestId()}"><div class="form-actions"><a class="cancel-link" th:href="@{/cooking/new(draft=${preview.form().requestId()})}">다시 입력</a><button class="button action-cook" type="submit">요리했어!</button></div></form>
+<form method="post" th:action="@{/cooking}"><input type="hidden" name="confirmationId" th:value="${confirmationId}"><div class="form-actions"><a class="cancel-link" th:href="@{/cooking/new(draft=${confirmationId})}">다시 입력</a><button class="button action-cook" type="submit">요리했어!</button></div></form>
 </div></main><nav th:replace="~{fragments/shell :: nav('new')}"></nav></body></html>

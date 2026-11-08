@@ -3,6 +3,7 @@ package com.euiseon.friger.cooking;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
+import java.util.function.Predicate;
 import com.euiseon.friger.account.CurrentUser;
 import com.euiseon.friger.inventory.dao.FoodMasterDao;
 import com.euiseon.friger.inventory.exception.InvalidFoodException;
@@ -94,11 +95,8 @@ public class CookingController {
         }
         try {
             var preview=service.preview(form);
-            synchronized(session) {
-                var drafts=drafts(session);
-                if(drafts.size()>=10 && !drafts.containsKey(form.requestId())) drafts.remove(drafts.keySet().iterator().next());
-                drafts.put(form.requestId(),form);
-            }
+            UUID confirmationId = remember(drafts(session), form, prior -> prior.requestId().equals(form.requestId()));
+            model.addAttribute("confirmationId", confirmationId);
             model.addAttribute("preview",preview);
             return "cooking/preview";
         } catch(InvalidFoodException e) {
@@ -107,9 +105,9 @@ public class CookingController {
         }
     }
     @PostMapping("/cooking")
-    String save(@RequestParam UUID requestId,HttpSession session,Model model,RedirectAttributes redirect) {
-        var form=drafts(session).get(requestId);
-        if(form==null) { redirect.addFlashAttribute("errorMessage","입력 내용이 만료되었어. 다시 확인해줘."); return "redirect:/cooking/new"; }
+    String save(@RequestParam(required=false) UUID confirmationId,HttpSession session,Model model,RedirectAttributes redirect) {
+        var form=drafts(session).get(confirmationId);
+        if(form==null) { redirect.addFlashAttribute("errorMessage","이전 확인 화면이야. 최근 확인 화면에서 저장하거나 다시 입력해줘."); return "redirect:/cooking/new"; }
         try {
             UUID id=service.create(form);
             redirect.addFlashAttribute("successMessage","요리와 재료 사용량을 기록했어.");
@@ -141,11 +139,9 @@ public class CookingController {
         var command=new CookingService.Correction(requestId,id,foodId,cookingVersion,itemVersion,amount,confirmedRemaining);
         try {
             var preview=service.correctionPreview(command);
-            synchronized(session) {
-                var drafts=corrections(session);
-                if(drafts.size()>=10 && !drafts.containsKey(requestId)) drafts.remove(drafts.keySet().iterator().next());
-                drafts.put(requestId,command);
-            }
+            UUID confirmationId = remember(corrections(session), command,
+                prior -> prior.cookingId().equals(id) && prior.foodId() == foodId);
+            model.addAttribute("confirmationId", confirmationId);
             model.addAttribute("preview",preview);
             return "cooking/correction-preview";
         } catch(InvalidFoodException e) {
@@ -155,15 +151,25 @@ public class CookingController {
         }
     }
     @PostMapping("/cooking/{id}/correct")
-    String correct(@PathVariable UUID id,@RequestParam UUID requestId,HttpSession session,RedirectAttributes redirect) {
-        var command=corrections(session).get(requestId);
+    String correct(@PathVariable UUID id,@RequestParam(required=false) UUID confirmationId,HttpSession session,RedirectAttributes redirect) {
+        var command=corrections(session).get(confirmationId);
         if(command==null || !command.cookingId().equals(id)) {
-            redirect.addFlashAttribute("errorMessage","확인한 내용이 만료되었어. 정정 화면을 다시 열어줘.");
+            redirect.addFlashAttribute("errorMessage","이전 확인 화면이야. 최근 확인 화면에서 저장하거나 다시 정정해줘.");
         } else {
             try { service.correct(command); redirect.addFlashAttribute("successMessage","요리 수량과 현재 잔량을 정정했어."); }
             catch(InvalidFoodException e) { redirect.addFlashAttribute("errorMessage",message(e)); }
         }
         return "redirect:/cooking/"+id;
+    }
+    // Confirmation IDs identify reviewed values. Database retries use the original request ID.
+    private static <T> UUID remember(Map<UUID,T> reviews, T value, Predicate<T> superseded) {
+        synchronized (reviews) {
+            reviews.values().removeIf(superseded);
+            if (reviews.size() >= 10) reviews.remove(reviews.keySet().iterator().next());
+            UUID confirmationId = UUID.randomUUID();
+            reviews.put(confirmationId, value);
+            return confirmationId;
+        }
     }
     @SuppressWarnings("unchecked")
     private Map<UUID,CookingForm> drafts(HttpSession session) {

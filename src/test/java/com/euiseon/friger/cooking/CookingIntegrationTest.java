@@ -308,6 +308,12 @@ class CookingIntegrationTest {
         assertThat(html).doesNotContain("이전 분류 이름","옛 직접 입력 분류"," / 잔량 "," / 보관 ");
         stock(beef,"3");stock(kimchi,"2");stock(unknown,"1");
     }
+    private String confirmationId(org.springframework.test.web.servlet.ResultActions page) throws Exception {
+        var result = page.andExpect(status().isOk()).andReturn();
+        String id = result.getModelAndView().getModel().get("confirmationId").toString();
+        assertThat(result.getResponse().getContentAsString()).contains("name=\"confirmationId\" value=\"" + id + "\"");
+        return id;
+    }
     @Test void unclassifiedIngredientSurvivesDraftReturnAndValidationRetry() throws Exception {
         long ingredient=item("[다시다] 쇠고기 다시다","3","개"),masterId=masters.masterIdForItem(ingredient);
         jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL,category=NULL WHERE master_id=?",masterId);
@@ -319,9 +325,9 @@ class CookingIntegrationTest {
         params.add("cookedAt",LocalDate.now().toString());params.add("ingredients[0].foodId",Long.toString(ingredient));
         params.add("ingredients[0].version",Long.toString(quantities.preview(ingredient).version()));
         params.add("ingredients[0].amount","1");params.add("ingredients[0].selected","true");
-        mvc.perform(post("/cooking/preview").session(session).params(params))
-            .andExpect(status().isOk()).andExpect(view().name("cooking/preview"));
-        var returned=mvc.perform(get("/cooking/new").session(session).param("draft",token.toString()))
+        String firstReview = confirmationId(mvc.perform(post("/cooking/preview").session(session).params(params))
+            .andExpect(status().isOk()).andExpect(view().name("cooking/preview")));
+        var returned=mvc.perform(get("/cooking/new").session(session).param("draft",firstReview))
             .andExpect(status().isOk()).andExpect(view().name("cooking/new")).andReturn();
         var draft=(CookingForm)returned.getModelAndView().getModel().get("cookingForm");
         assertThat(draft.selected()).hasSize(1);assertThat(draft.selected().getFirst().foodId()).isEqualTo(ingredient);
@@ -336,28 +342,40 @@ class CookingIntegrationTest {
         assertThat(retry.categoryMajorCode()).isEqualTo("dish");assertThat(retry.categoryMinorCode()).isEqualTo("dish_soup");
         stock(ingredient,"3");assertThat(masters.find(masterId).categoryMajorCode()).isNull();
         params.set("quantityAmount","4");
-        mvc.perform(post("/cooking/preview").session(session).params(params))
-            .andExpect(status().isOk()).andExpect(view().name("cooking/preview"));
-        mvc.perform(post("/cooking").session(session).param("requestId",token.toString()))
+        String retryReview = confirmationId(mvc.perform(post("/cooking/preview").session(session).params(params))
+            .andExpect(status().isOk()).andExpect(view().name("cooking/preview")));
+        mvc.perform(post("/cooking").session(session).param("confirmationId",retryReview))
             .andExpect(redirectedUrl("/cooking/"+token));
         stock(ingredient,"2");assertThat(masters.find(masterId).categoryMajorCode()).isNull();
         var resultMaster=masters.find(masters.masterIdForItem(cooking.detail(token).record().resultFoodId()));
         assertThat(resultMaster.categoryMajorCode()).isEqualTo("dish");
         assertThat(resultMaster.categoryMinorCode()).isEqualTo("dish_soup");
     }
-    @Test void completeWebFlowRendersAndSavesReviewedData() throws Exception {
-        long id=item("소고기","500","g");var session=new MockHttpSession();var token=UUID.randomUUID();
-        mvc.perform(get("/cooking/new")).andExpect(status().isOk()).andExpect(view().name("cooking/new"));
-        mvc.perform(post("/cooking/preview").session(session).param("requestId",token.toString()).param("foodName","카레")
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder registrationPreview(
+            MockHttpSession session, UUID token, long id, String amount) {
+        return post("/cooking/preview").session(session).param("requestId",token.toString()).param("foodName","카레")
             .param("categoryMajorCode","kimchi").param("quantityAmount","4").param("quantityUnit","인분")
             .param("storageType","FRIDGE").param("cookedAt",LocalDate.now().minusDays(1).toString())
             .param("ingredients[0].foodId",Long.toString(id)).param("ingredients[0].version",Long.toString(quantities.preview(id).version()))
-            .param("ingredients[0].amount","100").param("ingredients[0].selected","true")
-            .param("ingredients[1].foodId",Long.toString(id)).param("ingredients[1].version",Long.toString(quantities.preview(id).version())))
-            .andExpect(status().isOk()).andExpect(view().name("cooking/preview"));
+            .param("ingredients[0].amount",amount).param("ingredients[0].selected","true")
+            .param("ingredients[1].foodId",Long.toString(id)).param("ingredients[1].version",Long.toString(quantities.preview(id).version()));
+    }
+    @Test void completeWebFlowRendersAndSavesReviewedData() throws Exception {
+        long id=item("소고기","500","g");var session=new MockHttpSession();var token=UUID.randomUUID();
+        mvc.perform(get("/cooking/new")).andExpect(status().isOk()).andExpect(view().name("cooking/new"));
+        String oldReview = confirmationId(mvc.perform(registrationPreview(session, token, id, "200"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("200g 사용 (500g → 300g)"))));
+        String currentReview = confirmationId(mvc.perform(registrationPreview(session, token, id, "100"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("100g 사용 (500g → 400g)"))));
+        mvc.perform(post("/cooking").session(session).param("confirmationId",oldReview))
+            .andExpect(redirectedUrl("/cooking/new")).andExpect(flash().attributeExists("errorMessage"));
         stock(id,"500");
-        mvc.perform(post("/cooking").session(session).param("requestId",token.toString()).param("quantityAmount","999"))
-            .andExpect(redirectedUrl("/cooking/"+token));stock(id,"400");
+        assertThat(dao.find(token)).isNull();
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(post("/cooking").session(session).param("confirmationId",currentReview).param("quantityAmount","999"))
+                .andExpect(redirectedUrl("/cooking/"+token));
+        }
+        stock(id,"400");
         mvc.perform(get("/cooking/"+token)).andExpect(status().isOk());
         mvc.perform(get("/history").param("q","소고기")).andExpect(status().isOk());
         mvc.perform(get("/inventory/"+id).param("cooking",token.toString()).param("quantityHistory","true"))
@@ -443,14 +461,23 @@ class CookingIntegrationTest {
     @Test void correctionWebFlowRequiresReviewAndRendersTheBeforeAfterAmounts() throws Exception {
         long id=item("소고기","500","g");UUID cook=cooking.create(form(List.of(use(id,"300"))));
         var command=correction(cook,id,"100",null);var session=new MockHttpSession();
-        mvc.perform(post("/cooking/"+cook+"/correct/"+id+"/preview").session(session)
+        String oldReview = confirmationId(mvc.perform(post("/cooking/"+cook+"/correct/"+id+"/preview").session(session)
+            .param("requestId",command.requestId().toString()).param("cookingVersion",Long.toString(command.cookingVersion()))
+            .param("itemVersion",Long.toString(command.itemVersion())).param("amount","200"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("200g → 300g"))));
+        String currentReview = confirmationId(mvc.perform(post("/cooking/"+cook+"/correct/"+id+"/preview").session(session)
             .param("requestId",command.requestId().toString()).param("cookingVersion",Long.toString(command.cookingVersion()))
             .param("itemVersion",Long.toString(command.itemVersion())).param("amount","100"))
-            .andExpect(status().isOk()).andExpect(view().name("cooking/correction-preview"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("200g → 400g")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("200g → 400g"))));
+        mvc.perform(post("/cooking/"+cook+"/correct").session(session).param("confirmationId",oldReview))
+            .andExpect(redirectedUrl("/cooking/"+cook)).andExpect(flash().attributeExists("errorMessage"));
         stock(id,"200");
-        mvc.perform(post("/cooking/"+cook+"/correct").session(session).param("requestId",command.requestId().toString()))
-            .andExpect(redirectedUrl("/cooking/"+cook));stock(id,"400");
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(post("/cooking/"+cook+"/correct").session(session).param("confirmationId",currentReview))
+                .andExpect(redirectedUrl("/cooking/"+cook)).andExpect(flash().attributeExists("successMessage"));
+        }
+        stock(id,"400");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM cooking_correction_receipt",Integer.class)).isOne();
     }
     @Test void resultSplitKeepsCookingDateAndRequiresRemainingForLaterCorrection() {
         long id=item("감자","3","개");var f=form(List.of(use(id,"2")));UUID cook=cooking.create(f);
@@ -500,14 +527,14 @@ class CookingIntegrationTest {
     @Test void largeInventorySubmitsOnlyTheSelectedIngredientWithCompactIndexes() throws Exception {
         var ids=new ArrayList<Long>();for(int i=0;i<257;i++) ids.add(item("재료 "+i,"5","개"));
         long selected=ids.getLast();UUID requestId=UUID.randomUUID();var session=new MockHttpSession();
-        mvc.perform(post("/cooking/preview").session(session)
+        String review = confirmationId(mvc.perform(post("/cooking/preview").session(session)
             .param("requestId",requestId.toString()).param("foodName","요리").param("categoryMajorCode","kimchi")
             .param("quantityAmount","4").param("quantityUnit","인분").param("storageType","FRIDGE").param("cookedAt",LocalDate.now().toString())
             .param("ingredients[0].foodId",Long.toString(selected)).param("ingredients[0].version",Long.toString(quantities.preview(selected).version()))
             .param("ingredients[0].selected","true").param("ingredients[0].amount","1"))
-            .andExpect(status().isOk()).andExpect(view().name("cooking/preview"));
+            .andExpect(status().isOk()).andExpect(view().name("cooking/preview")));
         stock(selected,"5");
-        mvc.perform(post("/cooking").session(session).param("requestId",requestId.toString())).andExpect(redirectedUrl("/cooking/"+requestId));
+        mvc.perform(post("/cooking").session(session).param("confirmationId",review)).andExpect(redirectedUrl("/cooking/"+requestId));
         stock(selected,"4");stock(ids.getFirst(),"5");
         assertThat(cooking.detail(requestId).ingredients()).extracting(CookingDao.Ingredient::foodId).containsExactly(selected);
     }

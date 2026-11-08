@@ -42,8 +42,6 @@ public interface CookingDao {
     int setCookedAt(long id,LocalDate date);
     @Select("SELECT cooked_at FROM food_item WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id}")
     LocalDate cookedAt(long id);
-    @Update("UPDATE food_history SET cooking_id=#{cookingId} WHERE user_id=#{_userId,jdbcType=BIGINT} AND history_id=#{historyId}")
-    int link(long historyId,UUID cookingId);
     long resultHistory(UUID id,long foodId,String changes,
         com.euiseon.friger.inventory.entity.FoodMaster categoryBefore,
         com.euiseon.friger.inventory.entity.FoodMaster categoryAfter);

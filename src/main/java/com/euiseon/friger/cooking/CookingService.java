@@ -71,7 +71,7 @@ public class CookingService {
             if(master==null || form.masterVersion()==null || master.versionNo()!=form.masterVersion())
                 throw invalid("선택한 음식이 변경되었어. 기존 음식을 다시 선택해줘.");
             food=food.withIdentity(master.foodName(),master.category());
-            if(master.categoryMajorCode()==null) categories.requireSelection(form.categoryMajorCode(),form.categoryMinorCode());
+            if (master.categoryMajorCode() == null) throw invalid("선택한 음식의 분류를 음식 상세에서 확인해줘.");
         } else categories.requireSelection(form.categoryMajorCode(),form.categoryMinorCode());
         var errors=foods.validationErrors(food);
         if(!errors.isEmpty()) throw new InvalidFoodException(errors);
@@ -118,7 +118,6 @@ public class CookingService {
             if(inventory.findByIdForUpdate(link.getKey())==null) throw new FoodNotFoundException(link.getKey());
         }
         var checked=preview(form);
-        var categoryBefore=form.masterId()==null?null:masters.find(form.masterId());
         // Create first, so the result group's expected version is checked before ingredient touches.
         long result=foods.createCookingOutput(form.foodForm(),form.masterId(),form.masterVersion(),form.categoryMajorCode(),form.categoryMinorCode());
         cooking.setCookedAt(result,form.cookedAt());
@@ -132,8 +131,9 @@ public class CookingService {
         }
         String changes="수량: "+checked.quantity()+"\n사용 재료: "+checked.ingredients().stream()
             .map(r->r.item().foodName()+" "+r.usedText()).collect(Collectors.joining(", "))+"\n조리일: "+form.cookedAt();
-        long resultHistory=cooking.resultHistory(form.requestId(),result,changes,categoryBefore,
-            masters.find(masters.masterIdForItem(result)));
+        var resultGroup = masters.find(masters.masterIdForItem(result));
+        long resultHistory = cooking.resultHistory(form.requestId(), result, changes,
+            form.masterId() == null ? null : resultGroup, resultGroup);
         if(cooking.complete(form.requestId(),result,resultHistory)!=1) throw new IllegalStateException("요리 기록 저장 실패");
         if(form.consumedAmount()!=null && form.consumedAmount().signum()>0)
             consumption.apply(result,FoodQuantityService.Action.CONSUME,quantities.state(result).versionNo(),null,UUID.randomUUID(),form.consumedAmount());

@@ -88,13 +88,11 @@
     function switchResult() {
         const next = resultKey();
         if (next === currentResult) return;
-        resultDrafts.set(currentResult, {amount: amount.value, unit: unit.value, major: major.value, minor: minor.value});
+        resultDrafts.set(currentResult, {amount: amount.value, unit: unit.value});
         currentResult = next;
         const draft = resultDrafts.get(next);
         amount.value = draft?.amount ?? '';
         unit.value = draft?.unit ?? (mode() === 'existing' ? selected?.dataset.unit || '' : '');
-        major.value = draft?.major ?? '';
-        category(draft?.minor ?? '');
         // Keep the shared quantity input's decimal-entry state in sync with restored drafts.
         amount.dispatchEvent(new Event('input', {bubbles: true}));
     }
@@ -108,13 +106,12 @@
         for (const row of choice?.minors || []) minor.add(new Option(row.label, row.code));
         minor.value = value;
         if (minor.selectedIndex < 0) minor.selectedIndex = 0;
-        const inherited = mode() === 'existing' && !!selected?.dataset.major;
-        const pending = mode() === 'existing' && !selected;
-        document.getElementById('cookingCategories').hidden = inherited || pending;
+        const existing = mode() === 'existing';
+        document.getElementById('cookingCategories').hidden = existing;
         document.getElementById('cookingMinorField').hidden = !choice?.requiresMinor;
-        major.disabled = inherited || pending;
+        major.disabled = existing;
         major.required = !major.disabled;
-        minor.disabled = inherited || pending || !choice?.requiresMinor;
+        minor.disabled = existing || !choice?.requiresMinor;
         minor.required = !minor.disabled;
         const child = choice?.minors.find(c => c.code === minor.value);
         const example = child?.example || (!choice?.requiresMinor ? choice?.example : '');

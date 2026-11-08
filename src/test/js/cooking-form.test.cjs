@@ -54,7 +54,7 @@ function cooking({master = '', amount = '', unit = '', major = '', minor = '', s
     const candidates = foodNames.map((name, index) => {
         const button = element();
         button.height = 80; button.getBoundingClientRect = () => ({height: button.height});
-        button.dataset = {masterId: String(index + 1), name, unit: index === 0 ? '인분' : '통', version: '7', major: index === 1 ? '' : 'kimchi'};
+        button.dataset = {masterId: String(index + 1), name, unit: index === 0 ? '인분' : '통', version: '7'};
         button.querySelector = () => ({textContent: `분류 / #${index + 1}`});
         ids.foodCandidates.append(button);
         return button;
@@ -209,7 +209,7 @@ test('cooking: selection summary can be changed; unselected existing mode blocks
     e.ids.cookingForm.emit('submit', {preventDefault() {prevented++}});
     e.ids.cookingForm.emit('submit', {submitter: {name: 'refresh'}, preventDefault() {prevented++}});
     assert.equal(prevented, 1);
-    e.master('2'); assert.equal(e.ids.cookingSubmit.disabled, false); assert.equal(e.ids.cookingCategories.hidden, false);
+    e.master('2'); assert.equal(e.ids.cookingSubmit.disabled, false); assert.equal(e.ids.cookingCategories.hidden, true);
     e.mode('new'); assert.equal(e.ids.masterId.disabled, true); assert.equal(e.ids.foodName.disabled, false);
 });
 
@@ -252,27 +252,20 @@ test('cooking: inventory beyond the binder limit submits only selected rows with
     assert.equal(e.rows[256].amount.value, '1.5');
 });
 
-test('cooking: each result keeps its own category draft without assigning it to a different unclassified food', () => {
-    const e = cooking(); e.candidates[2].dataset.major = '';
-    e.ids.categoryMajorCode.value = 'kimchi'; e.ids.categoryMajorCode.emit('change');
-    e.master('2'); assert.equal(e.ids.categoryMajorCode.value, '');
-    e.ids.categoryMajorCode.value = 'meat'; e.ids.categoryMajorCode.emit('change');
-    e.ids.categoryMinorCode.value = 'meat_beef'; e.ids.categoryMinorCode.emit('change');
-    e.ids.changeSelectedFood.emit('click'); e.master('3');
-    assert.equal(e.ids.categoryMajorCode.value, ''); assert.equal(e.ids.categoryMinorCode.value, '');
-    assert.equal(e.ids.categoryMajorCode.required, true);
-    e.master('2'); assert.equal(e.ids.categoryMajorCode.value, 'meat');
-    assert.equal(e.ids.categoryMinorCode.value, 'meat_beef'); assert.equal(e.ids.categoryMinorCode.required, true);
-    e.master('1'); assert.equal(e.ids.categoryMajorCode.disabled, true);
-    e.master(''); assert.equal(e.ids.categoryMajorCode.value, 'kimchi');
-    e.master('2'); assert.equal(e.ids.categoryMinorCode.value, 'meat_beef');
-    e.ids.categoryMajorCode.value = 'kimchi'; e.ids.categoryMajorCode.emit('change');
-    assert.equal(e.ids.categoryMinorCode.value, ''); assert.equal(e.ids.categoryMinorCode.disabled, true);
-});
-
-test('cooking: category returned by server validation survives initialization and result switching', () => {
-    const e = cooking({master: '2', major: 'meat', minor: 'meat_beef'});
-    assert.equal(e.ids.categoryMajorCode.value, 'meat'); assert.equal(e.ids.categoryMinorCode.value, 'meat_beef');
-    e.master(''); assert.equal(e.ids.categoryMajorCode.value, '');
-    e.master('2'); assert.equal(e.ids.categoryMajorCode.value, 'meat'); assert.equal(e.ids.categoryMinorCode.value, 'meat_beef');
+test('cooking: only new foods submit categories and switching back restores the new food selection', () => {
+    const e = cooking({major: 'meat', minor: 'meat_beef'});
+    for (const id of ['2', '3']) {
+        e.master(id);
+        assert.equal(e.ids.cookingCategories.hidden, true);
+        assert.equal(e.ids.categoryMajorCode.disabled, true);
+        assert.equal(e.ids.categoryMinorCode.disabled, true);
+    }
+    e.master('');
+    assert.equal(e.ids.cookingCategories.hidden, false);
+    assert.equal(e.ids.categoryMajorCode.value, 'meat');
+    assert.equal(e.ids.categoryMinorCode.value, 'meat_beef');
+    assert.equal(e.ids.categoryMinorCode.required, true);
+    e.ids.categoryMajorCode.value = 'kimchi';
+    e.ids.categoryMajorCode.emit('change');
+    assert.equal(e.ids.categoryMinorCode.disabled, true);
 });

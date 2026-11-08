@@ -155,20 +155,30 @@ class CookingIntegrationTest {
         cooking.correct(correction(id,ingredient,"0.5",null));stock(ingredient,"2.5");
         assertThat(masters.find(masterId).categoryMajorCode()).isNull();
     }
-    @Test void selectedCategoryIsSavedForUnclassifiedResultThatIsAlsoAnIngredient() {
-        long ingredient=item("기존 요리","5","인분"),masterId=masters.masterIdForItem(ingredient);
-        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL,category=NULL WHERE master_id=?",masterId);
-        var base=form(List.of(use(ingredient,"1")));
-        var f=change(base,base.requestId(),masterId,masters.find(masterId).versionNo(),BigDecimal.ONE);
-        cooking.preview(f);
-        stock(ingredient,"5");assertThat(masters.find(masterId).categoryMajorCode()).isNull();
-        var id=cooking.create(f);var result=cooking.detail(id).record().resultFoodId();
-        assertThat(result).isNotEqualTo(ingredient);
-        assertThat(masters.masterIdForItem(ingredient)).isEqualTo(masterId);
-        assertThat(masters.masterIdForItem(result)).isEqualTo(masterId);
-        assertThat(masters.find(masterId).categoryMajorCode()).isEqualTo("kimchi");
-        stock(ingredient,"4");stock(result,"3");
-        assertThat(cooking.create(f)).isEqualTo(id);stock(ingredient,"4");stock(result,"3");
+    @Test void newResultRequiresMajorAndApplicableMinorBeforeStockChanges() {
+        long ingredient = item("감자","5","개");
+        var base = form(List.of(use(ingredient,"1")));
+        for (String major : Arrays.asList(null, "dish")) {
+            var request = new CookingForm(base.requestId(),base.foodName(),null,null,major,null,
+                base.quantityAmount(),base.quantityUnit(),base.cookedAt(),base.storageType(),
+                null,null,null,null,base.ingredients());
+            assertThatThrownBy(() -> cooking.preview(request)).isInstanceOf(InvalidFoodException.class);
+            assertThatThrownBy(() -> cooking.create(request)).isInstanceOf(InvalidFoodException.class);
+            assertThat(dao.find(request.requestId())).isNull();
+            stock(ingredient,"5");
+        }
+    }
+    @Test void cookingCannotAssignACategoryToAnExistingGroup() {
+        long id = item("기존 요리","5","인분");
+        long master = masters.masterIdForItem(id);
+        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL,category=NULL WHERE master_id=?",master);
+        var base = form(List.of(use(id,"1")));
+        var request = change(base,base.requestId(),master,masters.find(master).versionNo(),null);
+        assertThatThrownBy(() -> cooking.preview(request)).isInstanceOf(InvalidFoodException.class);
+        assertThatThrownBy(() -> cooking.create(request)).isInstanceOf(InvalidFoodException.class);
+        assertThat(masters.find(master).categoryMajorCode()).isNull();
+        stock(id,"5");
+        assertThat(dao.find(request.requestId())).isNull();
     }
     @Test void existingResultAndIngredientKeepTheirOwnStoredCategories() {
         long ingredient=foods.createCategorized(new FoodCreateForm("소고기",StorageType.FRIDGE,null,new BigDecimal("500"),
@@ -184,6 +194,8 @@ class CookingIntegrationTest {
         var ingredientMaster=masters.find(masters.masterIdForItem(ingredient));
         assertThat(ingredientMaster.categoryMajorCode()).isEqualTo("meat");
         assertThat(ingredientMaster.categoryMinorCode()).isEqualTo("meat_beef");
+        assertThat(quantities.history(result)).extracting(QuantityChange::actionType).containsExactly("COOK_IN");
+        assertThat(jdbc.queryForObject("SELECT category_before = category_after AND category_after->>'major_code'='kimchi' FROM food_history WHERE food_id=? AND action_type='COOK_IN'", Boolean.class, result)).isTrue();
         stock(ingredient,"400");stock(resultItem,"2");stock(result,"4");
     }
     @Test void invalidAmountsAndDuplicateSelectionsCannotWrite() {
@@ -538,32 +550,18 @@ class CookingIntegrationTest {
         stock(selected,"4");stock(ids.getFirst(),"5");
         assertThat(cooking.detail(requestId).ingredients()).extracting(CookingDao.Ingredient::foodId).containsExactly(selected);
     }
-    @Test void completingUnclassifiedResultRetainsCategoryAuditWithoutDuplicateRegistration() {
-        long ingredient=item("재료","5","개"),target=item("기존 미분류 요리","1","인분"),master=masters.masterIdForItem(target);
-        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL,category='옛 분류' WHERE master_id=?",master);
-        var f=form(List.of(use(ingredient,"1")));
-        var cook=cooking.create(change(f,f.requestId(),master,masters.find(master).versionNo(),null));
-        var result=cooking.detail(cook).record().resultFoodId();
-        assertThat(masters.find(master).categoryMajorCode()).isEqualTo("kimchi");
-        assertThat(jdbc.queryForObject("SELECT category_before->>'label' FROM food_history WHERE food_id=? AND action_type='COOK_IN'",String.class,result)).isEqualTo("옛 분류");
-        assertThat(jdbc.queryForObject("SELECT category_after->>'major_code' FROM food_history WHERE food_id=? AND action_type='COOK_IN'",String.class,result)).isEqualTo("kimchi");
-        assertThat(jdbc.queryForObject("SELECT after_snapshot->>'category_major_code' FROM food_history WHERE food_id=? AND action_type='COOK_IN'",String.class,result)).isEqualTo("kimchi");
-        assertThat(quantities.history(result)).extracting(QuantityChange::actionType).containsExactly("COOK_IN");
-        assertThat(masters.find(masters.masterIdForItem(ingredient)).categoryMajorCode()).isEqualTo("kimchi");
-    }
-    @Test void resultHistoryFailureAlsoRollsBackExistingGroupCategoryCompletion() {
-        long ingredient=item("재료","5","개"),target=item("미분류 요리","1","인분"),master=masters.masterIdForItem(target);
-        jdbc.update("UPDATE food_master SET category_major_code=NULL,category_minor_code=NULL,category='옛 분류' WHERE master_id=?",master);
-        var before=masters.find(master);var base=form(List.of(use(ingredient,"1")));
-        var f=change(base,base.requestId(),master,before.versionNo(),null);
-        jdbc.execute("CREATE FUNCTION reject_cook_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action_type='COOK_IN' THEN RAISE EXCEPTION 'test failure'; END IF; RETURN NEW; END $$");
-        jdbc.execute("CREATE TRIGGER reject_cook_audit BEFORE INSERT ON food_history FOR EACH ROW EXECUTE FUNCTION reject_cook_audit()");
-        try {
-            assertThatThrownBy(()->cooking.create(f)).isInstanceOf(org.springframework.dao.DataAccessException.class);
-            assertThat(masters.find(master)).isEqualTo(before);stock(ingredient,"5");stock(target,"1");
-            assertThat(dao.find(f.requestId())).isNull();
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM food_item",Integer.class)).isEqualTo(2);
-        } finally {jdbc.execute("DROP TRIGGER reject_cook_audit ON food_history");jdbc.execute("DROP FUNCTION reject_cook_audit()");}
+    @Test void changedResultGroupCannotReceiveAReviewedCooking() {
+        long ingredient = item("감자","5","개");
+        long target = item("카레","1","인분");
+        long master = masters.masterIdForItem(target);
+        var base = form(List.of(use(ingredient,"1")));
+        var request = change(base,base.requestId(),master,masters.find(master).versionNo(),null);
+        cooking.preview(request);
+        masters.touch(master);
+        assertThatThrownBy(() -> cooking.create(request)).isInstanceOf(InvalidFoodException.class);
+        stock(ingredient,"5");
+        stock(target,"1");
+        assertThat(dao.find(request.requestId())).isNull();
     }
     @Test void concurrentCorrectionsReturnVersionConflictInsteadOfDatabaseDeadlock() throws Exception {
         long a=item("소고기","500","g"),b=item("감자","5","개");var cook=cooking.create(form(List.of(use(a,"100"),use(b,"1"))));

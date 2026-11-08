@@ -74,7 +74,7 @@ public class InventoryService {
     public long createCookingOutput(FoodCreateForm form, Long masterId, Long expectedVersion,
                                     String majorCode, String minorCode) {
         if (form.sourceType() != FoodSourceType.COOKED) throw new IllegalArgumentException("요리 출처가 필요합니다.");
-        return createInternal(form,masterId,expectedVersion,majorCode,minorCode,true,false);
+        return createInternal(form, masterId, expectedVersion, majorCode, minorCode, masterId == null, false);
     }
 
     private long createInternal(FoodCreateForm form, Long masterId, Long expectedVersion,

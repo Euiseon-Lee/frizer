@@ -561,3 +561,8 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .category-inherited{margin:0;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--primary) 5%,white);font-size:16px;overflow-wrap:anywhere}
 
 .category-inherited-heading{font-size:13px;font-weight:700;margin:0 0 9px}
+
+.remaining-opening{min-width:0;margin-top:20px}
+.remaining-opening legend{padding:0;margin-bottom:9px;font-weight:650;font-size:14px}
+.remaining-opening span{word-break:keep-all}
+.remaining-opening[aria-invalid=true] span{border-color:var(--danger)}

@@ -59,3 +59,41 @@ test('category link carries current quantity and blocks an invalid draft',()=>{
   input.value='';let prevented=false;linkHandlers.click({preventDefault(){prevented=true}});
   assert.equal(prevented,true);assert.equal(input.focused,true);
 });
+
+test('only a positive partial quantity enables the opening choices and a full quantity clears them',()=>{
+  const handlers = {};
+  const radios = [{checked:false},{checked:false}];
+  const opening = {
+    addEventListener(){}, removeAttribute(){}, querySelectorAll(){return radios;}
+  };
+  const input = {
+    value:'8', dataset:{maximum:'8',unit:'개',action:'CONSUME'},
+    addEventListener(name,fn){handlers[name]=fn;}, setCustomValidity(){}
+  };
+  const fields = {quantityAmount:input, quantityQuestion:{}, quantityInputError:{}, remainingOpening:opening};
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    document:{querySelector:()=>({addEventListener(){}}),getElementById:id=>fields[id]},
+    window:{addEventListener(){}}
+  });
+  function enter(amount) {input.value=amount; handlers.input();}
+  assert.equal(opening.hidden,true);
+  assert.equal(opening.disabled,true);
+  enter('1');
+  assert.equal(opening.hidden,false);
+  assert.equal(opening.disabled,false);
+  assert.ok(radios.every(radio=>!radio.checked));
+  radios[0].checked=true;
+  enter('2');
+  assert.equal(radios[0].checked,true);
+  enter('8');
+  assert.equal(opening.hidden,true);
+  assert.equal(opening.disabled,true);
+  enter('0.5');
+  assert.equal(opening.disabled,false);
+  assert.ok(radios.every(radio=>!radio.checked));
+  for (const value of ['0','']) {
+    enter(value);
+    assert.equal(opening.hidden,true);
+    assert.equal(opening.disabled,true);
+  }
+});

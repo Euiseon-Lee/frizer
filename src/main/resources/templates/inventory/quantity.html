@@ -29,8 +29,8 @@
 <fieldset class="storage-choices remaining-opening" id="remainingOpening"
           th:hidden="${!partialDraft}" th:disabled="${!partialDraft}" th:attr="aria-invalid=${openingError != null},aria-describedby=${openingError != null ? 'openingError' : null}">
   <legend>남은 음식 중 개봉한 포장이 있어?</legend>
-  <label><input type="radio" name="remainingOpening" value="UNOPENED" form="quantity-form" required><span>모두 미개봉</span></label>
-  <label><input type="radio" name="remainingOpening" value="OPENED" form="quantity-form" required><span>개봉한 포장이 있어</span></label>
+  <label><input type="radio" name="remainingOpening" value="OPENED" form="quantity-form" required><span>응 개봉했어!</span></label>
+  <label><input type="radio" name="remainingOpening" value="UNOPENED" form="quantity-form" required><span>아니 미개봉이야!</span></label>
 </fieldset>
 <p id="openingError" class="field-error" role="alert" th:hidden="${openingError == null}">남은 음식의 개봉 상태를 골라줘.</p>
 </th:block>

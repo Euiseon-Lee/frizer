@@ -319,7 +319,8 @@ class FoodQuantityIntegrationTest {
                 .andExpect(model().attribute("openingError","남은 음식의 개봉 상태를 골라줘."))
                 .andReturn().getResponse().getContentAsString();
         assertThat(html).containsPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*aria-invalid=\"true\"")
-                .doesNotContainPattern("<fieldset[^>]*(?:hidden|disabled)");
+                .doesNotContainPattern("<fieldset[^>]*(?:hidden|disabled)")
+                .containsSubsequence("value=\"OPENED\"", "응 개봉했어!", "value=\"UNOPENED\"", "아니 미개봉이야!");
         assertThat(quantities.preview(id).version()).isEqualTo(version);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt WHERE request_id=?",Integer.class,request)).isZero();
         assertThatThrownBy(() -> quantities.apply(id,CONSUME,version,null,request,new java.math.BigDecimal("0.5"),

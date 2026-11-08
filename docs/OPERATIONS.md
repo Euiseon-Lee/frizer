@@ -1,13 +1,8 @@
 # FR!ZER 클라우드 실행·배포 안내
 
-## 2026-11-01 요리 기능 로컬 적용
+## 요리 기능 마이그레이션 검증
 
-- 로컬 `frizer-postgres-1` / `frizer` DB의 V30→V31 적용 완료. 기존 운영 환경은 변경하지 않았다. 로컬 앱은 기존 로그인 설정을 유지해 `127.0.0.1:8080`에서 실행 중이며 `/health`의 200 `ok`를 확인했다.
-- 적용 직전 백업: Git 제외 `build/backups/frizer-before-cooking-final-20261101.dump`. 복원 전용 임시 DB에 `pg_restore --no-owner --no-acl`로 복원해 기존 항목·이력·그룹의 건수/내용 해시를 비교했고 일치했다. 검증용 임시 DB만 정리했다.
-- 적용 전후 비교 파일은 `build/backups/frizer-cooking-before-state.txt`, `frizer-cooking-after-state.txt`, `frizer-cooking-restored-state.txt`다. 새 nullable 컬럼을 제외한 기존 데이터 전체 값이 보존됐다. 실제 로컬 DB에는 테스트 요리를 생성하지 않았다.
-- 실행 파일은 `build/local-run/frizer-cooking.jar`, 로그는 같은 폴더의 `cooking-app.log`, PID 기록은 `cooking-app.pid`다. 이번 실행은 로컬 프로필과 loopback 주소를 명시했다. 이후 Java/mapper 변경은 새 빌드와 재시작이 필요하고 local/ui-dev 템플릿·정적 파일은 소스에서 읽는다.
-- 검토 5건 수정 후 검증한 JAR로 로컬 앱을 재시작했다. 기존 로그인 설정 유지, V31 검증·추가 migration 없음, `/health` 200 `ok`를 확인했다. 교체 전 JAR은 Git 제외 `build/local-run/frizer-cooking-before-five-fixes.jar`에 보존했다.
-- 최신 전체 Java 739건·JavaScript 97건과 격리 브라우저 검증은 TEST_MATRIX.md를 따른다. `feat/cooking-records`의 논리적 커밋으로 정리하며 CI 변경은 제외한다. 푸시·master 병합·운영 배포는 하지 않았다.
+2026-11-08에 격리한 PostgreSQL에 로컬 V30 백업을 복원하고 운영용 이미지로 V31을 적용했다. 음식 그룹·재고·이력의 기존 값이 일치했고 앱의 `/health` 응답은 `ok`였다. 적용 전 로컬 백업은 `build/backups/frizer-before-cooking-final-20261101.dump`에 있다.
 
 최초 작성일: 2026-09-17. 최종 갱신일: 2026-11-01.
 
@@ -51,7 +46,7 @@ Render Free는 요청이 없는 동안 절전 상태가 될 수 있어 첫 접�
 | 앱 실행 | Render Docker, Free, Singapore |
 | 자동 배포 | CI 통과 시 master 자동 배포(2026-09-18 전환, `autoDeployTrigger: checksPass`) — GitHub Actions `CI` 워크플로(Java 전체 스위트+bootJar, JS 테스트)가 게이트다. 기능 브랜치 PR의 필수 test 확인 후 승인된 master 병합으로 진행한다 |
 | 프로필 | `prod,render` |
-| DB | Neon PostgreSQL 18.6, Flyway V29 (2026-10-11 운영 조회 확인) |
+| DB | Neon PostgreSQL 18.6, Flyway V30 (2026-11-08 운영 읽기 조회) |
 | 정상 확인 경로 | `/health` |
 | 사용자 인증 도입 배포 기준 커밋 | `f08d701d9f904d257164d5fe5b079e0034108072` |
 | 마지막 확인된 배포 커밋 | `36dc08a` — 분류 PR #5, CI 성공·사용자 배포 완료 확인·운영 V29 확인 (2026-10-11) |

@@ -60,9 +60,9 @@ test('category link carries current quantity and blocks an invalid draft',()=>{
   assert.equal(prevented,true);assert.equal(input.focused,true);
 });
 
-test('only a positive partial quantity enables the opening choices and a full quantity clears them',()=>{
+test('partial quantity defaults to unopened, preserves a choice and resets after full consumption',()=>{
   const handlers = {};
-  const radios = [{checked:false},{checked:false}];
+  const radios = [{value:'OPENED',checked:false},{value:'UNOPENED',checked:true}];
   const opening = {
     addEventListener(){}, removeAttribute(){}, querySelectorAll(){return radios;}
   };
@@ -81,8 +81,10 @@ test('only a positive partial quantity enables the opening choices and a full qu
   enter('1');
   assert.equal(opening.hidden,false);
   assert.equal(opening.disabled,false);
-  assert.ok(radios.every(radio=>!radio.checked));
+  assert.equal(radios[1].checked,true);
+  assert.equal(radios[0].checked,false);
   radios[0].checked=true;
+  radios[1].checked=false;
   enter('2');
   assert.equal(radios[0].checked,true);
   enter('8');
@@ -90,7 +92,8 @@ test('only a positive partial quantity enables the opening choices and a full qu
   assert.equal(opening.disabled,true);
   enter('0.5');
   assert.equal(opening.disabled,false);
-  assert.ok(radios.every(radio=>!radio.checked));
+  assert.equal(radios[1].checked,true);
+  assert.equal(radios[0].checked,false);
   for (const value of ['0','']) {
     enter(value);
     assert.equal(opening.hidden,true);
@@ -107,7 +110,7 @@ function openingForm(unit='봉', maximum='5') {
   }
   const fields={
     quantityAmount:element(maximum,{dataset:{maximum,unit,action:'CONSUME'}}),quantityQuestion:element(),quantityInputError:element(),
-    remainingOpened:element('OPENED'),remainingUnopened:element('UNOPENED'),remainingOpening:element(),openingError:element(),
+    remainingOpened:element('OPENED'),remainingUnopened:element('UNOPENED',{checked:true}),remainingOpening:element(),openingError:element(),
     openingDateGroup:element(),openedAt:element('',{max:'2026-11-21'}),openingDateUnknown:element()
   };
   fields.remainingOpening.querySelectorAll=()=>[fields.remainingOpened,fields.remainingUnopened];

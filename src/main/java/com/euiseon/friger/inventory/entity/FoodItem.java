@@ -67,8 +67,8 @@ public record FoodItem(
             quantityAmount,quantityUnit,warningPausedUntil,state,confirmed);
     }
     public String openingLabel() {
-        return switch(openingStatus) { case NOT_APPLICABLE -> "해당 없음"; case UNOPENED -> "미개봉"; case UNKNOWN -> "개봉 여부 불확실";
-            case OPENED -> openedAt == null ? "개봉함 (개봉일 불확실)" : "개봉함"; };
+        return openingStatus == OpeningStatus.OPENED && openedAt == null
+            ? "개봉함 (개봉일 불확실)" : openingStatus.label();
     }
     public LocalDate openingReference() { return openingStatus == OpeningStatus.OPENED ? (openedAt != null ? openedAt : openingConfirmedAt) : null; }
     public String openingElapsed(LocalDate today) {

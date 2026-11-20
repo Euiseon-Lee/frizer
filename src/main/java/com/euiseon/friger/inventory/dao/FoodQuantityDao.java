@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.*;
 public interface FoodQuantityDao {
     record State(long versionNo, long stockRevision, String snapshot) {}
     record Event(long historyId, String actionType, BigDecimal processedQuantityAmount, String quantityUnit,
-                 long afterStockRevision, java.time.OffsetDateTime createdAt, boolean reversed, boolean openedByConsumption) {
+                 long afterStockRevision, java.time.OffsetDateTime createdAt, boolean reversed, OpeningStatus openingStatusToRestore) {
         public String actionLabel() { return actionType.equals("CONSUME") ? "소비" : "폐기"; }
         public String quantity() { return processedQuantityAmount.stripTrailingZeros().toPlainString()+quantityUnit; }
     }
@@ -22,13 +22,23 @@ public interface FoodQuantityDao {
     @Select("""
         SELECT h.history_id,h.action_type,h.processed_quantity_amount,h.quantity_unit,h.after_stock_revision,h.created_at,
                EXISTS(SELECT 1 FROM food_history c WHERE c.reversal_of_history_id=h.history_id) AS reversed,
-               COALESCE(h.action_type='CONSUME' AND h.before_snapshot->>'opening_status'='UNOPENED'
-                   AND h.after_snapshot->>'opening_status'='OPENED', false) AS opened_by_consumption
+               CASE WHEN h.action_type='CONSUME' AND h.before_snapshot->>'opening_status' IN ('UNOPENED','UNKNOWN')
+                         AND h.before_snapshot->>'opening_status' <> h.after_snapshot->>'opening_status'
+                    THEN h.before_snapshot->>'opening_status' END AS opening_status_to_restore
         FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id}
             AND h.action_type IN ('CONSUME','DISCARD') AND h.operation_id IS NOT NULL
         ORDER BY h.history_id DESC LIMIT 1
         """)
     Event latest(long id);
+    @Select("""
+        SELECT EXISTS(
+            SELECT 1 FROM food_history h
+            WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND h.action_type='CONSUME'
+              AND NOT EXISTS(SELECT 1 FROM food_history c
+                  WHERE c.user_id=h.user_id AND c.reversal_of_history_id=h.history_id)
+        )
+        """)
+    boolean hasConsumption(long id);
     @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.quantity_text,h.created_at,h.cooking_id,c.food_name AS cooking_name,h.changes_text FROM food_history h LEFT JOIN cooking_record c ON c.user_id=h.user_id AND c.cooking_id=h.cooking_id WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND (h.action_type IN ('CREATE','SPLIT_IN','COOK_IN') OR (h.action_type IN ('CONSUME','DISCARD','CANCEL','SPLIT_OUT','COOK_OUT') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.cooking_id IS NOT NULL OR h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
     java.util.List<QuantityChange> quantityChanges(long id);
     record EndedSummary(long foodId, String registrationQuantity, java.time.OffsetDateTime endedAt) {}

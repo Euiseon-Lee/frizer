@@ -64,7 +64,7 @@
         const showOpening = valid && Number(input.value) < maximum;
         opening.hidden = opening.disabled = !showOpening;
         if (!showOpening) {
-          for (const radio of opening.querySelectorAll('input[type="radio"]')) radio.checked = false;
+          for (const radio of opening.querySelectorAll('input[type="radio"]')) radio.checked = radio.value === 'UNOPENED';
           clearOpeningError();
         }
         syncOpeningDate();

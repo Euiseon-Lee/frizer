@@ -2,6 +2,7 @@ package com.euiseon.friger.inventory.dao;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import com.euiseon.friger.common.type.OpeningStatus;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
@@ -46,15 +47,15 @@ public interface FoodQuantityDao {
         <script>
         UPDATE food_item SET quantity_amount=#{amount}, quantity_text=#{text}, status=#{status}, updated_at=clock_timestamp()
         <if test="openingStatus != null">
-            , opening_status=#{openingStatus}, opened_at=NULL, opening_confirmed_at=#{confirmedAt,jdbcType=DATE}
+            , opening_status=#{openingStatus}, opened_at=#{openedAt,jdbcType=DATE}, opening_confirmed_at=#{confirmedAt,jdbcType=DATE}
         </if>
         WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} AND version_no=#{version}
         </script>
         """)
     int updateQuantity(long id, long version, BigDecimal amount, String text, String status,
-                       com.euiseon.friger.common.type.OpeningStatus openingStatus, java.time.LocalDate confirmedAt);
+                       OpeningStatus openingStatus, java.time.LocalDate openedAt, java.time.LocalDate confirmedAt);
     default int quantity(long id, long version, BigDecimal amount, String text, String status) {
-        return updateQuantity(id, version, amount, text, status, null, null);
+        return updateQuantity(id, version, amount, text, status, null, null, null);
     }
     @Select(value="INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,quantity_text,changes_text,recorded_food_name,operation_id,processed_quantity_amount,quantity_unit,before_quantity_amount,after_quantity_amount,before_quantity_unit,before_snapshot,after_snapshot,snapshot_version,before_item_version,after_item_version,after_stock_revision,reversal_of_history_id,cooking_id,created_at) " +
         "SELECT #{_userId,jdbcType=BIGINT},i.food_id,#{action},i.storage_type,i.storage_type,#{display},#{changes},m.food_name,#{token},#{processed},i.quantity_unit,#{beforeAmount},i.quantity_amount,i.quantity_unit,CAST(#{before.snapshot} AS jsonb),CAST(#{after.snapshot} AS jsonb),1,#{before.versionNo},#{after.versionNo},#{after.stockRevision},#{reversal,jdbcType=BIGINT},#{cookingId,jdbcType=OTHER},clock_timestamp() FROM food_item i JOIN food_master m USING(master_id) WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} RETURNING history_id", affectData=true)

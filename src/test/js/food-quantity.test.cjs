@@ -97,3 +97,33 @@ test('only a positive partial quantity enables the opening choices and a full qu
     assert.equal(opening.disabled,true);
   }
 });
+
+function openingForm(unit='봉', maximum='5') {
+  function element(value='', extra={}) {
+    return {value,hidden:true,disabled:false,checked:false,dataset:{},handlers:{},classList:{remove(){}},
+      addEventListener(name,fn){(this.handlers[name]??=[]).push(fn)},
+      fire(name){for(const fn of this.handlers[name]??[])fn({})},
+      setCustomValidity(message){this.validationMessage=message},setAttribute(){},removeAttribute(){},...extra};
+  }
+  const fields={
+    quantityAmount:element(maximum,{dataset:{maximum,unit,action:'CONSUME'}}),quantityQuestion:element(),quantityInputError:element(),
+    remainingOpened:element('OPENED'),remainingUnopened:element('UNOPENED'),remainingOpening:element(),openingError:element(),
+    openingDateGroup:element(),openedAt:element('',{max:'2026-11-21'}),openingDateUnknown:element()
+  };
+  fields.remainingOpening.querySelectorAll=()=>[fields.remainingOpened,fields.remainingUnopened];
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    document:{querySelector:()=>element(),getElementById:id=>fields[id]},window:{addEventListener(){}}
+  });
+  return {
+    ...fields,
+    eat(value){fields.quantityAmount.value=value;fields.quantityAmount.fire('input')},
+    choose(opened){fields.remainingOpened.checked=opened;fields.remainingUnopened.checked=!opened;fields.remainingOpening.fire('change')}
+  };
+}
+test('unknown opening date stays disabled and is reset together with the unopened choice',()=>{
+  const f=openingForm();f.eat('0.5');f.choose(true);
+  f.openingDateUnknown.checked=true;f.openingDateUnknown.fire('change');
+  assert.equal(f.openedAt.value,'');assert.equal(f.openedAt.disabled,true);
+  f.choose(false);assert.equal(f.openingDateUnknown.checked,false);
+  f.choose(true);assert.equal(f.openedAt.disabled,false);assert.equal(f.openedAt.value,'2026-11-21');
+});

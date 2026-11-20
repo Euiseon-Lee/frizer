@@ -8,12 +8,45 @@
     const error = document.getElementById('quantityInputError');
     const opening = document.getElementById('remainingOpening');
     const openingError = document.getElementById('openingError');
+    const opened = document.getElementById('remainingOpened');
+    const dateGroup = document.getElementById('openingDateGroup');
+    const date = document.getElementById('openedAt');
+    const unknownDate = document.getElementById('openingDateUnknown');
+    function clearDateError() {
+      date.removeAttribute('aria-invalid');
+      date.removeAttribute('aria-describedby');
+      date.classList.remove('invalid');
+      const error = document.getElementById('openedAt-error');
+      if (error) error.hidden = true;
+    }
+    function syncOpeningDate() {
+      if (!dateGroup) return;
+      const show = !opening.disabled && opened.checked;
+      if (!show) {
+        date.value = '';
+        unknownDate.checked = false;
+        clearDateError();
+      } else if (dateGroup.hidden) {
+        date.value = date.max;
+      }
+      dateGroup.hidden = dateGroup.disabled = !show;
+      date.disabled = !show || unknownDate.checked;
+    }
+    unknownDate?.addEventListener('change', () => {
+      date.value = unknownDate.checked ? '' : date.max;
+      syncOpeningDate();
+      clearDateError();
+    });
+    date?.addEventListener('input', clearDateError);
     function clearOpeningError() {
       opening.removeAttribute('aria-invalid');
       opening.removeAttribute('aria-describedby');
       if (openingError) openingError.hidden = true;
     }
-    opening?.addEventListener('change', clearOpeningError);
+    opening?.addEventListener('change', () => {
+      clearOpeningError();
+      syncOpeningDate();
+    });
     opening?.addEventListener('invalid', () => {
       opening.setAttribute('aria-invalid', 'true');
       opening.setAttribute('aria-describedby', 'openingError');
@@ -31,9 +64,10 @@
         const showOpening = valid && Number(input.value) < maximum;
         opening.hidden = opening.disabled = !showOpening;
         if (!showOpening) {
-          for (const radio of opening.querySelectorAll('input')) radio.checked = false;
+          for (const radio of opening.querySelectorAll('input[type="radio"]')) radio.checked = false;
           clearOpeningError();
         }
+        syncOpeningDate();
       }
       question.textContent = input.dataset.action === 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : valid
         ? (Number(input.value) === maximum ? `이 구매 항목을 전부 ${verb} 것으로 기록할까?`

@@ -113,7 +113,9 @@ class FoodQuantityIntegrationTest {
             String html=mvc.perform(get(saved.getResponse().getRedirectedUrl()).flashAttrs(saved.getFlashMap()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             assertThat(html).contains("value=\"0.75\"","<dt>대분류</dt><dd>김치</dd>")
-                .doesNotContain("disabled=\"disabled\"");
+                .doesNotContainPattern("<input[^>]*id=\"quantityAmount\"[^>]*disabled")
+                .doesNotContainPattern("<button[^>]*type=\"submit\"[^>]*disabled")
+                .doesNotContainPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*disabled");
             mvc.perform(get(saved.getResponse().getRedirectedUrl()))
                 .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity","0.75"))
                 .andExpect(content().string(containsString("value=\"0.75\"")));
@@ -319,7 +321,7 @@ class FoodQuantityIntegrationTest {
                 .andExpect(model().attribute("openingError","남은 음식의 개봉 상태를 골라줘."))
                 .andReturn().getResponse().getContentAsString();
         assertThat(html).containsPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*aria-invalid=\"true\"")
-                .doesNotContainPattern("<fieldset[^>]*(?:hidden|disabled)")
+                .doesNotContainPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*(?:hidden|disabled)")
                 .containsSubsequence("value=\"OPENED\"", "응 개봉했어!", "value=\"UNOPENED\"", "아니 미개봉이야!");
         assertThat(quantities.preview(id).version()).isEqualTo(version);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt WHERE request_id=?",Integer.class,request)).isZero();
@@ -354,6 +356,43 @@ class FoodQuantityIntegrationTest {
         assertThat(restored.openedAt()).isNull();
         assertThat(restored.openingConfirmedAt()).isNull();
         assertThat(restored.memo()).isEqualTo("소비 후 메모");
+    }
+    @Test void partialConsumptionValidatesSavesAndUndoesTheOpeningDate() throws Exception {
+        long id = create();
+        long version = quantities.preview(id).version();
+        UUID token = UUID.randomUUID();
+        var today = java.time.LocalDate.now(clock);
+        var openingDay = today.minusDays(2);
+        String invalidDateHtml = mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+                .param("version",Long.toString(version)).param("requestId",token.toString())
+                .param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedAt",today.plusDays(1).toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("submittedQuantity","0.5"))
+                .andExpect(model().attribute("dateError","미래 날짜는 입력할 수 없습니다."))
+                .andExpect(content().string(containsString("value=\""+today.plusDays(1)+"\"")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(invalidDateHtml).containsPattern("<input[^>]*value=\"OPENED\"[^>]*checked")
+                .doesNotContainPattern("<input[^>]*value=\"UNOPENED\"[^>]*checked");
+        assertThat(quantities.preview(id).version()).isEqualTo(version);
+
+        mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+                .param("version",Long.toString(version)).param("requestId",token.toString())
+                .param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedAt",openingDay.toString()))
+                .andExpect(redirectedUrl("/inventory/"+id));
+        var stock = quantities.preview(id);
+        assertThat(stock.item().quantityAmount()).isEqualByComparingTo("2");
+        assertThat(stock.item().openingStatus()).isEqualTo(OPENED);
+        assertThat(stock.item().openedAt()).isEqualTo(openingDay);
+        assertThat(stock.item().openingConfirmedAt()).isEqualTo(today);
+        var amount = new java.math.BigDecimal("0.5");
+        assertThat(quantities.apply(id,CONSUME,version,null,token,amount,OPENED,openingDay)).isEqualTo(stock.event().historyId());
+        assertThatThrownBy(() -> quantities.apply(id,CONSUME,version,null,token,amount,OPENED,today)).isInstanceOf(InvalidFoodException.class);
+        cancel(id, stock.event().historyId());
+        var restored = inventory.findById(id);
+        assertThat(restored.quantityAmount()).isEqualByComparingTo("2.5");
+        assertThat(restored.openingStatus()).isEqualTo(UNOPENED);
+        assertThat(restored.openedAt()).isNull();
+        assertThat(restored.openingConfirmedAt()).isNull();
     }
     @Test void fullConsumptionAndIndividualPacksRestoreUnopenedStock() throws Exception {
         long id = create();

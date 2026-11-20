@@ -60,13 +60,19 @@ public class FoodQuantityService {
     @Transactional
     public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
                       OpeningStatus remainingOpening) {
+        return apply(id, action, version, historyId, token, selectedQuantity, remainingOpening, null);
+    }
+    @Transactional
+    public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
+                      OpeningStatus remainingOpening, LocalDate openedAt) {
         if(action==null || token==null) throw invalid("처리 내용을 다시 확인해줘.");
         if(selectedQuantity!=null && (action==Action.CANCEL || selectedQuantity.signum()<=0
                 || selectedQuantity.stripTrailingZeros().scale()>2 || selectedQuantity.compareTo(new BigDecimal("999999999.99"))>0))
             throw invalid("수량은 0보다 크게, 소수점 둘째 자리까지 입력해줘.");
         String payload=id+":"+action+":"+version+":"+historyId
             +(selectedQuantity==null ? "" : ":"+selectedQuantity.stripTrailingZeros().toPlainString())
-            +(remainingOpening==null ? "" : ":"+remainingOpening.name());
+            +(remainingOpening==null ? "" : ":"+remainingOpening.name())
+            +(action==Action.CONSUME && remainingOpening==OpeningStatus.OPENED && openedAt!=null ? ":"+openedAt : "");
         // Check ownership before claiming a receipt (including foreign IDs with a known token).
         if(inventory.findById(id)==null) throw new FoodNotFoundException(id);
         if(quantities.claim(token,payload,id)==0) {
@@ -109,7 +115,10 @@ public class FoodQuantityService {
         }
         String text=remaining.stripTrailingZeros().toPlainString()+item.quantityUnit();
         LocalDate confirmedAt = openingChange == OpeningStatus.OPENED ? LocalDate.now(clock) : null;
-        if(quantities.updateQuantity(id,version,remaining,text,remaining.signum()>0?"ACTIVE":"DEPLETED",openingChange,confirmedAt)!=1)
+        LocalDate openingDate = openingChange == OpeningStatus.OPENED ? openedAt : null;
+        if (openingDate != null && openingDate.isAfter(confirmedAt))
+            throw new InvalidFoodException(Map.of("openedAt", "미래 날짜는 입력할 수 없습니다."));
+        if(quantities.updateQuantity(id,version,remaining,text,remaining.signum()>0?"ACTIVE":"DEPLETED",openingChange,openingDate,confirmedAt)!=1)
             throw invalid("음식 정보가 바뀌었어. 다시 확인해줘.");
         masters.touch(masterId);
         var after=quantities.state(id);

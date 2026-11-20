@@ -588,6 +588,7 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .remaining-opening legend{padding:0;margin-bottom:9px;font-weight:650;font-size:14px}
 .remaining-opening span{word-break:keep-all}
 .remaining-opening[aria-invalid=true] span{border-color:var(--danger)}
+.remaining-opening-date{margin:16px 0 0}
 .cooking-consumption>summary{min-height:44px;padding:0;list-style:none}
 .cooking-consumption>summary::-webkit-details-marker{display:none}
 .cooking-consumption>summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}

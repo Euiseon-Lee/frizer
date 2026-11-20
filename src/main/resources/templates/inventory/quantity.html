@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FR!ZER | 처리 확인</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-1')}">
+<title>FR!ZER | 처리 확인</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-date-1')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
-<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js(v='opening-1')}" defer></script></head>
+<script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js(v='opening-date-1')}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
 <main class="page form-page">
 <section class="heading character-heading tab-heading"><div><p class="eyebrow" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '소비 처리' : '폐기 처리')}"></p><h1 class="detail-title" th:text="${preview.item().foodName()}"></h1></div>
@@ -29,10 +29,18 @@
 <fieldset class="storage-choices remaining-opening" id="remainingOpening"
           th:hidden="${!partialDraft}" th:disabled="${!partialDraft}" th:attr="aria-invalid=${openingError != null},aria-describedby=${openingError != null ? 'openingError' : null}">
   <legend>남은 음식 중 개봉한 포장이 있어?</legend>
-  <label><input type="radio" name="remainingOpening" value="OPENED" form="quantity-form" required><span>응 개봉했어!</span></label>
-  <label><input type="radio" name="remainingOpening" value="UNOPENED" form="quantity-form" required><span>아니 미개봉이야!</span></label>
+  <label><input type="radio" id="remainingOpened" name="remainingOpening" value="OPENED" form="quantity-form" required th:checked="${submittedOpening != null and submittedOpening.name() == 'OPENED'}"><span>응 개봉했어!</span></label>
+  <label><input type="radio" name="remainingOpening" value="UNOPENED" form="quantity-form" required th:checked="${submittedOpening != null and submittedOpening.name() == 'UNOPENED'}"><span>아니 미개봉이야!</span></label>
 </fieldset>
 <p id="openingError" class="field-error" role="alert" th:hidden="${openingError == null}">남은 음식의 개봉 상태를 골라줘.</p>
+<fieldset class="field frozen-date-group remaining-opening-date" id="openingDateGroup" th:hidden="${submittedOpening == null or submittedOpening.name() != 'OPENED'}" th:disabled="${submittedOpening == null or submittedOpening.name() != 'OPENED'}">
+  <legend>개봉일</legend>
+  <label class="sr-only" for="openedAt">개봉일</label>
+  <input type="date" id="openedAt" name="openedAt" form="quantity-form" th:max="${today}" th:value="${submittedOpenedAt}" required
+         th:classappend="${dateError != null} ? 'invalid'" th:attr="aria-invalid=${dateError != null},aria-describedby=${dateError != null ? 'openedAt-error' : null}">
+  <p class="field-error" id="openedAt-error" th:if="${dateError}" th:text="${dateError}"></p>
+  <label class="check-label today-checkbox"><input type="checkbox" id="openingDateUnknown" form="quantity-form" th:checked="${submittedOpening != null and submittedOpenedAt == null}"> 날짜가 기억나지 않아</label>
+</fieldset>
 </th:block>
 </section>
 <p class="quantity-message" id="quantityQuestion" th:if="${available}" th:text="${action == 'CANCEL' ? '이 처리를 취소하고 다시 보관 중으로 바꿀까?' : (action == 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : '입력한 수량을 버린 것으로 기록할까?')}"></p>

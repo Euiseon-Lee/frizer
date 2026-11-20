@@ -4,6 +4,8 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import com.euiseon.friger.common.errorlog.ErrorDiagnostics;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import com.euiseon.friger.common.type.StorageType;
 import com.euiseon.friger.common.type.OpeningStatus;
 import com.euiseon.friger.inventory.service.*;
@@ -19,8 +21,10 @@ public class FoodQuantityController {
     private final FoodQuantityService quantities;
     private final FoodMasterService masters;
     private final FoodCategoryService categories;
-    public FoodQuantityController(FoodQuantityService quantities,FoodMasterService masters,FoodCategoryService categories) {
+    private final Clock clock;
+    public FoodQuantityController(FoodQuantityService quantities,FoodMasterService masters,FoodCategoryService categories,Clock clock) {
         this.quantities=quantities;this.masters=masters;this.categories=categories;
+        this.clock=clock;
     }
     @GetMapping("/inventory/{id}/quantity")
     String preview(@PathVariable long id,@RequestParam FoodQuantityService.Action action,
@@ -38,6 +42,7 @@ public class FoodQuantityController {
             }
         }
         model.addAttribute("partialDraft",partialDraft);
+        model.addAttribute("today",LocalDate.now(clock));
         model.addAttribute("preview",preview);
         var master=masters.find(masters.masterId(id));
         var labels=categories.labels(master.categoryMajorCode(),master.categoryMinorCode());
@@ -53,6 +58,7 @@ public class FoodQuantityController {
                  @RequestParam(required=false) Long historyId,@RequestParam UUID requestId,
                  @RequestParam(required=false) String quantityAmount,
                  @RequestParam(required=false) OpeningStatus remainingOpening,
+                 @RequestParam(required=false) LocalDate openedAt,
                  @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
                  @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request,Model model) {
         ErrorDiagnostics.quantity(request,id,action,version,historyId,null);
@@ -64,15 +70,18 @@ public class FoodQuantityController {
                 selected=new BigDecimal(quantityAmount);
             }
             ErrorDiagnostics.quantity(request,id,action,version,historyId,selected);
-            quantities.apply(id,action,version,historyId,requestId,selected,remainingOpening);
+            quantities.apply(id,action,version,historyId,requestId,selected,remainingOpening,openedAt);
             redirect.addFlashAttribute("successMessage",action==FoodQuantityService.Action.CANCEL ? "처리를 취소했어. 다시 보관 중이야." : action==FoodQuantityService.Action.CONSUME ? "먹은 것으로 기록했어." : "버린 것으로 기록했어.");
             if(action!=FoodQuantityService.Action.CANCEL) redirect.addFlashAttribute("processedItemId",id);
             boolean active=quantities.preview(id).item().status()==com.euiseon.friger.common.type.FoodStatus.ACTIVE;
             return url(active?"/inventory/"+id:"/foods/"+masters.masterId(id),storage,warning,false);
         } catch(InvalidFoodException error) {
-            if (error.errors().containsKey("remainingOpening")) {
+            if (error.errors().containsKey("remainingOpening") || error.errors().containsKey("openedAt")) {
                 preview(id,action,storage,warning,ended,quantityAmount,model);
                 model.addAttribute("openingError", error.errors().get("remainingOpening"));
+                model.addAttribute("dateError", error.errors().get("openedAt"));
+                model.addAttribute("submittedOpenedAt", openedAt);
+                model.addAttribute("submittedOpening", remainingOpening);
                 return "inventory/quantity";
             }
             if(error.errors().containsKey("categoryMajorCode")) {

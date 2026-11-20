@@ -7,12 +7,16 @@ import java.util.Objects;
 /** Quantity changes use recorded values, never today's remaining quantity. */
 public record QuantityChange(long historyId, String actionType, BigDecimal beforeQuantityAmount,
         BigDecimal afterQuantityAmount, String beforeQuantityUnit, String quantityUnit, String quantityText,
-        OffsetDateTime createdAt, java.util.UUID cookingId, String cookingName, String changesText) {
+        OffsetDateTime createdAt, java.util.UUID cookingId, String cookingName, String changesText, BigDecimal separatedQuantityAmount) {
     @org.apache.ibatis.annotations.AutomapConstructor
     public QuantityChange {}
     public QuantityChange(long historyId,String actionType,BigDecimal beforeQuantityAmount,BigDecimal afterQuantityAmount,
             String beforeQuantityUnit,String quantityUnit,String quantityText,OffsetDateTime createdAt) {
-        this(historyId,actionType,beforeQuantityAmount,afterQuantityAmount,beforeQuantityUnit,quantityUnit,quantityText,createdAt,null,null,null);
+        this(historyId,actionType,beforeQuantityAmount,afterQuantityAmount,beforeQuantityUnit,quantityUnit,quantityText,createdAt,null,null,null,BigDecimal.ZERO);
+    }
+    public String separationDescription() {
+        return separatedQuantityAmount == null || separatedQuantityAmount.signum()==0 ? null
+            : "미개봉 " + display(separatedQuantityAmount,quantityUnit) + (actionType.equals("CANCEL") ? " 합침" : " 분리");
     }
     public String cookingDescription() {
         if (actionType.equals("COOK_IN")) return "수량 " + remainingQuantity();
@@ -31,6 +35,8 @@ public record QuantityChange(long historyId, String actionType, BigDecimal befor
         if (beforeQuantityAmount != null && afterQuantityAmount != null && quantityUnit != null
                 && (!actionType.equals("UPDATE") || Objects.equals(beforeQuantityUnit, quantityUnit))) {
             var delta = afterQuantityAmount.subtract(beforeQuantityAmount);
+            if(separatedQuantityAmount!=null)
+                delta=delta.add(actionType.equals("CANCEL") ? separatedQuantityAmount.negate() : separatedQuantityAmount);
             return (delta.signum() > 0 ? "+" : "") + delta.stripTrailingZeros().toPlainString() + quantityUnit;
         }
         // Unit changes cannot be expressed as a numeric delta.

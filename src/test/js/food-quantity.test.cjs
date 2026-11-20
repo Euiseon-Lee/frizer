@@ -111,6 +111,7 @@ function openingForm(unit='봉', maximum='5') {
   const fields={
     quantityAmount:element(maximum,{dataset:{maximum,unit,action:'CONSUME'}}),quantityQuestion:element(),quantityInputError:element(),
     remainingOpened:element('OPENED'),remainingUnopened:element('UNOPENED',{checked:true}),remainingOpening:element(),openingError:element(),
+    openingAmountGroup:element(),openedQuantity:element(),unopenedQuantity:element(),openedQuantityError:element(),
     openingDateGroup:element(),openedAt:element('',{max:'2026-11-21'}),openingDateUnknown:element()
   };
   fields.remainingOpening.querySelectorAll=()=>[fields.remainingOpened,fields.remainingUnopened];
@@ -120,13 +121,42 @@ function openingForm(unit='봉', maximum='5') {
   return {
     ...fields,
     eat(value){fields.quantityAmount.value=value;fields.quantityAmount.fire('input')},
-    choose(opened){fields.remainingOpened.checked=opened;fields.remainingUnopened.checked=!opened;fields.remainingOpening.fire('change')}
+    choose(opened){fields.remainingOpened.checked=opened;fields.remainingUnopened.checked=!opened;fields.remainingOpening.fire('change')},
+    setOpened(value){fields.openedQuantity.value=value;fields.openedQuantity.fire('input')}
   };
 }
+test('direct opened input updates sealed stock, preserves manual values, and validates against the current remainder',()=>{
+  const f=openingForm();
+  f.eat('0.5');f.choose(true);
+  assert.equal(f.openedQuantity.value,'0.5');assert.equal(f.unopenedQuantity.textContent,'4봉');
+  assert.equal(f.openedAt.value,'2026-11-21');assert.equal(f.openedAt.disabled,false);
+  f.setOpened('4.5');assert.equal(f.unopenedQuantity.textContent,'0봉');assert.equal(f.openedQuantity.validationMessage,'');
+  f.eat('1');assert.equal(f.openedQuantity.value,'4.5');assert.equal(f.unopenedQuantity.textContent,'—');
+  assert.notEqual(f.openedQuantity.validationMessage,'');assert.equal(f.openedQuantityError.hidden,false);
+  for(const value of ['','0','-1','1e0','0.001','4.01']) {
+    f.setOpened(value);assert.notEqual(f.openedQuantity.validationMessage,'');assert.equal(f.unopenedQuantity.textContent,'—');
+  }
+  f.setOpened('0.25');assert.equal(f.unopenedQuantity.textContent,'3.75봉');
+  f.choose(false);assert.equal(f.openingAmountGroup.disabled,true);assert.equal(f.openedAt.value,'');
+  f.choose(true);assert.equal(f.openedQuantity.value,'0.25');assert.equal(f.openedAt.value,'2026-11-21');
+  f.eat('5');assert.equal(f.remainingOpening.disabled,true);assert.equal(f.openingAmountGroup.disabled,true);
+  assert.equal(f.openingDateGroup.disabled,true);assert.equal(f.openedQuantity.validationMessage,'');
+  f.eat('0.5');assert.equal(f.remainingUnopened.checked,true);f.choose(true);assert.equal(f.openedQuantity.value,'0.5');
+});
+test('hundredths avoid rounding errors and measured units suggest the whole remainder',()=>{
+  const f=openingForm('개','0.3');f.eat('0.1');f.choose(true);
+  assert.equal(f.openedQuantity.value,'0.2');f.setOpened('0.1');assert.equal(f.unopenedQuantity.textContent,'0.1개');
+  for(const unit of ['g','kg','ml','L','그램','리터']) {
+    const bulk=openingForm(unit,'500');bulk.eat('100');bulk.choose(true);
+    assert.equal(bulk.openedQuantity.value,'400');assert.equal(bulk.unopenedQuantity.textContent,'0'+unit);
+    bulk.setOpened('200');assert.equal(bulk.unopenedQuantity.textContent,'200'+unit);
+  }
+});
 test('unknown opening date stays disabled and is reset together with the unopened choice',()=>{
   const f=openingForm();f.eat('0.5');f.choose(true);
   f.openingDateUnknown.checked=true;f.openingDateUnknown.fire('change');
   assert.equal(f.openedAt.value,'');assert.equal(f.openedAt.disabled,true);
+  f.setOpened('1.5');assert.equal(f.openedAt.disabled,true);
   f.choose(false);assert.equal(f.openingDateUnknown.checked,false);
   f.choose(true);assert.equal(f.openedAt.disabled,false);assert.equal(f.openedAt.value,'2026-11-21');
 });

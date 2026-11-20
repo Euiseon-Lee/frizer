@@ -86,6 +86,7 @@
                 <time th:datetime="${event.createdAt()}"><span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd')}"></span> <span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'HH:mm')}"></span></time>
                 <a class="text-link" th:classappend="${event.actionType() == 'COOK_IN' ? 'quantity-history-value' : 'quantity-history-cooking'}" th:if="${event.cookingId() != null}" th:href="@{/cooking/{id}(id=${event.cookingId()})}" th:text="${event.cookingDescription()}"></a>
                 <div class="quantity-history-value" th:unless="${event.cookingId() != null}"><strong class="quantity-history-amount" th:text="${event.changeQuantity()}"></strong> <span class="quantity-history-balance">(잔량: <span th:text="${event.remainingQuantity() + ')'}"></span></span></div>
+                <p class="small muted" th:if="${event.separationDescription() != null}" th:text="${event.separationDescription()}"></p>
                 <a class="quantity-history-cancel" th:if="${quantityPreview.cancellable() and quantityPreview.event().historyId() == event.historyId()}" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}" th:aria-label="${event.actionLabel() + ' ' + event.changeQuantity() + ' 처리 취소'}">처리 취소</a>
             </li>
         </ul>

@@ -45,7 +45,7 @@ public interface CookingDao {
     long resultHistory(UUID id,long foodId,String changes,
         com.euiseon.friger.inventory.entity.FoodMaster categoryBefore,
         com.euiseon.friger.inventory.entity.FoodMaster categoryAfter);
-    @Select("SELECT count(*) FROM food_history WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{foodId} AND history_id>#{afterHistory} AND (action_type NOT IN ('CONSUME','DISCARD','CANCEL','COOK_OUT','MOVE','FREEZE','MERGE','UPDATE') OR (action_type='UPDATE' AND (before_quantity_amount IS NULL OR after_quantity_amount IS NULL OR before_quantity_amount IS DISTINCT FROM after_quantity_amount OR before_quantity_unit IS DISTINCT FROM quantity_unit)) OR quantity_unit IS DISTINCT FROM #{unit} OR (action_type IN ('CONSUME','DISCARD','CANCEL','COOK_OUT') AND operation_id IS NULL))")
+    @Select("SELECT count(*) FROM food_history WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{foodId} AND history_id>#{afterHistory} AND (separated_quantity_amount>0 OR action_type NOT IN ('CONSUME','DISCARD','CANCEL','COOK_OUT','MOVE','FREEZE','MERGE','UPDATE') OR (action_type='UPDATE' AND (before_quantity_amount IS NULL OR after_quantity_amount IS NULL OR before_quantity_amount IS DISTINCT FROM after_quantity_amount OR before_quantity_unit IS DISTINCT FROM quantity_unit)) OR quantity_unit IS DISTINCT FROM #{unit} OR (action_type IN ('CONSUME','DISCARD','CANCEL','COOK_OUT') AND operation_id IS NULL))")
     int ambiguousChanges(long foodId,long afterHistory,String unit);
     @Insert("INSERT INTO cooking_correction_receipt(user_id,request_id,cooking_id,request_payload) VALUES (#{_userId,jdbcType=BIGINT},#{token},#{id},#{payload}) ON CONFLICT DO NOTHING")
     int claimCorrection(UUID token,UUID id,String payload);

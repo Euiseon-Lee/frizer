@@ -12,6 +12,41 @@
     const dateGroup = document.getElementById('openingDateGroup');
     const date = document.getElementById('openedAt');
     const unknownDate = document.getElementById('openingDateUnknown');
+    const amountGroup = document.getElementById('openingAmountGroup');
+    const openedAmount = document.getElementById('openedQuantity');
+    const unopenedAmount = document.getElementById('unopenedQuantity');
+    const amountError = document.getElementById('openedQuantityError');
+    let manualAmount = openedAmount?.dataset.manual === 'true';
+    const numeric = value => /^\d{1,9}(?:\.\d{1,2})?$/.test(value);
+    const hundredths = value => Math.round(Number(value) * 100);
+    function syncOpeningAmount() {
+      if (!amountGroup) return;
+      const show = !opening.disabled && opened.checked;
+      amountGroup.hidden = amountGroup.disabled = !show;
+      if (!show) {
+        openedAmount.setCustomValidity('');
+        amountError.hidden = true;
+        return;
+      }
+      const remaining = hundredths(maximum) - hundredths(input.value);
+      if (!manualAmount) {
+        // Counted packages suggest the unfinished unit; weight/volume keep the remainder.
+        const measured = /^(g|kg|mg|ml|l|그램|킬로그램|밀리리터|리터)$/i.test(input.dataset.unit);
+        openedAmount.value = String((measured ? remaining : remaining % 100 || Math.min(100, remaining)) / 100);
+      }
+      const amount = hundredths(openedAmount.value);
+      const valid = numeric(openedAmount.value) && amount > 0 && amount <= remaining;
+      const message = valid ? '' : '개봉 수량은 0보다 크고 남은 수량 이하로 입력해줘.';
+      openedAmount.setCustomValidity(message);
+      openedAmount.setAttribute('aria-invalid', String(!valid));
+      amountError.textContent = message;
+      amountError.hidden = valid;
+      unopenedAmount.textContent = valid ? `${(remaining - amount) / 100}${input.dataset.unit}` : '—';
+    }
+    openedAmount?.addEventListener('input', () => {
+      manualAmount = true;
+      syncOpeningAmount();
+    });
     function clearDateError() {
       date.removeAttribute('aria-invalid');
       date.removeAttribute('aria-describedby');
@@ -46,6 +81,7 @@
     opening?.addEventListener('change', () => {
       clearOpeningError();
       syncOpeningDate();
+      syncOpeningAmount();
     });
     opening?.addEventListener('invalid', () => {
       opening.setAttribute('aria-invalid', 'true');
@@ -66,8 +102,10 @@
         if (!showOpening) {
           for (const radio of opening.querySelectorAll('input[type="radio"]')) radio.checked = radio.value === 'UNOPENED';
           clearOpeningError();
+          manualAmount = false;
         }
         syncOpeningDate();
+        syncOpeningAmount();
       }
       question.textContent = input.dataset.action === 'CONSUME' ? '이 구매 항목을 이렇게 기록할까?' : valid
         ? (Number(input.value) === maximum ? `이 구매 항목을 전부 ${verb} 것으로 기록할까?`

@@ -20,10 +20,12 @@ public class FoodQuantityService {
     private final InventoryDao inventory;
     private final FoodMasterDao masters;
     private final FoodQuantityDao quantities;
+    private final FoodSplitService splits;
     private final Clock clock;
-    public FoodQuantityService(InventoryDao inventory,FoodMasterDao masters,FoodQuantityDao quantities, Clock clock) {
+    public FoodQuantityService(InventoryDao inventory,FoodMasterDao masters,FoodQuantityDao quantities, FoodSplitService splits, Clock clock) {
         this.inventory=inventory;this.masters=masters;this.quantities=quantities;
         this.clock=clock;
+        this.splits=splits;
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Preview preview(long id) {
@@ -52,7 +54,15 @@ public class FoodQuantityService {
     private boolean canCancel(FoodItem item,FoodQuantityDao.State state,FoodQuantityDao.Event event) {
         return item.quantityAmount()!=null && event!=null && !event.reversed()
             && state.stockRevision()==event.afterStockRevision()
-            && Objects.equals(item.quantityUnit(),event.quantityUnit());
+            && Objects.equals(item.quantityUnit(),event.quantityUnit()) && separatedStockUnchanged(item,event);
+    }
+    private boolean separatedStockUnchanged(FoodItem item,FoodQuantityDao.Event event) {
+        if(event.separatedFoodId()==null) return true;
+        var child=inventory.findById(event.separatedFoodId());
+        var state=quantities.state(event.separatedFoodId());
+        // A sibling is removed on undo. Even a memo edit must prevent losing it.
+        return child!=null && state!=null && state.versionNo()==event.separatedItemVersion()
+            && Objects.equals(masters.masterIdForItem(item.foodId()),masters.masterIdForItem(child.foodId()));
     }
     private boolean needsRemainingOpeningChoice(FoodItem item) {
         return item.openingStatus() == OpeningStatus.UNOPENED
@@ -70,6 +80,11 @@ public class FoodQuantityService {
     @Transactional
     public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
                       OpeningStatus remainingOpening, LocalDate openedAt) {
+        return apply(id,action,version,historyId,token,selectedQuantity,remainingOpening,openedAt,null);
+    }
+    @Transactional
+    public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
+                      OpeningStatus remainingOpening, LocalDate openedAt, BigDecimal openedQuantity) {
         if(action==null || token==null) throw invalid("처리 내용을 다시 확인해줘.");
         if(selectedQuantity!=null && (action==Action.CANCEL || selectedQuantity.signum()<=0
                 || selectedQuantity.stripTrailingZeros().scale()>2 || selectedQuantity.compareTo(new BigDecimal("999999999.99"))>0))
@@ -77,7 +92,8 @@ public class FoodQuantityService {
         String payload=id+":"+action+":"+version+":"+historyId
             +(selectedQuantity==null ? "" : ":"+selectedQuantity.stripTrailingZeros().toPlainString())
             +(remainingOpening==null ? "" : ":"+remainingOpening.name())
-            +(action==Action.CONSUME && remainingOpening==OpeningStatus.OPENED && openedAt!=null ? ":"+openedAt : "");
+            +(action==Action.CONSUME && remainingOpening==OpeningStatus.OPENED && openedAt!=null ? ":"+openedAt : "")
+            +(openedQuantity==null ? "" : ":opened="+openedQuantity.stripTrailingZeros().toPlainString());
         // Check ownership before claiming a receipt (including foreign IDs with a known token).
         if(inventory.findById(id)==null) throw new FoodNotFoundException(id);
         if(quantities.claim(token,payload,id)==0) {
@@ -98,13 +114,27 @@ public class FoodQuantityService {
         if(before.versionNo()!=version) throw invalid("음식 정보가 바뀌었어. 상세에서 최신 내용을 다시 확인해줘.");
         BigDecimal processed;
         BigDecimal remaining;
+        BigDecimal separatedAmount=BigDecimal.ZERO;
+        Long separatedId=null;
+        Long separatedVersion=null;
         OpeningStatus openingChange = null;
         if(action==Action.CANCEL) {
             var event=quantities.latest(id);
             if(!canCancel(item,before,event) || !Objects.equals(historyId,event.historyId()))
                 throw invalid("이후 수량이나 보관 정보가 변경되었거나 이미 취소된 처리야. 취소할 수 없어.");
-            processed=event.processedQuantityAmount();remaining=item.quantityAmount().add(processed);
+            processed=event.processedQuantityAmount();remaining=event.restoredAmount(item.quantityAmount());
             openingChange = event.openingStatusToRestore();
+            separatedId=event.separatedFoodId();
+            separatedAmount=event.separatedQuantityAmount();
+            separatedVersion=event.separatedItemVersion();
+            if(separatedId!=null) {
+                // Master first, then source and its newer sibling: the existing lock order.
+                inventory.findByIdForUpdate(separatedId);
+                if(!separatedStockUnchanged(item,event)) throw invalid("나뉜 재고가 변경되어 취소할 수 없어.");
+                if(quantities.deleteSeparatedHistory(separatedId)!=1
+                        || quantities.deleteSeparatedItem(separatedId,masterId,separatedVersion)!=1)
+                    throw invalid("나뉜 재고가 변경되어 취소할 수 없어.");
+            }
         } else {
             if(historyId!=null || item.status()!=FoodStatus.ACTIVE) throw invalid("보관 중인 구매 항목만 처리할 수 있어.");
             if(item.quantityAmount()==null || item.quantityUnit()==null)
@@ -116,6 +146,13 @@ public class FoodQuantityService {
                 if (remainingOpening != OpeningStatus.UNOPENED && remainingOpening != OpeningStatus.OPENED)
                     throw new InvalidFoodException(Map.of("remainingOpening", "남은 음식의 개봉 상태를 골라줘."));
                 if (remainingOpening != item.openingStatus()) openingChange = remainingOpening;
+                if(remainingOpening==OpeningStatus.OPENED && openedQuantity!=null) {
+                    if(openedQuantity.signum()<=0 || openedQuantity.stripTrailingZeros().scale()>2
+                            || openedQuantity.compareTo(remaining)>0)
+                        throw new InvalidFoodException(Map.of("openedQuantity", "개봉 수량은 0보다 크고 남은 수량 이하로 입력해줘."));
+                    separatedAmount=remaining.subtract(openedQuantity);
+                    remaining=openedQuantity;
+                }
             }
         }
         String text=remaining.stripTrailingZeros().toPlainString()+item.quantityUnit();
@@ -123,6 +160,16 @@ public class FoodQuantityService {
         LocalDate openingDate = openingChange == OpeningStatus.OPENED ? openedAt : null;
         if (openingDate != null && openingDate.isAfter(confirmedAt))
             throw new InvalidFoodException(Map.of("openedAt", "미래 날짜는 입력할 수 없습니다."));
+        if(action==Action.CONSUME && separatedAmount.signum()>0) {
+            var now=java.time.OffsetDateTime.now(clock);
+            var child=new FoodItem(null,item.foodName(),item.storageType(),item.category(),
+                separatedAmount.stripTrailingZeros().toPlainString()+item.quantityUnit(),item.expiredAt(),item.purchasedAt(),null,
+                item.frozenAt(),item.sourceType(),item.freezeType(),FoodStatus.ACTIVE,item.memo(),now,now,
+                item.capacityText(),item.sourceMemo(),item.sellByAt(),separatedAmount,item.quantityUnit(),
+                item.warningPausedUntil(),OpeningStatus.UNOPENED,null);
+            separatedId=splits.createSibling(id,masterId,child);
+            separatedVersion=quantities.state(separatedId).versionNo();
+        }
         if(quantities.updateQuantity(id,version,remaining,text,remaining.signum()>0?"ACTIVE":"DEPLETED",openingChange,openingDate,confirmedAt)!=1)
             throw invalid("음식 정보가 바뀌었어. 다시 확인해줘.");
         masters.touch(masterId);
@@ -131,8 +178,11 @@ public class FoodQuantityService {
         String changes = "수량: "+item.displayQuantity()+" → "+text;
         if (openingChange != null)
             changes += "\n개봉 상태: " + item.openingStatus().label() + " → " + openingChange.label();
-        long event=quantities.history(id,action.name(),token,processed,item.quantityAmount(),display,
-            changes,before,after,action==Action.CANCEL?historyId:null);
+        if(separatedId!=null)
+            changes += "\n미개봉 " + separatedAmount.stripTrailingZeros().toPlainString()+item.quantityUnit()
+                + (action==Action.CANCEL ? " 합침" : " 분리") + " (#"+separatedId+")";
+        long event=quantities.operationHistory(id,action.name(),token,processed,item.quantityAmount(),display,
+            changes,before,after,action==Action.CANCEL?historyId:null,null,separatedId,separatedAmount,separatedVersion);
         if(quantities.complete(token,event)!=1) throw new IllegalStateException("처리 결과를 저장하지 못했어.");
         return event;
     }

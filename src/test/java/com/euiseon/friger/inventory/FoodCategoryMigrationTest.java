@@ -73,6 +73,9 @@ class FoodCategoryMigrationTest {
             assertThat(row.remove("category_before")).isNull();
             assertThat(row.remove("category_after")).isNull();
             assertThat(row.remove("cooking_id")).isNull();
+            assertThat(row.remove("separated_food_id")).isNull();
+            assertThat((java.math.BigDecimal)row.remove("separated_quantity_amount")).isZero();
+            assertThat(row.remove("separated_item_version")).isNull();
         });
         assertThat(histories).isEqualTo(historyBefore);
         assertThat(jdbc.queryForObject("SELECT to_regclass('public.food_category_history')::text",String.class)).isNull();

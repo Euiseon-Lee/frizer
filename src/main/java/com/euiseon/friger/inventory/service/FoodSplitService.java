@@ -82,11 +82,17 @@ public class FoodSplitService {
             item.expiredAt(),item.purchasedAt(),item.openedAt(),frozenAt,item.sourceType(),freeze,
             FoodStatus.ACTIVE,item.memo(),now,now,item.capacityText(),item.sourceMemo(),item.sellByAt(),
             amount,item.quantityUnit()).withOpening(item.openingStatus(),item.openingConfirmedAt());
-        long childId=inventory.insertForMaster(child,masterId);
-        inventory.copyCookingDate(id,childId);
-        if(history.insert(new FoodHistory(null,childId,FoodActionType.SPLIT_IN,null,c.storage(),amountText,now,null))!=1)
-            throw new IllegalStateException("분리 이력을 저장하지 못했습니다.");
+        long childId=createSibling(id,masterId,child);
         if(splits.complete(token,childId)!=1) throw new IllegalStateException("분리 결과를 저장하지 못했습니다.");
+        return childId;
+    }
+    // Both manual splitting and consumption use the same stock initialization.
+    // The caller owns the master lock and the encompassing transaction.
+    long createSibling(long sourceId,long masterId,FoodItem child) {
+        long childId=inventory.insertForMaster(child,masterId);
+        inventory.copyCookingDate(sourceId,childId);
+        if(history.insert(new FoodHistory(null,childId,FoodActionType.SPLIT_IN,null,child.storageType(),child.displayQuantity(),child.createdAt(),null))!=1)
+            throw new IllegalStateException("분리 이력을 저장하지 못했습니다.");
         return childId;
     }
     private static InvalidFoodException invalid(String message) {return new InvalidFoodException(Map.of("",message));}

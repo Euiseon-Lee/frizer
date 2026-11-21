@@ -592,6 +592,11 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .remaining-opening-date{margin:16px 0 0}
 .remaining-opening-amount{min-width:0;border:0;padding:0;margin:16px 0 0}
 .remaining-opening-amount .detail-grid{margin:0}
+#openingMode{font-size:13px}
+#automaticOpeningSummary{margin-top:10px;color:var(--ink);word-break:keep-all}
+#automaticOpeningSummary>span{display:inline-block}
+#automaticOpeningSummary strong{font-weight:700}
+#automaticOpeningSummary .opened-amount-number{color:var(--primary)}
 .cooking-consumption>summary{min-height:44px;padding:0;list-style:none}
 .cooking-consumption>summary::-webkit-details-marker{display:none}
 .cooking-consumption>summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}

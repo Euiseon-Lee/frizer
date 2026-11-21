@@ -60,6 +60,7 @@ public class FoodQuantityController {
                  @RequestParam(required=false) OpeningStatus remainingOpening,
                  @RequestParam(required=false) LocalDate openedAt,
                  @RequestParam(required=false) String openedQuantity,
+                 @RequestParam(required=false) String openingMode,
                  @RequestParam(required=false) StorageType storage,@RequestParam(defaultValue="false") boolean warning,
                  @RequestParam(defaultValue="false") boolean ended,RedirectAttributes redirect,HttpServletRequest request,Model model) {
         ErrorDiagnostics.quantity(request,id,action,version,historyId,null);
@@ -72,12 +73,12 @@ public class FoodQuantityController {
             }
             ErrorDiagnostics.quantity(request,id,action,version,historyId,selected);
             BigDecimal openedAmount=null;
-            if(action==FoodQuantityService.Action.CONSUME && remainingOpening==OpeningStatus.OPENED) {
+            if(openingMode==null && action==FoodQuantityService.Action.CONSUME && remainingOpening==OpeningStatus.OPENED) {
                 if(openedQuantity==null || !openedQuantity.matches("[0-9]{1,9}(\\.[0-9]{1,2})?"))
                     throw new InvalidFoodException(java.util.Map.of("openedQuantity","개봉 수량을 숫자로 입력해줘. 소수점 둘째 자리까지 사용할 수 있어."));
                 openedAmount=new BigDecimal(openedQuantity);
             }
-            quantities.apply(id,action,version,historyId,requestId,selected,remainingOpening,openedAt,openedAmount);
+            quantities.apply(id,action,version,historyId,requestId,selected,remainingOpening,openedAt,openedAmount,openingMode);
             redirect.addFlashAttribute("successMessage",action==FoodQuantityService.Action.CANCEL ? "처리를 취소했어. 다시 보관 중이야." : action==FoodQuantityService.Action.CONSUME ? "먹은 것으로 기록했어." : "버린 것으로 기록했어.");
             if(action!=FoodQuantityService.Action.CANCEL) redirect.addFlashAttribute("processedItemId",id);
             boolean active=quantities.preview(id).item().status()==com.euiseon.friger.common.type.FoodStatus.ACTIVE;
@@ -89,6 +90,7 @@ public class FoodQuantityController {
                 model.addAttribute("dateError", error.errors().get("openedAt"));
                 model.addAttribute("submittedOpenedAt", openedAt);
                 model.addAttribute("submittedOpening", remainingOpening);
+                model.addAttribute("submittedOpeningMode", openingMode);
                 model.addAttribute("submittedOpenedQuantity", openedQuantity);
                 model.addAttribute("openedQuantityError", error.errors().get("openedQuantity"));
                 return "inventory/quantity";

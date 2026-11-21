@@ -4,6 +4,10 @@
   const input = document.getElementById('quantityAmount');
   if (input) {
     const maximum = Number(input.dataset.maximum);
+    const automatic = document.getElementById('automaticOpening');
+    const mode = document.getElementById('openingMode');
+    const summary = document.getElementById('automaticOpeningSummary');
+    let automaticOpened = false;
     const question = document.getElementById('quantityQuestion');
     const error = document.getElementById('quantityInputError');
     const opening = document.getElementById('remainingOpening');
@@ -21,7 +25,7 @@
     const hundredths = value => Math.round(Number(value) * 100);
     function syncOpeningAmount() {
       if (!amountGroup) return;
-      const show = !opening.disabled && opened.checked;
+      const show = automatic ? automaticOpened : !opening.disabled && opened.checked;
       amountGroup.hidden = amountGroup.disabled = !show;
       if (!show) {
         openedAmount.setCustomValidity('');
@@ -30,9 +34,8 @@
       }
       const remaining = hundredths(maximum) - hundredths(input.value);
       if (!manualAmount) {
-        // Counted packages suggest the unfinished unit; weight/volume keep the remainder.
-        const measured = /^(g|kg|mg|ml|l|그램|킬로그램|밀리리터|리터)$/i.test(input.dataset.unit);
-        openedAmount.value = String((measured ? remaining : remaining % 100 || Math.min(100, remaining)) / 100);
+        // Manual confirmation must not infer a package size from an unknown unit.
+        openedAmount.value = String(remaining / 100);
       }
       const amount = hundredths(openedAmount.value);
       const valid = numeric(openedAmount.value) && amount > 0 && amount <= remaining;
@@ -56,12 +59,9 @@
     }
     function syncOpeningDate() {
       if (!dateGroup) return;
-      const show = !opening.disabled && opened.checked;
-      if (!show) {
-        date.value = '';
-        unknownDate.checked = false;
-        clearDateError();
-      } else if (dateGroup.hidden) {
+      const show = automatic ? automaticOpened : !opening.disabled && opened.checked;
+      // Hiding only excludes the fields from submission; keep the user's draft.
+      if (show && dateGroup.hidden && !date.value && !unknownDate.checked) {
         date.value = date.max;
       }
       dateGroup.hidden = dateGroup.disabled = !show;
@@ -96,6 +96,22 @@
       const valid = /^\d{1,9}(?:\.\d{1,2})?$/.test(input.value)
         && Number(input.value) > 0 && Number(input.value) <= maximum;
       input.setCustomValidity(valid ? '' : '0보다 크고 기준 수량 이하인 숫자를 입력해줘.');
+      if (automatic) {
+        const partial = valid && Number(input.value) < maximum;
+        automatic.hidden = !partial;
+        mode.disabled = !partial;
+        const remaining = hundredths(maximum) - hundredths(input.value);
+        const openedRemaining = mode.value === 'ALL' ? remaining : remaining % 100;
+        automaticOpened = partial && openedRemaining > 0;
+        summary.hidden = !partial;
+        if (partial) {
+          summary.querySelector('[data-eaten-amount]').textContent = `${input.value}${input.dataset.unit}`;
+          summary.querySelector('[data-opened-amount]').textContent = String(openedRemaining / 100);
+          summary.querySelector('[data-opened-unit]').textContent = input.dataset.unit;
+          summary.querySelector('[data-unopened-amount]').textContent = `${(remaining - openedRemaining) / 100}${input.dataset.unit}`;
+        }
+        syncOpeningDate();
+      }
       if (opening) {
         const showOpening = valid && Number(input.value) < maximum;
         opening.hidden = opening.disabled = !showOpening;
@@ -113,6 +129,7 @@
         : `입력한 수량을 ${verb} 것으로 기록할까?`;
       return valid;
     }
+    mode?.addEventListener('change', validate);
     input.addEventListener('beforeinput', event => {
       if (event.data && /[^0-9.]/.test(event.data)) {
         event.preventDefault();

@@ -14,9 +14,17 @@ import org.springframework.transaction.annotation.*;
 
 @Service
 public class FoodQuantityService {
+    private static final Set<String> COUNTED_UNITS = Set.of("개", "봉", "봉지", "팩", "병", "캔", "통", "포", "모", "장", "알");
+    private static boolean isCountedUnit(String unit) {
+        return unit != null && COUNTED_UNITS.contains(unit);
+    }
     public enum Action { CONSUME, DISCARD, CANCEL }
     public record Preview(FoodItem item, long version, FoodQuantityDao.Event event, boolean cancellable,
-                          boolean needsRemainingOpeningChoice) {}
+                          boolean needsRemainingOpeningChoice) {
+        public boolean automaticOpening() {
+            return needsRemainingOpeningChoice && isCountedUnit(item.quantityUnit());
+        }
+    }
     private final InventoryDao inventory;
     private final FoodMasterDao masters;
     private final FoodQuantityDao quantities;
@@ -85,6 +93,13 @@ public class FoodQuantityService {
     @Transactional
     public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
                       OpeningStatus remainingOpening, LocalDate openedAt, BigDecimal openedQuantity) {
+        return apply(id,action,version,historyId,token,selectedQuantity,remainingOpening,openedAt,openedQuantity,null);
+    }
+    @Transactional
+    public long apply(long id,Action action,long version,Long historyId,UUID token,BigDecimal selectedQuantity,
+                      OpeningStatus remainingOpening, LocalDate openedAt, BigDecimal openedQuantity, String openingMode) {
+        if(openingMode!=null && !Set.of("AUTO","ALL").contains(openingMode))
+            throw invalid("개봉 방식을 다시 확인해줘.");
         if(action==null || token==null) throw invalid("처리 내용을 다시 확인해줘.");
         if(selectedQuantity!=null && (action==Action.CANCEL || selectedQuantity.signum()<=0
                 || selectedQuantity.stripTrailingZeros().scale()>2 || selectedQuantity.compareTo(new BigDecimal("999999999.99"))>0))
@@ -92,8 +107,9 @@ public class FoodQuantityService {
         String payload=id+":"+action+":"+version+":"+historyId
             +(selectedQuantity==null ? "" : ":"+selectedQuantity.stripTrailingZeros().toPlainString())
             +(remainingOpening==null ? "" : ":"+remainingOpening.name())
-            +(action==Action.CONSUME && remainingOpening==OpeningStatus.OPENED && openedAt!=null ? ":"+openedAt : "")
-            +(openedQuantity==null ? "" : ":opened="+openedQuantity.stripTrailingZeros().toPlainString());
+            +(action==Action.CONSUME && (remainingOpening==OpeningStatus.OPENED || openingMode!=null) && openedAt!=null ? ":"+openedAt : "")
+            +(openedQuantity==null ? "" : ":opened="+openedQuantity.stripTrailingZeros().toPlainString())
+            +(openingMode==null ? "" : ":mode="+openingMode);
         // Check ownership before claiming a receipt (including foreign IDs with a known token).
         if(inventory.findById(id)==null) throw new FoodNotFoundException(id);
         if(quantities.claim(token,payload,id)==0) {
@@ -143,6 +159,12 @@ public class FoodQuantityService {
             if(processed.compareTo(item.quantityAmount())>0) throw invalid("기준 수량보다 많이 처리할 수 없어.");
             remaining=item.quantityAmount().subtract(processed);
             if (action == Action.CONSUME && remaining.signum() > 0 && needsRemainingOpeningChoice(item)) {
+                if(openingMode!=null) {
+                    if(!isCountedUnit(item.quantityUnit()))
+                        throw invalid("이 단위는 개봉 수량을 직접 확인해줘.");
+                    openedQuantity=openingMode.equals("ALL") ? remaining : remaining.remainder(BigDecimal.ONE);
+                    remainingOpening=openedQuantity.signum()>0 ? OpeningStatus.OPENED : OpeningStatus.UNOPENED;
+                }
                 if (remainingOpening != OpeningStatus.UNOPENED && remainingOpening != OpeningStatus.OPENED)
                     throw new InvalidFoodException(Map.of("remainingOpening", "남은 음식의 개봉 상태를 골라줘."));
                 if (remainingOpening != item.openingStatus()) openingChange = remainingOpening;

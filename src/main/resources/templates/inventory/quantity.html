@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FR!ZER | 처리 확인</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-amount-1')}">
+<title>FR!ZER | 처리 확인</title><link rel="stylesheet" th:href="@{/css/app.css(v='history-icons-3')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/food-quantity.js(v='opening-amount-1')}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
@@ -61,7 +61,7 @@
 <input type="hidden" name="action" th:value="${action}"><input type="hidden" name="version" th:value="${preview.version()}"><input type="hidden" name="requestId" th:value="${requestId}">
 <input type="hidden" name="historyId" th:if="${action == 'CANCEL'}" th:value="${preview.event().historyId()}">
 <input type="hidden" name="storage" th:if="${selectedStorage != null}" th:value="${selectedStorage}"><input type="hidden" name="warning" th:value="${savedWarning}"><input type="hidden" name="ended" th:value="${ended}">
-<button class="button merge-submit" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:disabled="${categoryBlocked == true}" th:text="${action == 'CANCEL' ? '처리 취소' : (action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!')}"></button>
+<button class="button merge-submit" th:classappend="${action == 'CANCEL' ? 'action-cancel' : (action == 'CONSUME' ? 'quantity-consume' : 'quantity-discard')}" type="submit" th:disabled="${categoryBlocked == true}" th:attr="aria-label=${action == 'CANCEL' ? '처리 취소' : null},title=${action == 'CANCEL' ? '처리 취소' : null}"><th:block th:if="${action == 'CANCEL'}"><svg th:replace="~{fragments/icons :: undo}"></svg></th:block><span th:unless="${action == 'CANCEL'}" th:text="${action == 'CONSUME' ? '응, 좋아!' : '응, 버리자!'}"></span></button>
 </form>
 <div class="form-actions"><a class="cancel-link purchase-back-link" th:href="@{/inventory/{id}(id=${preview.item().foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">돌아가기</a></div>
 </div></main><nav th:replace="~{fragments/shell :: nav('inventory')}"></nav></body></html>

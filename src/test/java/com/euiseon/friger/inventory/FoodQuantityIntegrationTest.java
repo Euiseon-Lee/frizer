@@ -598,7 +598,7 @@ class FoodQuantityIntegrationTest {
         var partial=mvc.perform(get("/inventory/"+id).param("warning","true").param("storage","FRIDGE"))
             .andExpect(status().isOk())
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
-            .andExpect(content().string(containsString(">처리 취소</a>")))
+            .andExpect(content().string(containsString("class=\"undo-icon\"")))
             .andExpect(htmlCount("(?s)<section class=\"form-section purchase-detail-card\">.*?<div class=\"stock-card-footer purchase-detail-footer\">.*?등록.*?수정.*?</div>\\s*</section>",1))
             .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
@@ -788,7 +788,7 @@ class FoodQuantityIntegrationTest {
                 .isEqualTo(jdbc.queryForObject("SELECT cooked_at FROM food_item WHERE food_id=?",java.time.LocalDate.class,id));
             assertThat(quantities.history(child.foodId()).getFirst().actionType()).isEqualTo("SPLIT_IN");
             mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("미개봉 "+sealed+"봉 분리")));
+                .andExpect(content().string(containsString("미개봉된 "+sealed+"봉 분리 완료")));
         } else assertThat(siblings).hasSize(1);
         assertThat(quantities.history(id).getFirst().changeQuantity()).isEqualTo("-0.5봉");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE action_type='CONSUME'",Integer.class)).isEqualTo(1);

@@ -16,7 +16,8 @@ public record QuantityChange(long historyId, String actionType, BigDecimal befor
     }
     public String separationDescription() {
         return separatedQuantityAmount == null || separatedQuantityAmount.signum()==0 ? null
-            : "미개봉 " + display(separatedQuantityAmount,quantityUnit) + (actionType.equals("CANCEL") ? " 합침" : " 분리");
+            : actionType.equals("CANCEL") ? "미개봉 " + display(separatedQuantityAmount,quantityUnit) + " 합침"
+            : "미개봉된 " + display(separatedQuantityAmount,quantityUnit) + " 분리 완료";
     }
     public String cookingDescription() {
         if (actionType.equals("COOK_IN")) return "수량 " + remainingQuantity();

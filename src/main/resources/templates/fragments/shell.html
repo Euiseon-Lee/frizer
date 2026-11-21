@@ -27,7 +27,7 @@
             <a th:if="${entry.cookingId() == null and entry.foodId() == null}" th:href="${entry.currentMasterId() != null} ? @{/foods/{id}(id=${entry.currentMasterId()})} : @{/inventory}" th:text="${entry.displayFoodName()}"></a>
             <p class="small muted history-current-location" th:if="${entry.currentLocationNote() != null}" th:text="${entry.isMerge() ? (entry.foodId() != null ? '변경한 음식의 개별 구매 항목으로 이동이 될 거야.' : (entry.currentMasterId() != null ? '변경한 음식의 개별 구매 목록으로 이동할 거야.' : entry.currentLocationNote())) : entry.currentLocationNote()}"></p>
             <dl class="history-fields"><div th:each="field : ${entry.detailFields()}"><dt th:text="${field.label()}"></dt><dd><th:block th:replace="~{fragments/shell :: historyChange(${field.value()})}"></th:block></dd></div></dl>
-            <time class="small muted" th:text="${#temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time>
+            <time class="small muted" th:text="${'기록 ' + #temporals.format(entry.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd HH:mm')}"></time>
         </div>
     </article>
 </div>

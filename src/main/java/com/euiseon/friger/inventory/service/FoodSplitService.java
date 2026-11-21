@@ -81,7 +81,8 @@ public class FoodSplitService {
         var child=new FoodItem(null,item.foodName(),c.storage(),item.category(),amountText,
             item.expiredAt(),item.purchasedAt(),item.openedAt(),frozenAt,item.sourceType(),freeze,
             FoodStatus.ACTIVE,item.memo(),now,now,item.capacityText(),item.sourceMemo(),item.sellByAt(),
-            amount,item.quantityUnit()).withOpening(item.openingStatus(),item.openingConfirmedAt());
+            amount,item.quantityUnit()).withOpening(item.openingStatus(),item.openingConfirmedAt())
+            .withWarningPausedUntil(item.warningPausedUntil());
         long childId=createSibling(id,masterId,child);
         if(splits.complete(token,childId)!=1) throw new IllegalStateException("분리 결과를 저장하지 못했습니다.");
         return childId;

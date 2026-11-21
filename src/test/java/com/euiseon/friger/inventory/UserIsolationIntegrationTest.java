@@ -53,6 +53,7 @@ class UserIsolationIntegrationTest {
     @Autowired FoodQuantityService quantities;
     @Autowired FoodQuantityDao quantityDao;
     @Autowired ItemMoveService moves;
+    @Autowired ItemEditService edits;
     @Autowired FoodSplitService split;
     @Autowired FoodDeleteService deleteService;
     @Autowired ItemMoveDao moveDao;
@@ -76,6 +77,20 @@ class UserIsolationIntegrationTest {
     }
     FoodCreateForm form(String name) {
         return new FoodCreateForm(name,StorageType.FRIDGE,null,new BigDecimal("2"),null,null,null,null,null,FreezeType.NONE,false,null,null,null,null,"개");
+    }
+    @Test void integratedEditCannotUseAnotherOwnersSourceOrTarget() {
+        long ownerItem=inventory.create(form("소유자"));
+        var before=inventory.findById(ownerItem);
+        as("tester");
+        long other=inventory.create(form("다른 계정"));long target=masters.masterIdForItem(other);
+        var version=masters.find(target).versionNo();
+        assertThatThrownBy(()->edits.save(ownerItem,form("침입"),before.updatedAt(),"all",false,null,null,null,null))
+            .isInstanceOf(com.euiseon.friger.inventory.exception.FoodNotFoundException.class);
+        as("owner");
+        assertThat(edits.choices(ownerItem)).noneMatch(c->c.masterId()==target);
+        assertThatThrownBy(()->edits.save(ownerItem,form("소유자"),before.updatedAt(),"partial",true,target,version,null,null))
+            .isInstanceOf(com.euiseon.friger.inventory.exception.InvalidFoodException.class);
+        assertThat(inventory.findById(ownerItem).quantityAmount()).isEqualByComparingTo("2");
     }
     @Test void consumptionSeparationAndUndoAreScopedToTheOwner() throws Exception {
         long id=inventory.create(form("개봉 분리 소유자"));

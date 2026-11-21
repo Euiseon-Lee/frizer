@@ -20,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class InventoryController {
     private final InventoryService service;
     private final Clock clock;
+    private final com.euiseon.friger.inventory.service.ItemEditService itemEdits;
     private final FoodFormValidation formValidation;
     private final com.euiseon.friger.inventory.service.FoodMasterService masters;
     private final com.euiseon.friger.inventory.service.FoodRegistrationService registrations;
@@ -34,7 +35,9 @@ public class InventoryController {
                                com.euiseon.friger.inventory.service.FoodQuantityService quantities,
                                com.euiseon.friger.inventory.service.FoodCategoryService categories,
                                com.euiseon.friger.cooking.CookingService cooking,
-                               com.euiseon.friger.cooking.CookingDao cookingDao) {
+                               com.euiseon.friger.cooking.CookingDao cookingDao,
+                               com.euiseon.friger.inventory.service.ItemEditService itemEdits) {
+        this.itemEdits=itemEdits;
         this.service = service;
         this.clock = clock;
         this.masters = masters;
@@ -164,6 +167,9 @@ public class InventoryController {
 
     @PostMapping("/inventory/{id}/edit")
     String updateFood(@PathVariable long id, @ModelAttribute("foodForm") FoodCreateForm form, BindingResult errors,
+            @RequestParam(defaultValue = "all") String editMode,
+            @RequestParam(defaultValue = "false") boolean mergeEnabled,
+            @RequestParam(required = false) Long mergeTargetId, @RequestParam(required = false) Long mergeTargetVersion,
             @RequestParam(required = false) String categoryMajorCode, @RequestParam(required = false) String categoryMinorCode,
             @RequestParam(defaultValue = "save") String categoryAction,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime expectedUpdatedAt,
@@ -174,6 +180,10 @@ public class InventoryController {
         editFilters(storage, warning, ended, model);
         quantityReturnContext(returnAction, returnQuantity, model);
         editContext(id, expectedUpdatedAt, model);
+        model.addAttribute("editMode",editMode);
+        model.addAttribute("mergeEnabled",mergeEnabled);
+        model.addAttribute("mergeTargetId",mergeTargetId);
+        model.addAttribute("mergeTargetVersion",mergeTargetVersion);
         var master = masters.find(masters.masterId(id));
         categoryContext(categoryMajorCode, categoryMinorCode, master, false, "refresh".equals(categoryAction), model);
         if ("refresh".equals(categoryAction)) return "inventory/new";
@@ -183,8 +193,9 @@ public class InventoryController {
             return "inventory/new";
         }
         try {
-            boolean changed = service.updateCategorized(id, form, expectedUpdatedAt, categoryMajorCode, categoryMinorCode);
-            redirect.addFlashAttribute("successMessage", changed ? "수정했어!" : "변경한 내용이 없어.");
+            long edited = itemEdits.save(id, form, expectedUpdatedAt, editMode, mergeEnabled, mergeTargetId, mergeTargetVersion, categoryMajorCode, categoryMinorCode);
+            redirect.addFlashAttribute("successMessage", service.findById(edited).updatedAt().isEqual(expectedUpdatedAt) ? "변경한 내용이 없어." : "수정했어!");
+            if (edited != id || mergeEnabled) return FoodQuantityController.url("/inventory/" + edited, storage, warning, false);
         } catch (InvalidFoodException invalid) {
             rejectInvalid(invalid, errors, model);
             return "inventory/new";
@@ -235,6 +246,12 @@ public class InventoryController {
     private void editContext(long id, OffsetDateTime expectedUpdatedAt, Model model) {
         var food = service.findById(id);
         model.addAttribute("editId", id);
+        model.addAttribute("editOriginal", food);
+        var originalMaster = masters.find(masters.masterId(id));
+        model.addAttribute("editOriginalMajor", originalMaster.categoryMajorCode());
+        model.addAttribute("editOriginalMinor", originalMaster.categoryMinorCode());
+        model.addAttribute("editOriginalForm", FoodCreateForm.from(food, LocalDate.now(clock)));
+        model.addAttribute("editMergeChoices", itemEdits.choices(id));
         model.addAttribute("expectedUpdatedAt", expectedUpdatedAt);
         model.addAttribute("legacyQuantity", food.quantityAmount() == null ? (food.quantityText() == null ? "-" : food.quantityText()) : null);
     }

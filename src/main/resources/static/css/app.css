@@ -611,3 +611,21 @@ button,.button,.cancel-link,.merge-text-button,.search-button,.purchase-undo,.qu
 .quantity-history-cancel{grid-column:4;grid-row:1}
 .quantity-history-cancel,.purchase-undo{width:32px;height:32px;min-width:32px;min-height:32px;padding:6px;justify-content:center}
 .undo-icon{display:block;flex:none;width:20px;height:20px}
+.edit-section-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.edit-section-heading .section-label { margin-bottom:0; }
+.edit-section-heading { margin-bottom:16px; }
+.edit-merge-toggle { margin:0; font-size:11px; white-space:nowrap; gap:5px; }
+.edit-merge-results { max-height:240px; overflow-y:auto; overscroll-behavior:contain; margin-top:10px; }
+#editMergePicker { margin-bottom:18px; }
+#editPartialHelp { margin:10px 0 0; font-size:12px; line-height:1.8; }
+#editPartialHelp.field-error { color:var(--warning-text); }
+#editModes { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#editMergePicker > label { display:block; font-size:13px; font-weight:700; margin-bottom:9px; }
+#editMergeSearch { width:100%; min-height:44px; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font:inherit; background:var(--card); color:var(--ink); }
+.edit-merge-toggle { padding-top:0; }
+@media(max-width:360px) {
+  .edit-section-heading { gap:5px; }
+  .edit-section-heading .section-label { gap:6px; }
+  .edit-section-heading h2 { font-size:12px; white-space:nowrap; }
+  .edit-merge-toggle { font-size:10px; }
+}

@@ -46,19 +46,15 @@ STEP 3(재고 관리 기능)은 2026-09-17 완료했다: 음식 그룹/개별 �
 
 - [앱의 용어·기본 구조·사용 흐름과 구현 상태](APP_CONCEPTS.md)
 - [수량·소비·폐기·취소](ITEM_QUANTITY_DESIGN.md)
-- [개별 구매 이동](ITEM_MOVE_DESIGN.md)
+- [전체·일부 수정과 합치기·분리](ITEM_MOVE_DESIGN.md)
 - [공통 UI 규격](UI_DESIGN.md)
 - [회귀 검증 범위](TEST_MATRIX.md)
-- [날짜 정책 초안](DATE_POLICY_DRAFT.md), [일괄 등록 규격](BULK_REGISTRATION.md)
+- [날짜·개봉 상태 정책](DATE_POLICY_DRAFT.md), [일괄 등록 규격](BULK_REGISTRATION.md)
 - [쪼코 이미지 정책](UI_DESIGN.md)
 - [STEP 4 — 계정·운영 배포와 1차 운영 마무리](STEP4_REPORT.md)
 - [STEP 5 — 2차 개발 범위](STEP5_PLAN.md)
 
-2026-09-16 이전 커밋 검증: Java 473개(실패/오류/건너뜀 0), JavaScript 41개(실패/건너뜀 0), bootJar 통과. 사용자가 8080에서 당시 UI를 확인했다. 모든 임의 수량·음식명 조합이나 실제 모바일 기기를 검증한 것은 아니다.
-
-같은 날 후속 검증 문구·개인 로그인 변경: 전체 Java 496개(일괄 등록 44개·보안 18개 포함, 실패·오류·건너뜀 0), JavaScript 7개 파일, bootJar 통과. 실제 휴대폰 확인은 아직 수행하지 않았다.
-
-Java/Mapper/V14는 앱 재시작 후 반영된다. 수량 UPDATE는 전후 수량·단위를 저장하며 과거 텍스트를 추정 변환하지 않는다. 취소 태그도 공통 Java 명칭으로 제공하므로 이전 앱은 재시작이 필요하다.
+현재 검증 결과와 재현 방법은 [테스트 기록](TEST_MATRIX.md)을 따른다. 이전 단계의 테스트 수치는 Git 이력에 보존하며 현재 코드의 검증 결과로 사용하지 않는다.
 
 문서는 작업별로 새로 만들지 않고 위 기준 문서를 갱신한다. STEP 문서는 진행 중 단계의 작업 문서로만 유지한다. 단계가 완료되면 유지할 내용을 기준 문서로 흡수하고 STEP 문서는 제거하며, 과거 기록은 git 이력으로 보존한다(STEP 1·2 보고서와 완료된 STEP 3 보고서를 이 원칙으로 제거했다). 임시 화면·스크린샷·테스트 실행 덤프는 Git 제외된 build/reports에 둔다. 이미지 해시 JSON·매핑 CSV는 src/test/resources/choco에 테스트 입력으로 보존한다.
 

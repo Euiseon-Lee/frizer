@@ -5,7 +5,7 @@
 ## 2026-11-22 현재 작업 상태 — 기능별 로컬 커밋 완료
 
 - 작업 폴더 `C:/dev/frizer`, PowerShell. 브랜치 `feat/consume-opening-quantities`, 후속 구현의 마지막 커밋은 `39c4dd0`이며 기준 문서 정리 커밋이 뒤따른다. 현재 HEAD는 `git log -1`로 확인한다.
-- 사용자가 문서 정리 후 기능별 로컬 커밋 진행을 요청했다. 기존 `.github/workflows/ci.yml` 변경은 보존하고 커밋에서 제외한다. push·master 병합·운영 배포는 하지 않는다.
+- 사용자가 문서 정리 후 기능별 로컬 커밋 진행을 요청했다. 기존 `.github/workflows/ci.yml` 변경은 기능 커밋에서 제외했으며, 이후 사용자 요청으로 setup-gradle v4 → v5 갱신을 별도 CI 커밋에 포함했다. 기능 브랜치 push는 별도 확인 대기이며 master 병합·운영 배포는 하지 않는다.
 - 로컬 master 기준은 `01feb01604728164b1f8ca6c4ea09986dacb7aa4`. 브랜치 전환이나 새 worktree 생성 없이 같은 작업 폴더를 사용한다.
 - 이번 후속 작업에서 사용자 재고를 대신 소비·분리·합치거나 보정하지 않았다. 사용자 요청 실패를 조사할 때 로컬 로그를 읽었으며, 저장 검증은 별도 Testcontainers DB에서 수행했다. 이전 커밋의 임시 재고 검증 기록과 구분한다.
 

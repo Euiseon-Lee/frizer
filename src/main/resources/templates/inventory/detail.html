@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FR!ZER | 개별 구매 항목</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v='opening-21')}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v='history-icons-3')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/date-input.js(v='warning-20')}" defer></script><script th:src="@{/js/warning-settings.js}" defer></script></head>
 <body>
@@ -12,7 +12,7 @@
 
     <section class="heading character-heading tab-heading"><div><p class="eyebrow">개별 구매 항목</p><h1 class="detail-title" th:text="${food.foodName()}"></h1><p class="muted">어떻게 보관했더라?</p></div><img class="choco" width="78" height="95" alt="쪼코" data-choco-region="detail-header" data-choco-role="detail-header" th:attr="data-choco-base=@{/assets/choco/}" hidden></section>
     <div class="tab-sheet">
-    <div class="notice purchase-notice" role="status" th:if="${successMessage != null}"><div class="purchase-notice-content"><span th:text="${successMessage}"></span><a class="purchase-undo" th:if="${processedItemId != null and quantityPreview.cancellable()}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null})}">처리 취소</a></div></div>
+    <div class="notice purchase-notice" role="status" th:if="${successMessage != null}"><div class="purchase-notice-content"><span th:text="${successMessage}"></span><a class="purchase-undo" aria-label="처리 취소" title="처리 취소" th:if="${processedItemId != null and quantityPreview.cancellable()}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null})}"><svg th:replace="~{fragments/icons :: undo}"></svg></a></div></div>
     <div th:if="${food.status().name() == 'ACTIVE'}">
         <div class="warning-alert" th:classappend="${!food.warningPaused(today) and (food.useByOverdue(today) or food.sellByOverdue(today) or food.openedOverdue(today))} ? 'warning-alert-overdue' : ''">
             <div class="warning-alert-copy">
@@ -78,6 +78,7 @@
     <p th:if="${cookingReturn != null}"><a class="text-link" th:href="@{/cooking/{id}(id=${cookingReturn})}">요리 기록으로 돌아가기</a></p>
     <details id="quantity-history" class="form-section consumption-history" th:open="${ended or showQuantityHistory == true}">
         <summary>수량 변경 이력</summary>
+        <p class="small muted">날짜는 실제 먹은 날이 아닌, 앱에 기록한 시각이야.</p>
         <p class="small muted" th:if="${#lists.isEmpty(quantityHistory)}">아직 수량 변경 이력이 없어.</p>
         <ul class="consumption-history-list" th:unless="${#lists.isEmpty(quantityHistory)}">
             <li th:each="event : ${quantityHistory}">
@@ -85,14 +86,16 @@
                 <span th:unless="${event.cookingId() != null}" class="action-badge history-badge quantity-history-tag" th:attr="data-event=${event.actionType()}" th:text="${event.actionLabel()}"></span>
                 <time th:datetime="${event.createdAt()}"><span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'yyyy-MM-dd')}"></span> <span th:text="${#temporals.format(event.createdAt().atZoneSameInstant(T(java.time.ZoneId).of('Asia/Seoul')), 'HH:mm')}"></span></time>
                 <a class="text-link" th:classappend="${event.actionType() == 'COOK_IN' ? 'quantity-history-value' : 'quantity-history-cooking'}" th:if="${event.cookingId() != null}" th:href="@{/cooking/{id}(id=${event.cookingId()})}" th:text="${event.cookingDescription()}"></a>
-                <div class="quantity-history-value" th:unless="${event.cookingId() != null}"><strong class="quantity-history-amount" th:text="${event.changeQuantity()}"></strong> <span class="quantity-history-balance">(잔량: <span th:text="${event.remainingQuantity() + ')'}"></span></span></div>
-                <a class="quantity-history-cancel" th:if="${quantityPreview.cancellable() and quantityPreview.event().historyId() == event.historyId()}" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}" th:aria-label="${event.actionLabel() + ' ' + event.changeQuantity() + ' 처리 취소'}">처리 취소</a>
+                <div class="quantity-history-value" th:unless="${event.cookingId() != null}"><strong class="quantity-history-amount" th:text="${event.changeQuantity()}"></strong> <span class="quantity-history-balance">(잔량: <span th:text="${event.remainingQuantity() + ')'}"></span></span>
+                    <p class="quantity-history-separation small muted" th:if="${event.separationDescription() != null}" th:text="${event.separationDescription()}"></p>
+                </div>
+                <a class="quantity-history-cancel" title="처리 취소" th:if="${quantityPreview.cancellable() and quantityPreview.event().historyId() == event.historyId()}" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}" th:aria-label="${event.actionLabel() + ' ' + event.changeQuantity() + ' 처리 취소'}"><svg th:replace="~{fragments/icons :: undo}"></svg></a>
             </li>
         </ul>
     </details>
     <div class="form-actions purchase-primary-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button quantity-consume" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='CONSUME',storage=${selectedStorage},warning=${savedWarning ? true : null})}">먹었어</a><a class="button quantity-discard" th:href="@{/inventory/{id}/quantity(id=${food.foodId()},action='DISCARD',storage=${selectedStorage},warning=${savedWarning ? true : null})}">버렸어</a></div>
     <p class="small muted" th:if="${food.status().name() != 'ACTIVE' and !quantityPreview.cancellable()}">이후 수량이나 보관 정보가 바뀌어 처리를 취소할 수 없어.</p>
-    <div class="form-actions purchase-primary-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button action-split" th:if="${food.quantityAmount() != null}" th:href="@{/inventory/{id}/split(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">나누자</a><a class="button action-update" th:href="@{/inventory/{id}/edit(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">수정하자</a></div>
+    <div class="form-actions" th:if="${food.status().name() == 'ACTIVE'}"><a class="button action-update" th:href="@{/inventory/{id}/edit(id=${food.foodId()},storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">수정하자</a></div>
     <th:block th:if="${soleItem}">
     <div class="detail-action-divider" th:if="${food.status().name() == 'ACTIVE'}"></div>
     <div class="form-actions purchase-primary-actions"><a class="button button-secondary action-move" th:href="@{/foods/{id}/move(id=${masterId},items=${food.foodId()},ended=${ended ? true : null})}">다른 음식하고 합치자</a><a class="button button-secondary action-delete" th:href="@{/foods/{id}/delete(id=${masterId},items=${food.foodId()},ended=${ended ? true : null})}">잘못 등록했어</a></div>

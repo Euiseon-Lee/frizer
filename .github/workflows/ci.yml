@@ -20,7 +20,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       # 래퍼의 배포판 다운로드는 재시도가 없어 일시적인 연결 끊김에 그대로 실패한다.
       # 다운로드만 여기서 재시도하고, 성공하면 setup-gradle 캐시에 남아 다음 실행부터 생략된다.
       - name: Gradle 배포판 내려받기 (연결 오류 재시도)

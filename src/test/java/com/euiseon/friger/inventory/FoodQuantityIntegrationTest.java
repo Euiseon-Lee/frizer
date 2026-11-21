@@ -2,6 +2,7 @@ package com.euiseon.friger.inventory;
 
 import static com.euiseon.friger.common.type.OpeningStatus.UNOPENED;
 import static com.euiseon.friger.common.type.OpeningStatus.OPENED;
+import static com.euiseon.friger.common.type.OpeningStatus.UNKNOWN;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -35,6 +36,7 @@ class FoodQuantityIntegrationTest {
     @Autowired ItemMoveService moves;
     @Autowired FoodMasterDao dao;
     @Autowired InventoryService inventory;
+    @Autowired InventoryDao items;
     @Autowired JdbcTemplate jdbc;
     @Autowired java.time.Clock clock;
     @Autowired MockMvc mvc;
@@ -113,7 +115,9 @@ class FoodQuantityIntegrationTest {
             String html=mvc.perform(get(saved.getResponse().getRedirectedUrl()).flashAttrs(saved.getFlashMap()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             assertThat(html).contains("value=\"0.75\"","<dt>대분류</dt><dd>김치</dd>")
-                .doesNotContain("disabled=\"disabled\"");
+                .doesNotContainPattern("<input[^>]*id=\"quantityAmount\"[^>]*disabled")
+                .doesNotContainPattern("<button[^>]*type=\"submit\"[^>]*disabled")
+                .doesNotContainPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*disabled");
             mvc.perform(get(saved.getResponse().getRedirectedUrl()))
                 .andExpect(status().isOk()).andExpect(model().attribute("submittedQuantity","0.75"))
                 .andExpect(content().string(containsString("value=\"0.75\"")));
@@ -310,6 +314,7 @@ class FoodQuantityIntegrationTest {
     }
     @Test void partialConsumptionRequiresAnExplicitChoiceBeforeAnyStockIsChanged() throws Exception {
         long id = create();
+        jdbc.update("UPDATE food_item SET quantity_unit='g' WHERE food_id=?",id);
         long version = quantities.preview(id).version();
         UUID request = UUID.randomUUID();
         String html = mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
@@ -319,7 +324,7 @@ class FoodQuantityIntegrationTest {
                 .andExpect(model().attribute("openingError","남은 음식의 개봉 상태를 골라줘."))
                 .andReturn().getResponse().getContentAsString();
         assertThat(html).containsPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*aria-invalid=\"true\"")
-                .doesNotContainPattern("<fieldset[^>]*(?:hidden|disabled)")
+                .doesNotContainPattern("<fieldset[^>]*id=\"remainingOpening\"[^>]*(?:hidden|disabled)")
                 .containsSubsequence("value=\"OPENED\"", "응 개봉했어!", "value=\"UNOPENED\"", "아니 미개봉이야!");
         assertThat(quantities.preview(id).version()).isEqualTo(version);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt WHERE request_id=?",Integer.class,request)).isZero();
@@ -327,22 +332,22 @@ class FoodQuantityIntegrationTest {
                 com.euiseon.friger.common.type.OpeningStatus.UNKNOWN)).isInstanceOf(InvalidFoodException.class);
 
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME").param("version",Long.toString(version))
-                        .param("requestId",request.toString()).param("quantityAmount","0.5").param("remainingOpening","OPENED"))
+                        .param("requestId",request.toString()).param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedQuantity","2"))
                 .andExpect(redirectedUrl("/inventory/"+id));
         var consumed = quantities.preview(id);
         assertThat(consumed.item().quantityAmount()).isEqualByComparingTo("2");
         assertThat(consumed.item().openingStatus()).isEqualTo(OPENED);
         assertThat(consumed.item().openedAt()).isNull();
         assertThat(consumed.item().openingConfirmedAt()).isEqualTo(java.time.LocalDate.now(clock));
-        assertThat(consumed.event().openedByConsumption()).isTrue();
-        assertThat(quantities.apply(id,CONSUME,version,null,request,new java.math.BigDecimal("0.50"),OPENED))
+        assertThat(consumed.event().openingStatusToRestore()).isEqualTo(UNOPENED);
+        assertThat(quantities.apply(id,CONSUME,version,null,request,new java.math.BigDecimal("0.50"),OPENED,null,new java.math.BigDecimal("2")))
                 .isEqualTo(consumed.event().historyId());
         assertThatThrownBy(() -> quantities.apply(id,CONSUME,version,null,request,new java.math.BigDecimal("0.5"),UNOPENED))
                 .isInstanceOf(InvalidFoodException.class);
 
         jdbc.update("UPDATE food_item SET memo='소비 후 메모' WHERE food_id=?",id);
         mvc.perform(get("/inventory/"+id+"/quantity").param("action","CANCEL"))
-                .andExpect(content().string(containsString("<dt>취소 후 수량</dt><dd>2.5모</dd>")))
+                .andExpect(content().string(containsString("<dt>취소 후 수량</dt><dd>2.5g</dd>")))
                 .andExpect(content().string(containsString("<dt>취소 후 개봉 상태</dt><dd>미개봉</dd>")));
         mvc.perform(post("/inventory/"+id+"/quantity").param("action","CANCEL")
                         .param("version",Long.toString(quantities.preview(id).version()))
@@ -354,6 +359,44 @@ class FoodQuantityIntegrationTest {
         assertThat(restored.openedAt()).isNull();
         assertThat(restored.openingConfirmedAt()).isNull();
         assertThat(restored.memo()).isEqualTo("소비 후 메모");
+    }
+    @Test void partialConsumptionValidatesSavesAndUndoesTheOpeningDate() throws Exception {
+        long id = create();
+        jdbc.update("UPDATE food_item SET quantity_unit='g' WHERE food_id=?",id);
+        long version = quantities.preview(id).version();
+        UUID token = UUID.randomUUID();
+        var today = java.time.LocalDate.now(clock);
+        var openingDay = today.minusDays(2);
+        String invalidDateHtml = mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+                .param("version",Long.toString(version)).param("requestId",token.toString())
+                .param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedQuantity","2").param("openedAt",today.plusDays(1).toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("submittedQuantity","0.5"))
+                .andExpect(model().attribute("dateError","미래 날짜는 입력할 수 없습니다."))
+                .andExpect(content().string(containsString("value=\""+today.plusDays(1)+"\"")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(invalidDateHtml).containsPattern("<input[^>]*value=\"OPENED\"[^>]*checked")
+                .doesNotContainPattern("<input[^>]*value=\"UNOPENED\"[^>]*checked");
+        assertThat(quantities.preview(id).version()).isEqualTo(version);
+
+        mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+                .param("version",Long.toString(version)).param("requestId",token.toString())
+                .param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedQuantity","2").param("openedAt",openingDay.toString()))
+                .andExpect(redirectedUrl("/inventory/"+id));
+        var stock = quantities.preview(id);
+        assertThat(stock.item().quantityAmount()).isEqualByComparingTo("2");
+        assertThat(stock.item().openingStatus()).isEqualTo(OPENED);
+        assertThat(stock.item().openedAt()).isEqualTo(openingDay);
+        assertThat(stock.item().openingConfirmedAt()).isEqualTo(today);
+        var amount = new java.math.BigDecimal("0.5");
+        assertThat(quantities.apply(id,CONSUME,version,null,token,amount,OPENED,openingDay,new java.math.BigDecimal("2"))).isEqualTo(stock.event().historyId());
+        assertThatThrownBy(() -> quantities.apply(id,CONSUME,version,null,token,amount,OPENED,today)).isInstanceOf(InvalidFoodException.class);
+        cancel(id, stock.event().historyId());
+        var restored = inventory.findById(id);
+        assertThat(restored.quantityAmount()).isEqualByComparingTo("2.5");
+        assertThat(restored.openingStatus()).isEqualTo(UNOPENED);
+        assertThat(restored.openedAt()).isNull();
+        assertThat(restored.openingConfirmedAt()).isNull();
     }
     @Test void fullConsumptionAndIndividualPacksRestoreUnopenedStock() throws Exception {
         long id = create();
@@ -375,13 +418,103 @@ class FoodQuantityIntegrationTest {
         assertThat(inventory.findById(id).openingStatus()).isEqualTo(UNOPENED);
     }
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"OPENED","UNKNOWN","NOT_APPLICABLE"})
+    @org.junit.jupiter.params.provider.EnumSource(value=com.euiseon.friger.common.type.OpeningStatus.class,names={"OPENED","UNOPENED"})
+    void partialConsumptionResolvesUnknownOpeningAndCancelRestoresIt(com.euiseon.friger.common.type.OpeningStatus choice) throws Exception {
+        long id = create();
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN' WHERE food_id=?",id);
+        long version = quantities.preview(id).version();
+        String path = "/inventory/"+id+"/quantity";
+        mvc.perform(get(path).param("action","CONSUME").param("draftQuantity","0.5"))
+                .andExpect(content().string(containsString("먹고 남은 포장만 개봉했어")));
+        mvc.perform(post(path).param("action","CONSUME").param("quantityAmount","0.5")
+                        .param("version",Long.toString(version)).param("requestId",UUID.randomUUID().toString()))
+                .andExpect(model().attribute("openingError","남은 음식의 개봉 상태를 골라줘."));
+        assertThat(quantities.preview(id).version()).isEqualTo(version);
+
+        var openedAt = choice == OPENED ? java.time.LocalDate.now(clock).minusDays(1) : null;
+        var submit = post(path).param("action","CONSUME").param("quantityAmount","0.5")
+                .param("version",Long.toString(version)).param("requestId",UUID.randomUUID().toString())
+                .param("remainingOpening",choice.name()).param("openedQuantity","2");
+        if (openedAt != null) submit.param("openedAt",openedAt.toString());
+        mvc.perform(submit).andExpect(redirectedUrl("/inventory/"+id));
+        var after = quantities.preview(id);
+        assertThat(after.item().openingStatus()).isEqualTo(choice);
+        assertThat(after.item().openedAt()).isEqualTo(openedAt);
+        assertThat(after.item().quantityAmount()).isEqualByComparingTo("2");
+        assertThat(jdbc.queryForObject("SELECT changes_text FROM food_history WHERE history_id=?",String.class,after.event().historyId()))
+                .contains("개봉 상태: 개봉 여부 불확실 → " + choice.label());
+        mvc.perform(get(path).param("action","CANCEL"))
+                .andExpect(content().string(containsString("<dt>취소 후 개봉 상태</dt><dd>개봉 여부 불확실</dd>")));
+        cancel(id,after.event().historyId());
+        var restored = inventory.findById(id);
+        assertThat(restored.quantityAmount()).isEqualByComparingTo("2.5");
+        assertThat(restored.openingStatus()).isEqualTo(UNKNOWN);
+        assertThat(restored.openedAt()).isNull();
+        assertThat(restored.openingConfirmedAt()).isNull();
+        assertThat(quantities.preview(id).needsRemainingOpeningChoice()).isTrue();
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(com.euiseon.friger.common.type.OpeningStatus.class)
+    void subsequentConsumptionOnlyAsksForUnopenedStock(com.euiseon.friger.common.type.OpeningStatus opening) throws Exception {
+        long id = create();
+        var amount = new java.math.BigDecimal("0.5");
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),amount,UNOPENED);
+        var openingDay = opening == OPENED ? java.time.LocalDate.now(clock) : null;
+        jdbc.update("UPDATE food_item SET opening_status=?,opened_at=?,opening_confirmed_at=? WHERE food_id=?",
+                opening.name(),openingDay,openingDay,id);
+        // A later disposal must not hide the earlier consumption from this decision.
+        quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),amount);
+        String path = "/inventory/"+id+"/quantity";
+        String html = mvc.perform(get(path).param("action","CONSUME").param("draftQuantity","0.5"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        if (opening == UNOPENED) {
+            assertThat(html).contains("먹고 남은 포장만 개봉했어")
+                    .containsPattern("<option[^>]*value=\"AUTO\"[^>]*selected");
+        } else {
+            assertThat(html).doesNotContain("먹고 남은 포장만 개봉했어");
+        }
+        var submit = post(path).param("action","CONSUME").param("quantityAmount","0.5")
+                .param("version",Long.toString(quantities.preview(id).version()))
+                .param("requestId",UUID.randomUUID().toString());
+        if (opening == UNOPENED) submit.param("remainingOpening","UNOPENED");
+        mvc.perform(submit).andExpect(redirectedUrl("/inventory/"+id));
+        var consumed = quantities.preview(id);
+        assertThat(consumed.item().quantityAmount()).isEqualByComparingTo("1");
+        assertThat(consumed.item().openingStatus()).isEqualTo(opening);
+        cancel(id,consumed.event().historyId());
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("1.5");
+        assertThat(inventory.findById(id).openingStatus()).isEqualTo(opening);
+    }
+    @Test void firstConsumptionOfUnknownStockStillAsksAfterADisposal() throws Exception {
+        long id = create();
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN' WHERE food_id=?",id);
+        quantities.apply(id,DISCARD,quantities.preview(id).version(),null,UUID.randomUUID(),new java.math.BigDecimal("0.5"));
+        String html = mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME").param("draftQuantity","0.5"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("먹고 남은 포장만 개봉했어")
+                .containsPattern("<option[^>]*value=\"AUTO\"[^>]*selected");
+    }
+    @Test void consumptionOfAnotherPurchaseDoesNotSkipTheOpeningChoice() throws Exception {
+        long first = create();
+        long master = masters.masterId(first);
+        long second = inventory.create(com.euiseon.friger.inventory.dto.FoodCreateForm.from(inventory.findById(first)),
+                master,dao.find(master).versionNo());
+        quantities.apply(first,CONSUME,quantities.preview(first).version(),null,UUID.randomUUID(),
+                new java.math.BigDecimal("0.5"),UNOPENED);
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN' WHERE food_id=?",second);
+        mvc.perform(get("/inventory/"+second+"/quantity").param("action","CONSUME").param("draftQuantity","0.5"))
+                .andExpect(content().string(containsString("먹고 남은 포장만 개봉했어")));
+        assertThatThrownBy(() -> quantities.apply(second,CONSUME,quantities.preview(second).version(),null,
+                UUID.randomUUID(),new java.math.BigDecimal("0.5"))).isInstanceOf(InvalidFoodException.class);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"OPENED","NOT_APPLICABLE"})
     void partialConsumptionAndUndoPreserveExistingOpeningInformation(String opening) throws Exception {
         long id = create();
         java.time.LocalDate openedAt = opening.equals("OPENED") ? java.time.LocalDate.of(2026,1,1) : null;
         jdbc.update("UPDATE food_item SET opening_status=?,opened_at=? WHERE food_id=?",opening,openedAt,id);
         mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME").param("draftQuantity","1"))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("남은 음식 중 개봉한 포장이 있어?"))));
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("먹고 남은 포장만 개봉했어"))));
         long event = quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),java.math.BigDecimal.ONE);
         assertThat(inventory.findById(id).openingStatus().name()).isEqualTo(opening);
         assertThat(inventory.findById(id).openedAt()).isEqualTo(openedAt);
@@ -467,7 +600,7 @@ class FoodQuantityIntegrationTest {
         var partial=mvc.perform(get("/inventory/"+id).param("warning","true").param("storage","FRIDGE"))
             .andExpect(status().isOk())
             .andExpect(htmlCount("class=\"quantity-history-cancel\"",1))
-            .andExpect(content().string(containsString(">처리 취소</a>")))
+            .andExpect(content().string(containsString("class=\"undo-icon\"")))
             .andExpect(htmlCount("(?s)<section class=\"form-section purchase-detail-card\">.*?<div class=\"stock-card-footer purchase-detail-footer\">.*?등록.*?수정.*?</div>\\s*</section>",1))
             .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         if(Boolean.getBoolean("frizer.exportPurchasePreview")) {
@@ -621,6 +754,271 @@ class FoodQuantityIntegrationTest {
         assertThat(original.actionLabel()).isEqualTo("등록");
         assertThat(original.changeQuantity()).isEqualTo("두 묶음");
         assertThat(original.remainingQuantity()).isEqualTo("두 묶음");
+    }
+    private static java.math.BigDecimal decimal(String value) { return new java.math.BigDecimal(value); }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"0.5,AUTO,0.5,2", "1.5,AUTO,0.5,1", "1,AUTO,2,0", "0.5,ALL,2.5,0"})
+    void automaticPackagesCalculateOnServerAndRestore(String eaten,String mode,String original,String split) throws Exception {
+        long id=createPacks();
+        jdbc.update("UPDATE food_item SET quantity_amount=3,quantity_text='3개',quantity_unit='개' WHERE food_id=?",id);
+        var day=java.time.LocalDate.now(clock).minusDays(2);
+        var token=UUID.randomUUID();
+        long version=quantities.preview(id).version();
+        var request=post("/inventory/"+id+"/quantity").param("action","CONSUME")
+            .param("version",Long.toString(version)).param("requestId",token.toString())
+            .param("quantityAmount",eaten).param("openingMode",mode).param("openedAt",day.toString())
+            .param("openedQuantity","999"); // Never trust a client-computed split.
+        mvc.perform(request).andExpect(status().is3xxRedirection());
+        mvc.perform(request).andExpect(status().is3xxRedirection());
+        var result=quantities.preview(id);
+        assertThat(result.item().quantityAmount()).isEqualByComparingTo(original);
+        boolean opened=!eaten.equals("1");
+        assertThat(result.item().openingStatus()).isEqualTo(opened?OPENED:UNOPENED);
+        assertThat(result.item().openedAt()).isEqualTo(opened?day:null);
+        if(decimal(split).signum()>0) {
+            var child=inventory.findById(result.event().separatedFoodId());
+            assertThat(child.quantityAmount()).isEqualByComparingTo(split);
+            assertThat(child.openingStatus()).isEqualTo(UNOPENED);
+            assertThat(child.openedAt()).isNull();
+        } else assertThat(result.event().separatedFoodId()).isNull();
+        cancel(id,result.event().historyId());
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("3");
+        assertThat(inventory.findById(id).openingStatus()).isEqualTo(UNOPENED);
+        assertThat(items.findByMaster(masters.masterId(id))).hasSize(1);
+    }
+    @Test void laterPackageGetsItsOwnOpeningDateWithoutChangingFirstPackage() throws Exception {
+        long id=createPacks();
+        var firstDay=java.time.LocalDate.now(clock).minusDays(2);
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),decimal("0.5"),null,firstDay,null,"AUTO");
+        long second=quantities.preview(id).event().separatedFoodId();
+        var secondDay=firstDay.plusDays(1);
+        quantities.apply(second,CONSUME,quantities.preview(second).version(),null,UUID.randomUUID(),decimal("0.5"),null,secondDay,null,"AUTO");
+        assertThat(inventory.findById(id).openedAt()).isEqualTo(firstDay);
+        assertThat(inventory.findById(second).openedAt()).isEqualTo(secondDay);
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("0.5");
+        assertThat(inventory.findById(second).quantityAmount()).isEqualByComparingTo("0.5");
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),decimal("0.25"));
+        assertThat(inventory.findById(id).openedAt()).isEqualTo(firstDay);
+        assertThat(inventory.findById(second).quantityAmount()).isEqualByComparingTo("0.5");
+    }
+    @Test void automaticFormAndFutureDateErrorKeepTheDraft() throws Exception {
+        long id=createPacks();
+        String html=mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME").param("draftQuantity","0.5"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("id=\"automaticOpening\"", "먹고 남은 포장만 개봉했어").doesNotContain("id=\"openedQuantity\"");
+        assertThat(html).containsPattern("<input[^>]*id=\"openingDateUnknown\"[^>]*checked");
+        var output=java.nio.file.Path.of("build/reports/automatic-opening.html");
+        java.nio.file.Files.createDirectories(output.getParent());
+        java.nio.file.Files.writeString(output,html);
+        long version=quantities.preview(id).version();
+        var future=java.time.LocalDate.now(clock).plusDays(1);
+        mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+            .param("version",Long.toString(version)).param("requestId",UUID.randomUUID().toString())
+            .param("quantityAmount","0.5").param("openingMode","AUTO").param("openedAt",future.toString()))
+            .andExpect(status().isOk()).andExpect(model().attribute("submittedOpeningMode","AUTO"))
+            .andExpect(model().attribute("submittedOpenedAt",future)).andExpect(model().attributeExists("dateError"));
+        assertThat(quantities.preview(id).version()).isEqualTo(version);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"개","봉","봉지","팩","병","캔","통","포","모","장","알"})
+    void automaticOpeningIsAvailableForExplicitCountedUnits(String unit) throws Exception {
+        long id=createPacks();
+        jdbc.update("UPDATE food_item SET quantity_unit=? WHERE food_id=?",unit,id);
+        assertThat(quantities.preview(id).automaticOpening()).isTrue();
+        mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME"))
+            .andExpect(content().string(containsString("id=\"automaticOpening\"")));
+        quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),decimal("0.5"),null,null,null,"AUTO");
+        var result=quantities.preview(id);
+        assertThat(result.item().quantityAmount()).isEqualByComparingTo("0.5");
+        assertThat(inventory.findById(result.event().separatedFoodId()).quantityAmount()).isEqualByComparingTo("4");
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"cc","밀리그램","oz","g","kg","mL","인분","임의"})
+    void otherUnitsRequireManualConfirmationAndRejectAutomaticRequests(String unit) throws Exception {
+        long id=createPacks();
+        jdbc.update("UPDATE food_item SET quantity_amount=100,quantity_text=?,quantity_unit=? WHERE food_id=?","100"+unit,unit,id);
+        var before=quantities.preview(id);
+        assertThat(before.automaticOpening()).isFalse();
+        mvc.perform(get("/inventory/"+id+"/quantity").param("action","CONSUME"))
+            .andExpect(content().string(containsString("id=\"openedQuantity\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"automaticOpening\""))));
+        for(String mode:List.of("AUTO","ALL")) {
+            assertThatThrownBy(()->quantities.apply(id,CONSUME,before.version(),null,UUID.randomUUID(),decimal("10"),null,null,null,mode))
+                .isInstanceOf(InvalidFoodException.class);
+        }
+        assertThat(quantities.preview(id).version()).isEqualTo(before.version());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
+        var day=java.time.LocalDate.now(clock).minusDays(2);
+        mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+            .param("version",Long.toString(before.version())).param("requestId",UUID.randomUUID().toString())
+            .param("quantityAmount","10").param("remainingOpening","OPENED")
+            .param("openedQuantity","40").param("openedAt",day.toString()))
+            .andExpect(status().is3xxRedirection());
+        var result=quantities.preview(id);
+        assertThat(result.item().quantityAmount()).isEqualByComparingTo("40");
+        assertThat(result.item().openedAt()).isEqualTo(day);
+        assertThat(inventory.findById(result.event().separatedFoodId()).quantityAmount()).isEqualByComparingTo("50");
+        cancel(id,result.event().historyId());
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("100");
+        assertThat(inventory.findById(id).openingStatus()).isEqualTo(UNOPENED);
+    }
+    long createPacks() throws Exception {
+        long id=create();
+        jdbc.update("UPDATE food_item SET quantity_amount=5,quantity_text='5봉',quantity_unit='봉',opening_status='UNOPENED',cooked_at=CURRENT_DATE-2,warning_paused_until=CURRENT_DATE+7 WHERE food_id=?",id);
+        return id;
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"0.5,4", "1.5,3", "4.5,0"})
+    void consumptionSeparatesOnlyTheEnteredOpenedAmountAndUndoesBothStocks(String opened,String sealed) throws Exception {
+        long id=createPacks();
+        var before=inventory.findById(id);
+        long version=quantities.preview(id).version();
+        var token=UUID.randomUUID();
+        var day=java.time.LocalDate.now(clock).minusDays(1);
+        long event=quantities.apply(id,CONSUME,version,null,token,decimal("0.5"),OPENED,day,decimal(opened));
+        var preview=quantities.preview(id);
+        assertThat(preview.item().quantityAmount()).isEqualByComparingTo(opened);
+        assertThat(preview.item().openingStatus()).isEqualTo(OPENED);
+        assertThat(preview.item().openedAt()).isEqualTo(day);
+        var siblings=items.findByMaster(masters.masterId(id));
+        assertThat(siblings.stream().map(i->i.quantityAmount()).reduce(java.math.BigDecimal.ZERO,java.math.BigDecimal::add)).isEqualByComparingTo("4.5");
+        if(decimal(sealed).signum()>0) {
+            var child=inventory.findById(preview.event().separatedFoodId());
+            assertThat(child.quantityAmount()).isEqualByComparingTo(sealed);
+            assertThat(child.openingStatus()).isEqualTo(UNOPENED);
+            assertThat(child.openedAt()).isNull();
+            assertThat(child.openingConfirmedAt()).isNull();
+            assertThat(child.memo()).isEqualTo(before.memo());
+            assertThat(child.warningPausedUntil()).isEqualTo(before.warningPausedUntil());
+            assertThat(child.purchasedAt()).isEqualTo(before.purchasedAt());
+            assertThat(child.storageType()).isEqualTo(before.storageType());
+            assertThat(jdbc.queryForObject("SELECT cooked_at FROM food_item WHERE food_id=?",java.time.LocalDate.class,child.foodId()))
+                .isEqualTo(jdbc.queryForObject("SELECT cooked_at FROM food_item WHERE food_id=?",java.time.LocalDate.class,id));
+            assertThat(quantities.history(child.foodId()).getFirst().actionType()).isEqualTo("SPLIT_IN");
+            mvc.perform(get("/inventory/"+id)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("미개봉된 "+sealed+"봉 분리 완료")));
+        } else assertThat(siblings).hasSize(1);
+        assertThat(quantities.history(id).getFirst().changeQuantity()).isEqualTo("-0.5봉");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE action_type='CONSUME'",Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE action_type='CREATE'",Integer.class)).isEqualTo(1);
+        assertThat(quantities.apply(id,CONSUME,version,null,token,decimal("0.50"),OPENED,day,decimal(opened))).isEqualTo(event);
+        assertThatThrownBy(()->quantities.apply(id,CONSUME,version,null,token,decimal("0.5"),OPENED,day,decimal("0.6"))).isInstanceOf(InvalidFoodException.class);
+        mvc.perform(get("/inventory/"+id+"/quantity").param("action","CANCEL"))
+            .andExpect(content().string(containsString("<dt>취소 후 수량</dt><dd>5봉</dd>")));
+        var cancelToken=UUID.randomUUID();
+        long cancelVersion=preview.version();
+        long reversal=quantities.apply(id,CANCEL,cancelVersion,event,cancelToken,null);
+        assertThat(quantities.apply(id,CANCEL,cancelVersion,event,cancelToken,null)).isEqualTo(reversal);
+        assertThat(items.findByMaster(masters.masterId(id))).hasSize(1);
+        var restored=inventory.findById(id);
+        assertThat(restored.quantityAmount()).isEqualByComparingTo("5");
+        assertThat(restored.openingStatus()).isEqualTo(UNOPENED);
+        assertThat(restored.openedAt()).isNull();
+        assertThat(restored.openingConfirmedAt()).isNull();
+        assertThat(quantities.history(id).getFirst().changeQuantity()).isEqualTo("+0.5봉");
+        assertThat(quantities.preview(id).cancellable()).isFalse();
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"", "0", "-0.5", "4.51", "0.001", "1e0", "NaN"})
+    void invalidOpenedAmountPreservesDraftAndDoesNotChangeStock(String amount) throws Exception {
+        long id=createPacks();
+        jdbc.update("UPDATE food_item SET quantity_unit='g' WHERE food_id=?",id);
+        long version=quantities.preview(id).version();
+        var day=java.time.LocalDate.now(clock).minusDays(1);
+        mvc.perform(post("/inventory/"+id+"/quantity").param("action","CONSUME")
+            .param("version",Long.toString(version)).param("requestId",UUID.randomUUID().toString())
+            .param("quantityAmount","0.5").param("remainingOpening","OPENED").param("openedQuantity",amount).param("openedAt",day.toString()))
+            .andExpect(status().isOk()).andExpect(model().attributeExists("openedQuantityError"))
+            .andExpect(model().attribute("submittedOpenedQuantity",amount)).andExpect(model().attribute("submittedOpenedAt",day))
+            .andExpect(content().string(containsString("id=\"openedQuantity\"")));
+        assertThat(quantities.preview(id).version()).isEqualTo(version);
+        assertThat(items.findByMaster(masters.masterId(id))).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"memo", "quantity", "storage", "delete"})
+    void changesToSeparatedStockPreventCancellationWithoutOverwritingEitherItem(String change) throws Exception {
+        long id=createPacks();
+        long event=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5"));
+        long child=quantities.preview(id).event().separatedFoodId();
+        if(change.equals("memo")) jdbc.update("UPDATE food_item SET memo='새 메모' WHERE food_id=?",child);
+        if(change.equals("quantity")) quantities.apply(child,CONSUME,quantities.preview(child).version(),null,UUID.randomUUID(),decimal("1"),UNOPENED);
+        if(change.equals("storage")) jdbc.update("UPDATE food_item SET storage_type='ROOM' WHERE food_id=?",child);
+        if(change.equals("delete")) {
+            jdbc.update("DELETE FROM food_history WHERE food_id=?",child);
+            jdbc.update("DELETE FROM food_item WHERE food_id=?",child);
+        }
+        var stocks=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
+        assertThat(quantities.preview(id).cancellable()).isFalse();
+        assertThatThrownBy(()->cancel(id,event)).isInstanceOf(InvalidFoodException.class);
+        assertThat(jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id")).isEqualTo(stocks);
+    }
+    @Test void separatedUnknownStockRestoresUnknownAndLaterConsumesOnlyTheSelectedOpenedLot() throws Exception {
+        long id=createPacks();
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN' WHERE food_id=?",id);
+        long first=quantities.apply(id,CONSUME,quantities.preview(id).version(),null,UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5"));
+        var split=quantities.preview(id);
+        assertThat(split.item().openedAt()).isNull();
+        assertThat(split.item().openingConfirmedAt()).isEqualTo(java.time.LocalDate.now(clock));
+        assertThat(split.needsRemainingOpeningChoice()).isFalse();
+        long child=split.event().separatedFoodId();
+        long next=finish(id);
+        assertThat(inventory.findById(id).quantityAmount()).isZero();
+        assertThat(inventory.findById(child).quantityAmount()).isEqualByComparingTo("4");
+        cancel(id,next);
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("0.5");
+        assertThat(inventory.findById(id).openingStatus()).isEqualTo(OPENED);
+        // Existing undo semantics intentionally do not walk backwards through older events.
+        assertThatThrownBy(()->cancel(id,first)).isInstanceOf(InvalidFoodException.class);
+        long other=createPacks();
+        jdbc.update("UPDATE food_item SET opening_status='UNKNOWN' WHERE food_id=?",other);
+        long unknown=quantities.apply(other,CONSUME,quantities.preview(other).version(),null,UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5"));
+        cancel(other,unknown);
+        assertThat(inventory.findById(other).openingStatus()).isEqualTo(UNKNOWN);
+        assertThat(inventory.findById(other).quantityAmount()).isEqualByComparingTo("5");
+    }
+    @Test void splitAndUndoAreAtomicWhenWritingTheConsumptionHistoryFails() throws Exception {
+        long id=createPacks();
+        long version=quantities.preview(id).version();
+        jdbc.execute("CREATE FUNCTION reject_quantity_history() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action_type IN ('CONSUME','CANCEL') THEN RAISE EXCEPTION 'simulated history failure'; END IF; RETURN NEW; END $$");
+        try {
+            jdbc.execute("CREATE TRIGGER reject_quantity_history BEFORE INSERT ON food_history FOR EACH ROW EXECUTE FUNCTION reject_quantity_history()");
+            assertThatThrownBy(()->quantities.apply(id,CONSUME,version,null,UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5"))).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(items.findByMaster(masters.masterId(id))).hasSize(1);
+            assertThat(quantities.preview(id).version()).isEqualTo(version);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM food_quantity_receipt",Integer.class)).isZero();
+            jdbc.execute("DROP TRIGGER reject_quantity_history ON food_history");
+            long event=quantities.apply(id,CONSUME,version,null,UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5"));
+            var stocks=jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id");
+            jdbc.execute("CREATE TRIGGER reject_quantity_history BEFORE INSERT ON food_history FOR EACH ROW EXECUTE FUNCTION reject_quantity_history()");
+            assertThatThrownBy(()->cancel(id,event)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(jdbc.queryForList("SELECT * FROM food_item ORDER BY food_id")).isEqualTo(stocks);
+            assertThat(quantities.preview(id).cancellable()).isTrue();
+        } finally {
+            jdbc.execute("DROP TRIGGER IF EXISTS reject_quantity_history ON food_history");
+            jdbc.execute("DROP FUNCTION reject_quantity_history()");
+        }
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={true,false})
+    void concurrentOpeningSubmissionsCreateOnlyOneSibling(boolean sameRequest) throws Exception {
+        long id=createPacks(),version=quantities.preview(id).version();
+        var token=UUID.randomUUID();
+        try(var pool=Executors.newFixedThreadPool(2)) {
+            var start=new CountDownLatch(1);
+            Callable<Long> task=()->{
+                start.await();
+                try { return quantities.apply(id,CONSUME,version,null,sameRequest?token:UUID.randomUUID(),decimal("0.5"),OPENED,null,decimal("0.5")); }
+                catch(InvalidFoodException error) { return null; }
+            };
+            var a=pool.submit(task);var b=pool.submit(task);start.countDown();
+            var left=a.get(15,TimeUnit.SECONDS);var right=b.get(15,TimeUnit.SECONDS);
+            if(sameRequest) assertThat(left).isNotNull().isEqualTo(right);
+            else assertThat((left!=null ? 1:0)+(right!=null ? 1:0)).isEqualTo(1);
+        }
+        assertThat(items.findByMaster(masters.masterId(id))).hasSize(2);
+        assertThat(inventory.findById(id).quantityAmount()).isEqualByComparingTo("0.5");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM food_history WHERE action_type='CONSUME'",Integer.class)).isEqualTo(1);
     }
     private static org.springframework.test.web.servlet.ResultMatcher htmlCount(String pattern,long count) {
         return result -> assertThat(java.util.regex.Pattern.compile(pattern).matcher(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8)).results().count()).isEqualTo(count);

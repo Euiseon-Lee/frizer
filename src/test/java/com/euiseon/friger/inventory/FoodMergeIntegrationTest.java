@@ -201,6 +201,7 @@ class FoodMergeIntegrationTest {
         var afterHistory=jdbc.queryForList("SELECT * FROM master_upgrade.food_history ORDER BY history_id");
         afterHistory.forEach(row->assertThat(row.remove("recorded_food_name")).isEqualTo("옛 이름"));
         afterHistory.forEach(row->{assertThat(row.remove("user_id")).isEqualTo(1L);
+            assertThat((java.math.BigDecimal)row.remove("separated_quantity_amount")).isZero();
             var added=new java.util.HashSet<>(row.keySet());added.removeAll(history.getFirst().keySet());
             added.forEach(key->assertThat(row.remove(key)).isNull());
         });

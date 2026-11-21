@@ -197,6 +197,15 @@ public class InventoryService {
 
     private static String cleanCode(String value) { return value == null || value.isBlank() ? null : value.strip(); }
 
+    boolean itemDetailsChanged(FoodItem before, FoodCreateForm form) {
+        var after=normalized(form,before.foodId(),before.createdAt(),before.updatedAt());
+        if(after.openingStatus()==OpeningStatus.OPENED && before.openingStatus()==OpeningStatus.OPENED)
+            after=after.withOpening(after.openingStatus(),before.openingConfirmedAt());
+        var oldValues=values(before); var newValues=values(after);
+        for(var key:List.of("수량","단위","음식명","분류")) {oldValues.remove(key);newValues.remove(key);}
+        return !oldValues.equals(newValues);
+    }
+
     private static String registrationSnapshot(FoodItem food) {
         try {
             var snapshot = values(food);

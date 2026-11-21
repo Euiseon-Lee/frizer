@@ -59,7 +59,7 @@ public record FoodCreateForm(
     }
     public static FoodCreateForm from(com.euiseon.friger.inventory.entity.FoodItem food) {
         return new FoodCreateForm(food.foodName(), food.storageType(), food.category(),
-                food.quantityAmount() == null ? null : food.quantityAmount().stripTrailingZeros(),
+                food.quantityAmount() == null ? null : new BigDecimal(food.quantityAmount().stripTrailingZeros().toPlainString()),
                 food.expiredAt(), food.purchasedAt(), food.openedAt(), food.frozenAt(), food.sourceType(), food.freezeType(), false,
                 food.memo(), food.capacityText(), food.sourceMemo(), food.sellByAt(), food.quantityUnit(), food.warningPausedUntil()!=null,
                 food.warningPausedForever() ? null : food.warningPausedUntil(), food.warningPausedForever(), food.openingStatus());

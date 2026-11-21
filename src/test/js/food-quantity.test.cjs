@@ -60,9 +60,9 @@ test('category link carries current quantity and blocks an invalid draft',()=>{
   assert.equal(prevented,true);assert.equal(input.focused,true);
 });
 
-test('only a positive partial quantity enables the opening choices and a full quantity clears them',()=>{
+test('partial quantity defaults to unopened, preserves a choice and resets after full consumption',()=>{
   const handlers = {};
-  const radios = [{checked:false},{checked:false}];
+  const radios = [{value:'OPENED',checked:false},{value:'UNOPENED',checked:true}];
   const opening = {
     addEventListener(){}, removeAttribute(){}, querySelectorAll(){return radios;}
   };
@@ -81,8 +81,10 @@ test('only a positive partial quantity enables the opening choices and a full qu
   enter('1');
   assert.equal(opening.hidden,false);
   assert.equal(opening.disabled,false);
-  assert.ok(radios.every(radio=>!radio.checked));
+  assert.equal(radios[1].checked,true);
+  assert.equal(radios[0].checked,false);
   radios[0].checked=true;
+  radios[1].checked=false;
   enter('2');
   assert.equal(radios[0].checked,true);
   enter('8');
@@ -90,10 +92,128 @@ test('only a positive partial quantity enables the opening choices and a full qu
   assert.equal(opening.disabled,true);
   enter('0.5');
   assert.equal(opening.disabled,false);
-  assert.ok(radios.every(radio=>!radio.checked));
+  assert.equal(radios[1].checked,true);
+  assert.equal(radios[0].checked,false);
   for (const value of ['0','']) {
     enter(value);
     assert.equal(opening.hidden,true);
     assert.equal(opening.disabled,true);
+  }
+});
+
+function openingForm(unit='봉', maximum='5', automatic=false) {
+  function element(value='', extra={}) {
+    return {value,hidden:true,disabled:false,checked:false,dataset:{},handlers:{},classList:{remove(){}},
+      addEventListener(name,fn){(this.handlers[name]??=[]).push(fn)},
+      fire(name){for(const fn of this.handlers[name]??[])fn({})},
+      setCustomValidity(message){this.validationMessage=message},setAttribute(){},removeAttribute(){},...extra};
+  }
+  const fields={
+    quantityAmount:element(maximum,{dataset:{maximum,unit,action:'CONSUME'}}),quantityQuestion:element(),quantityInputError:element(),
+    remainingOpened:element('OPENED'),remainingUnopened:element('UNOPENED',{checked:true}),remainingOpening:element(),openingError:element(),
+    openingAmountGroup:element(),openedQuantity:element(),unopenedQuantity:element(),openedQuantityError:element(),
+    openingDateGroup:element(),openedAt:element('',{max:'2026-11-21'}),openingDateUnknown:element('',{checked:true})
+  };
+  if(automatic) {
+    fields.automaticOpening=element();fields.openingMode=element('AUTO');fields.automaticOpeningSummary=element();
+    const parts={};
+    fields.automaticOpeningSummary.querySelector=selector=>parts[selector]??=(element());
+    Object.defineProperty(fields.automaticOpeningSummary,'textContent',{get(){
+      return `먹은 수량 ${parts['[data-eaten-amount]']?.textContent} / 개봉한 수량 ${parts['[data-opened-amount]']?.textContent}${parts['[data-opened-unit]']?.textContent} / 미개봉 수량 ${parts['[data-unopened-amount]']?.textContent}`;
+    }});
+  }
+  fields.remainingOpening.querySelectorAll=()=>[fields.remainingOpened,fields.remainingUnopened];
+  if(automatic) {delete fields.remainingOpening;delete fields.openingAmountGroup;}
+  vm.runInNewContext(fs.readFileSync('src/main/resources/static/js/food-quantity.js','utf8'),{
+    document:{querySelector:()=>element(),getElementById:id=>fields[id]},window:{addEventListener(){}}
+  });
+  return {
+    ...fields,
+    eat(value){fields.quantityAmount.value=value;fields.quantityAmount.fire('input')},
+    choose(opened){fields.remainingOpened.checked=opened;fields.remainingUnopened.checked=!opened;fields.remainingOpening.fire('change')},
+    setOpened(value){fields.openedQuantity.value=value;fields.openedQuantity.fire('input')}
+  };
+}
+test('direct opened input updates sealed stock, preserves manual values, and validates against the current remainder',()=>{
+  const f=openingForm();
+  f.eat('0.5');f.choose(true);
+  f.openingDateUnknown.checked=false;f.openingDateUnknown.fire('change');
+  assert.equal(f.openedQuantity.value,'4.5');f.setOpened('0.5');assert.equal(f.unopenedQuantity.textContent,'4봉');
+  assert.equal(f.openedAt.value,'2026-11-21');assert.equal(f.openedAt.disabled,false);
+  f.setOpened('4.5');assert.equal(f.unopenedQuantity.textContent,'0봉');assert.equal(f.openedQuantity.validationMessage,'');
+  f.eat('1');assert.equal(f.openedQuantity.value,'4.5');assert.equal(f.unopenedQuantity.textContent,'—');
+  assert.notEqual(f.openedQuantity.validationMessage,'');assert.equal(f.openedQuantityError.hidden,false);
+  for(const value of ['','0','-1','1e0','0.001','4.01']) {
+    f.setOpened(value);assert.notEqual(f.openedQuantity.validationMessage,'');assert.equal(f.unopenedQuantity.textContent,'—');
+  }
+  f.setOpened('0.25');assert.equal(f.unopenedQuantity.textContent,'3.75봉');
+  f.choose(false);assert.equal(f.openingAmountGroup.disabled,true);assert.equal(f.openedAt.value,'2026-11-21');
+  f.choose(true);assert.equal(f.openedQuantity.value,'0.25');assert.equal(f.openedAt.value,'2026-11-21');
+  f.eat('5');assert.equal(f.remainingOpening.disabled,true);assert.equal(f.openingAmountGroup.disabled,true);
+  assert.equal(f.openingDateGroup.disabled,true);assert.equal(f.openedQuantity.validationMessage,'');
+  f.eat('0.5');assert.equal(f.remainingUnopened.checked,true);f.choose(true);assert.equal(f.openedQuantity.value,'4.5');
+});
+test('hundredths avoid rounding errors and measured units suggest the whole remainder',()=>{
+  const f=openingForm('개','0.3');f.eat('0.1');f.choose(true);
+  assert.equal(f.openedQuantity.value,'0.2');f.setOpened('0.1');assert.equal(f.unopenedQuantity.textContent,'0.1개');
+  for(const unit of ['g','kg','ml','L','그램','리터','cc','밀리그램','oz','인분','임의']) {
+    const bulk=openingForm(unit,'500');bulk.eat('100');bulk.choose(true);
+    assert.equal(bulk.openedQuantity.value,'400');assert.equal(bulk.unopenedQuantity.textContent,'0'+unit);
+    bulk.setOpened('200');assert.equal(bulk.unopenedQuantity.textContent,'200'+unit);
+  }
+});
+test('unknown opening date draft stays checked while its controls are hidden',()=>{
+  const f=openingForm();f.eat('0.5');f.choose(true);
+  f.openingDateUnknown.checked=true;f.openingDateUnknown.fire('change');
+  assert.equal(f.openedAt.value,'');assert.equal(f.openedAt.disabled,true);
+  f.setOpened('1.5');assert.equal(f.openedAt.disabled,true);
+  f.choose(false);assert.equal(f.openingDateUnknown.checked,true);
+  f.choose(true);assert.equal(f.openedAt.disabled,true);assert.equal(f.openedAt.value,'');
+});
+
+test('automatic counted packages show the split and ask for a date only for opened remainder',()=>{
+  const f=openingForm('개','3',true);
+  f.eat('0.5');
+  assert.equal(f.automaticOpeningSummary.textContent,'먹은 수량 0.5개 / 개봉한 수량 0.5개 / 미개봉 수량 2개');
+  assert.equal(f.openedAt.disabled,true);
+  assert.equal(f.openedAt.value,'');
+  f.openingDateUnknown.checked=false;f.openingDateUnknown.fire('change');
+  assert.equal(f.openedAt.value,'2026-11-21');
+  f.eat('1');assert.equal(f.openedAt.disabled,true);
+  assert.equal(f.automaticOpeningSummary.textContent,'먹은 수량 1개 / 개봉한 수량 0개 / 미개봉 수량 2개');
+  f.openingMode.value='ALL';f.openingMode.fire('change');
+  assert.equal(f.automaticOpeningSummary.textContent,'먹은 수량 1개 / 개봉한 수량 2개 / 미개봉 수량 0개');
+  assert.equal(f.openedAt.disabled,false);
+  f.eat('3');assert.equal(f.openingMode.disabled,true);assert.equal(f.openedAt.disabled,true);
+});
+
+test('quantity replacement preserves the exact date and unknown-date choice in automatic and manual modes',()=>{
+  for(const automatic of [true,false]) {
+    const f=openingForm(automatic?'개':'cc','3',automatic);
+    f.eat('0.5');if(!automatic)f.choose(true);
+    f.openingDateUnknown.checked=false;f.openingDateUnknown.fire('change');
+    f.openedAt.value='2026-11-19';f.openedAt.fire('input');
+    for(const intermediate of ['', '.', '0', '3', ...(automatic?['1']:[])]) {
+      f.eat(intermediate);assert.equal(f.openedAt.disabled,true);
+      assert.equal(f.openedAt.value,'2026-11-19');
+      f.eat('0.25');if(!automatic)f.choose(true);
+      assert.equal(f.openedAt.value,'2026-11-19');assert.equal(f.openedAt.disabled,false);
+    }
+    f.openingDateUnknown.checked=true;f.openingDateUnknown.fire('change');
+    f.eat('');f.eat('0.5');if(!automatic)f.choose(true);
+    assert.equal(f.openingDateUnknown.checked,true);assert.equal(f.openedAt.value,'');assert.equal(f.openedAt.disabled,true);
+  }
+});
+
+test('new consumption defaults to unknown opening date for both automatic and manual quantities',()=>{
+  for(const automatic of [true,false]) {
+    const f=openingForm(automatic?'개':'cc','3',automatic);
+    f.eat('0.5');if(!automatic)f.choose(true);
+    assert.equal(f.openingDateUnknown.checked,true);
+    assert.equal(f.openedAt.value,'');assert.equal(f.openedAt.disabled,true);
+    f.eat('');f.eat('0.25');if(!automatic)f.choose(true);
+    assert.equal(f.openingDateUnknown.checked,true);
+    f.openingDateUnknown.checked=false;f.openingDateUnknown.fire('change');
+    assert.equal(f.openedAt.disabled,false);assert.equal(f.openedAt.value,'2026-11-21');
   }
 });

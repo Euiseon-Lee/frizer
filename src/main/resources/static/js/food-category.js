@@ -102,6 +102,9 @@
     refreshButton.hidden = true;
     refreshButton.type = 'button'; // Hidden submit buttons still receive implicit Enter submissions.
     form.addEventListener('submit', event => {
+        if (document.getElementById('editModes') &&
+            (form.querySelector('[name="editMode"]:checked')?.value === 'partial' ||
+             (document.getElementById('editMergeToggle')?.checked && document.getElementById('mergeTargetId')?.value))) return;
         if (event.submitter?.value === 'refresh') return;
         if (submitting) { event.preventDefault(); return; }
         if (!active) return;

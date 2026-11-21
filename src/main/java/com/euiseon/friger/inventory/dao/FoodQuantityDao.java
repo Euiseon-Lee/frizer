@@ -2,15 +2,18 @@ package com.euiseon.friger.inventory.dao;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import com.euiseon.friger.common.type.OpeningStatus;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface FoodQuantityDao {
     record State(long versionNo, long stockRevision, String snapshot) {}
     record Event(long historyId, String actionType, BigDecimal processedQuantityAmount, String quantityUnit,
-                 long afterStockRevision, java.time.OffsetDateTime createdAt, boolean reversed, boolean openedByConsumption) {
+                 long afterStockRevision, java.time.OffsetDateTime createdAt, boolean reversed, OpeningStatus openingStatusToRestore,
+                 Long separatedFoodId, BigDecimal separatedQuantityAmount, Long separatedItemVersion) {
         public String actionLabel() { return actionType.equals("CONSUME") ? "소비" : "폐기"; }
         public String quantity() { return processedQuantityAmount.stripTrailingZeros().toPlainString()+quantityUnit; }
+        public BigDecimal restoredAmount(BigDecimal current) { return current.add(processedQuantityAmount).add(separatedQuantityAmount); }
     }
     record Receipt(String requestPayload, Long historyId) {}
     record Version(long foodId,long versionNo,long masterId) {}
@@ -20,15 +23,26 @@ public interface FoodQuantityDao {
     State state(long id);
     @Select("""
         SELECT h.history_id,h.action_type,h.processed_quantity_amount,h.quantity_unit,h.after_stock_revision,h.created_at,
+               h.separated_food_id,h.separated_quantity_amount,h.separated_item_version,
                EXISTS(SELECT 1 FROM food_history c WHERE c.reversal_of_history_id=h.history_id) AS reversed,
-               COALESCE(h.action_type='CONSUME' AND h.before_snapshot->>'opening_status'='UNOPENED'
-                   AND h.after_snapshot->>'opening_status'='OPENED', false) AS opened_by_consumption
+               CASE WHEN h.action_type='CONSUME' AND h.before_snapshot->>'opening_status' IN ('UNOPENED','UNKNOWN')
+                         AND h.before_snapshot->>'opening_status' <> h.after_snapshot->>'opening_status'
+                    THEN h.before_snapshot->>'opening_status' END AS opening_status_to_restore
         FROM food_history h WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id}
             AND h.action_type IN ('CONSUME','DISCARD') AND h.operation_id IS NOT NULL
         ORDER BY h.history_id DESC LIMIT 1
         """)
     Event latest(long id);
-    @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.quantity_text,h.created_at,h.cooking_id,c.food_name AS cooking_name,h.changes_text FROM food_history h LEFT JOIN cooking_record c ON c.user_id=h.user_id AND c.cooking_id=h.cooking_id WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND (h.action_type IN ('CREATE','SPLIT_IN','COOK_IN') OR (h.action_type IN ('CONSUME','DISCARD','CANCEL','SPLIT_OUT','COOK_OUT') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.cooking_id IS NOT NULL OR h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
+    @Select("""
+        SELECT EXISTS(
+            SELECT 1 FROM food_history h
+            WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND h.action_type='CONSUME'
+              AND NOT EXISTS(SELECT 1 FROM food_history c
+                  WHERE c.user_id=h.user_id AND c.reversal_of_history_id=h.history_id)
+        )
+        """)
+    boolean hasConsumption(long id);
+    @Select("SELECT h.history_id,h.action_type,h.before_quantity_amount,h.after_quantity_amount,h.before_quantity_unit,h.quantity_unit,h.quantity_text,h.created_at,h.cooking_id,c.food_name AS cooking_name,h.changes_text,h.separated_quantity_amount FROM food_history h LEFT JOIN cooking_record c ON c.user_id=h.user_id AND c.cooking_id=h.cooking_id WHERE h.user_id=#{_userId,jdbcType=BIGINT} AND h.food_id=#{id} AND (h.action_type IN ('CREATE','SPLIT_IN','COOK_IN') OR (h.action_type IN ('CONSUME','DISCARD','CANCEL','SPLIT_OUT','COOK_OUT') AND h.operation_id IS NOT NULL) OR (h.action_type='UPDATE' AND (h.cooking_id IS NOT NULL OR h.before_quantity_amount IS DISTINCT FROM h.after_quantity_amount OR h.before_quantity_unit IS DISTINCT FROM h.quantity_unit))) ORDER BY h.history_id DESC")
     java.util.List<QuantityChange> quantityChanges(long id);
     record EndedSummary(long foodId, String registrationQuantity, java.time.OffsetDateTime endedAt) {}
     record RegistrationQuantity(long foodId, String registrationQuantity) {}
@@ -46,20 +60,28 @@ public interface FoodQuantityDao {
         <script>
         UPDATE food_item SET quantity_amount=#{amount}, quantity_text=#{text}, status=#{status}, updated_at=clock_timestamp()
         <if test="openingStatus != null">
-            , opening_status=#{openingStatus}, opened_at=NULL, opening_confirmed_at=#{confirmedAt,jdbcType=DATE}
+            , opening_status=#{openingStatus}, opened_at=#{openedAt,jdbcType=DATE}, opening_confirmed_at=#{confirmedAt,jdbcType=DATE}
         </if>
         WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} AND version_no=#{version}
         </script>
         """)
     int updateQuantity(long id, long version, BigDecimal amount, String text, String status,
-                       com.euiseon.friger.common.type.OpeningStatus openingStatus, java.time.LocalDate confirmedAt);
+                       OpeningStatus openingStatus, java.time.LocalDate openedAt,
+                       java.time.LocalDate confirmedAt);
+    @Delete("DELETE FROM food_history WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} AND action_type='SPLIT_IN'")
+    int deleteSeparatedHistory(long id);
+    @Delete("DELETE FROM food_item WHERE user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} AND master_id=#{masterId} AND version_no=#{version}")
+    int deleteSeparatedItem(long id,long masterId,long version);
     default int quantity(long id, long version, BigDecimal amount, String text, String status) {
-        return updateQuantity(id, version, amount, text, status, null, null);
+        return updateQuantity(id, version, amount, text, status, null, null, null);
     }
-    @Select(value="INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,quantity_text,changes_text,recorded_food_name,operation_id,processed_quantity_amount,quantity_unit,before_quantity_amount,after_quantity_amount,before_quantity_unit,before_snapshot,after_snapshot,snapshot_version,before_item_version,after_item_version,after_stock_revision,reversal_of_history_id,cooking_id,created_at) " +
-        "SELECT #{_userId,jdbcType=BIGINT},i.food_id,#{action},i.storage_type,i.storage_type,#{display},#{changes},m.food_name,#{token},#{processed},i.quantity_unit,#{beforeAmount},i.quantity_amount,i.quantity_unit,CAST(#{before.snapshot} AS jsonb),CAST(#{after.snapshot} AS jsonb),1,#{before.versionNo},#{after.versionNo},#{after.stockRevision},#{reversal,jdbcType=BIGINT},#{cookingId,jdbcType=OTHER},clock_timestamp() FROM food_item i JOIN food_master m USING(master_id) WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} RETURNING history_id", affectData=true)
+    @Select(value="INSERT INTO food_history(user_id,food_id,action_type,previous_storage_type,new_storage_type,quantity_text,changes_text,recorded_food_name,operation_id,processed_quantity_amount,quantity_unit,before_quantity_amount,after_quantity_amount,before_quantity_unit,before_snapshot,after_snapshot,snapshot_version,before_item_version,after_item_version,after_stock_revision,reversal_of_history_id,cooking_id,separated_food_id,separated_quantity_amount,separated_item_version,created_at) " +
+        "SELECT #{_userId,jdbcType=BIGINT},i.food_id,#{action},i.storage_type,i.storage_type,#{display},#{changes},m.food_name,#{token},#{processed},i.quantity_unit,#{beforeAmount},i.quantity_amount,i.quantity_unit,CAST(#{before.snapshot} AS jsonb),CAST(#{after.snapshot} AS jsonb),1,#{before.versionNo},#{after.versionNo},#{after.stockRevision},#{reversal,jdbcType=BIGINT},#{cookingId,jdbcType=OTHER},#{separatedId,jdbcType=BIGINT},#{separatedAmount},#{separatedVersion,jdbcType=BIGINT},clock_timestamp() FROM food_item i JOIN food_master m USING(master_id) WHERE i.user_id=#{_userId,jdbcType=BIGINT} AND food_id=#{id} RETURNING history_id", affectData=true)
     @Options(flushCache=Options.FlushCachePolicy.TRUE)
-    long linkedHistory(long id,String action,UUID token,BigDecimal processed,BigDecimal beforeAmount,String display,String changes,State before,State after,Long reversal,UUID cookingId);
+    long operationHistory(long id,String action,UUID token,BigDecimal processed,BigDecimal beforeAmount,String display,String changes,State before,State after,Long reversal,UUID cookingId,Long separatedId,BigDecimal separatedAmount,Long separatedVersion);
+    default long linkedHistory(long id,String action,UUID token,BigDecimal processed,BigDecimal beforeAmount,String display,String changes,State before,State after,Long reversal,UUID cookingId) {
+        return operationHistory(id,action,token,processed,beforeAmount,display,changes,before,after,reversal,cookingId,null,BigDecimal.ZERO,null);
+    }
     default long history(long id,String action,UUID token,BigDecimal processed,BigDecimal beforeAmount,String display,String changes,State before,State after,Long reversal) {
         return linkedHistory(id,action,token,processed,beforeAmount,display,changes,before,after,reversal,null);
     }

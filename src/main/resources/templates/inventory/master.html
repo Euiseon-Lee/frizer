@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css(v='opening-21')}">
+<title>FR!ZER | 개별 구매 목록</title><link rel="stylesheet" th:href="@{/css/app.css(v='history-icons-3')}">
 <script>document.documentElement.classList.add('js-title-fit')</script>
 <script th:src="@{/js/choco-selector.js}" defer></script><script th:src="@{/js/choco.js}" defer></script><script th:src="@{/js/food-title.js}" defer></script><script th:src="@{/js/notices.js}" defer></script><script th:src="@{/js/move-select.js}" defer></script></head>
 <body><header th:replace="~{fragments/shell :: header}"></header>
@@ -12,7 +12,7 @@
 <div class="tab-sheet">
 <div class="notice purchase-notice" role="status" th:if="${successMessage}">
 <div class="purchase-notice-content"><span th:text="${successMessage}"></span>
-<a class="purchase-undo" th:if="${processedItemId != null}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}">처리 취소</a></div>
+<a class="purchase-undo" aria-label="처리 취소" title="처리 취소" th:if="${processedItemId != null}" th:href="@{/inventory/{id}/quantity(id=${processedItemId},action='CANCEL',storage=${selectedStorage},warning=${savedWarning ? true : null},ended=${ended ? true : null})}"><svg th:replace="~{fragments/icons :: undo}"></svg></a></div>
 </div>
 <div class="purchase-status-toolbar">
 <nav class="filter-tabs purchase-status-tabs" aria-label="구매 항목 보관 상태">

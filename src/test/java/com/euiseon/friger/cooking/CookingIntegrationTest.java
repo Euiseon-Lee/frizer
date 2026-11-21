@@ -94,6 +94,18 @@ class CookingIntegrationTest {
             f.quantityUnit(),f.cookedAt(),f.storageType(),f.frozenAt(),f.memo(),f.capacityText(),eaten,f.ingredients());
     }
     void stock(long id,String amount) { assertThat(foods.findById(id).quantityAmount()).isEqualByComparingTo(amount); }
+    @Test void cookingCorrectionAfterOpeningSeparationRequiresTheActualRemainingAmount() {
+        long ingredient=item("재료","5","봉");
+        var cook=cooking.create(form(List.of(use(ingredient,"1"))));
+        jdbc.update("UPDATE food_item SET opening_status='UNOPENED' WHERE food_id=?",ingredient);
+        quantities.apply(ingredient,FoodQuantityService.Action.CONSUME,quantities.preview(ingredient).version(),null,UUID.randomUUID(),
+            new BigDecimal("0.5"),OpeningStatus.OPENED,null,new BigDecimal("0.5"));
+        long child=quantities.preview(ingredient).event().separatedFoodId();
+        assertThat(cooking.correctionContext(cook,ingredient).needsRemaining()).isTrue();
+        assertThatThrownBy(()->cooking.correct(correction(cook,ingredient,"0.5",null))).isInstanceOf(InvalidFoodException.class);
+        cooking.correct(correction(cook,ingredient,"0.5","1"));
+        stock(ingredient,"1");stock(child,"3");
+    }
     CookingService.Correction correction(UUID id,long item,String amount,String remaining) {
         var c=cooking.correctionContext(id,item);
         return new CookingService.Correction(UUID.randomUUID(),id,item,c.record().versionNo(),c.itemVersion(),

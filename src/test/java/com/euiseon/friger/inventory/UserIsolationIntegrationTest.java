@@ -53,6 +53,7 @@ class UserIsolationIntegrationTest {
     @Autowired FoodQuantityService quantities;
     @Autowired FoodQuantityDao quantityDao;
     @Autowired ItemMoveService moves;
+    @Autowired ItemEditService edits;
     @Autowired FoodSplitService split;
     @Autowired FoodDeleteService deleteService;
     @Autowired ItemMoveDao moveDao;
@@ -76,6 +77,47 @@ class UserIsolationIntegrationTest {
     }
     FoodCreateForm form(String name) {
         return new FoodCreateForm(name,StorageType.FRIDGE,null,new BigDecimal("2"),null,null,null,null,null,FreezeType.NONE,false,null,null,null,null,"개");
+    }
+    @Test void integratedEditCannotUseAnotherOwnersSourceOrTarget() {
+        long ownerItem=inventory.create(form("소유자"));
+        var before=inventory.findById(ownerItem);
+        as("tester");
+        long other=inventory.create(form("다른 계정"));long target=masters.masterIdForItem(other);
+        var version=masters.find(target).versionNo();
+        assertThatThrownBy(()->edits.save(ownerItem,form("침입"),before.updatedAt(),"all",false,null,null,null,null))
+            .isInstanceOf(com.euiseon.friger.inventory.exception.FoodNotFoundException.class);
+        as("owner");
+        assertThat(edits.choices(ownerItem)).noneMatch(c->c.masterId()==target);
+        assertThatThrownBy(()->edits.save(ownerItem,form("소유자"),before.updatedAt(),"partial",true,target,version,null,null))
+            .isInstanceOf(com.euiseon.friger.inventory.exception.InvalidFoodException.class);
+        assertThat(inventory.findById(ownerItem).quantityAmount()).isEqualByComparingTo("2");
+    }
+    @Test void consumptionSeparationAndUndoAreScopedToTheOwner() throws Exception {
+        long id=inventory.create(form("개봉 분리 소유자"));
+        masters.assignCategory(masters.masterIdForItem(id),"kimchi",null,"김치");
+        jdbc.update("UPDATE food_item SET opening_status='UNOPENED' WHERE food_id=?",id);
+        var token=UUID.randomUUID();
+        var version=quantities.preview(id).version();
+        long event=quantities.apply(id,FoodQuantityService.Action.CONSUME,version,null,token,new BigDecimal("0.5"),OpeningStatus.OPENED,null,new BigDecimal("0.5"));
+        long child=quantities.preview(id).event().separatedFoodId();
+        long childMaster=masters.masterIdForItem(child);
+        long childVersion=quantityDao.state(child).versionNo();
+        assertThat(jdbc.queryForObject("SELECT user_id FROM food_item WHERE food_id=?",Long.class,child)).isEqualTo(1L);
+        as("tester");
+        assertThat(items.findById(child)).isNull();
+        assertThat(quantityDao.latest(id)).isNull();
+        assertThat(quantityDao.deleteSeparatedHistory(child)).isZero();
+        assertThat(quantityDao.deleteSeparatedItem(child,childMaster,childVersion)).isZero();
+        assertThatThrownBy(()->quantities.apply(id,FoodQuantityService.Action.CONSUME,version,null,token,new BigDecimal("0.5"),OpeningStatus.OPENED,null,new BigDecimal("0.5")))
+            .isInstanceOf(com.euiseon.friger.inventory.exception.FoodNotFoundException.class);
+        mvc.perform(post("/inventory/"+id+"/quantity").with(user(accounts.loadUserByUsername("tester"))).with(csrf())
+            .param("action","CANCEL").param("version",Long.toString(version+1)).param("historyId",Long.toString(event))
+            .param("requestId",UUID.randomUUID().toString())).andExpect(status().isNotFound());
+        as("owner");
+        assertThat(items.findById(child).quantityAmount()).isEqualByComparingTo("1");
+        quantities.apply(id,FoodQuantityService.Action.CANCEL,quantities.preview(id).version(),event,UUID.randomUUID(),null);
+        assertThat(items.findById(id).quantityAmount()).isEqualByComparingTo("2");
+        assertThat(items.findById(child)).isNull();
     }
     @Test void historySearchAndUnlimitedViewRemainOwnerScoped() throws Exception {
         inventory.create(form("공통 소유자 음식"));
